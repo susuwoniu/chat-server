@@ -1,0 +1,16 @@
+env = "development"
+[i18n]
+fallback_language = "zh-Hans"
+language = "auto"
+[server]
+host = "127.0.0.1"
+port = "8080"
+url = "http://localhost:8080"
+
+[log]
+level = "info"
+
+[db]
+
+max_connections = 10
+url = ""
