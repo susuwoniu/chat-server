@@ -1,8 +1,88 @@
+use super::token::Token;
+use crate::config::Config;
 use crate::util::id::next_id;
-use crate::util::string::get_random_letter;
-use chrono::prelude::{NaiveDate, NaiveDateTime};
+use crate::util::key_pair::Pair;
+use chrono::prelude::{NaiveDate, NaiveDateTime, Utc};
+use chrono::Duration;
 use serde_json::Value;
 use shrinkwraprs::Shrinkwrap;
+
+#[derive(Debug, Deserialize)]
+pub struct PhoneCodePostData {
+    pub phone_country_code: i32,
+    pub phone_number: String,
+}
+#[derive(Debug, Deserialize)]
+pub struct PhoneAuthPostData {
+    pub phone_country_code: i32,
+    pub phone_number: String,
+    pub code: String,
+}
+#[derive(Debug, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "gender", rename_all = "snake_case")]
+pub enum Gender {
+    Unknown,
+    Male,
+    Female,
+    Other,
+    Intersex,
+}
+#[derive(Debug, sqlx::Type)]
+#[sqlx(type_name = "identity_type", rename_all = "snake_case")]
+pub enum IdentityType {
+    Phone,
+    Email,
+    Wechat,
+    Weibo,
+    Apple,
+    Google,
+    Facebook,
+    Twitter,
+}
+#[derive(Debug, Deserialize)]
+pub struct LoginActivityData {
+    pub account_id: i64,
+    pub account_auth_id: i64,
+    pub last_signin_at: NaiveDateTime,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SlimAccount {
+    pub id: i64,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AuthData {
+    pub account_id: i64,
+    pub access_token: String,
+    pub expires_at: NaiveDateTime,
+    pub refresh_token: String,
+    pub refresh_token_expires_at: NaiveDateTime,
+}
+
+impl AuthData {
+    pub fn new(account_id: i64, client_id: i64, pair: &Pair, config: &Config) -> Self {
+        let token = Token::new(
+            account_id,
+            pair,
+            config.auth.access_token_expires_in_days,
+            config.server.url.clone().into(),
+            config.server.url.clone().into(),
+            client_id,
+        );
+        let access_token = token.get_token();
+        let refresh_token = "".to_string();
+        let now = Utc::now();
+        // todo config
+        let expires_at = token.get_expires_at();
+        let refresh_token_expires_at = now + Duration::days(365);
+        Self {
+            account_id,
+            access_token,
+            expires_at: expires_at,
+            refresh_token,
+            refresh_token_expires_at: refresh_token_expires_at.naive_utc(),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
@@ -74,17 +154,6 @@ pub struct InsertableAccount {
     pub deleted: bool,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct PhoneLoginData {
-    pub phone_country_code: i32,
-    pub phone_number: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SlimAccount {
-    pub id: i64,
-}
-
 #[derive(Shrinkwrap, Clone, Default)]
 pub struct LoggedAccount(pub Option<SlimAccount>);
 
@@ -94,16 +163,12 @@ impl From<SlimAccount> for LoggedAccount {
     }
 }
 
-impl From<PhoneLoginData> for InsertableAccount {
-    fn from(account_data: PhoneLoginData) -> Self {
-        let PhoneLoginData {
+impl From<PhoneCodePostData> for InsertableAccount {
+    fn from(account_data: PhoneCodePostData) -> Self {
+        let PhoneCodePostData {
             phone_country_code,
             phone_number,
         } = account_data;
-        let id = next_id();
-        // get random name
-        // let default_name = i18n.get_by_lang("default-name", "zh-Hans");
-        let default_name = get_random_letter(4);
         Self {
             id: next_id(),
             phone_country_code,

@@ -1,5 +1,7 @@
 use actix_web::{error::ResponseError, HttpResponse};
 use config::ConfigError;
+use deadpool_redis::redis::RedisError;
+use deadpool_redis::CreatePoolError;
 use sqlx::Error as SqlxError;
 use std::convert::From;
 use std::io;
@@ -12,6 +14,8 @@ pub enum InternalError {
     Config(#[from] ConfigError),
     #[error("db error")]
     Db(#[from] SqlxError),
+    #[error("redis error")]
+    Redis(#[from] CreatePoolError),
 }
 
 #[derive(Debug, Error, Serialize)]
@@ -22,11 +26,8 @@ pub enum ServiceError {
     #[error("BadRequest: {0}")]
     BadRequest(String),
 
-    #[error("Unauthorized")]
-    Unauthorized,
-
-    #[error("Unable to connect to DB")]
-    UnableToConnectToDb,
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 // impl ResponseError trait allows to convert our errors into http responses with appropriate data
@@ -36,10 +37,9 @@ impl ResponseError for ServiceError {
             ServiceError::InternalServerError => {
                 HttpResponse::InternalServerError().json("Internal Server Error, Please try later")
             }
-            ServiceError::UnableToConnectToDb => HttpResponse::InternalServerError()
-                .json("Unable to connect to DB, Please try later"),
+
             ServiceError::BadRequest(ref message) => HttpResponse::BadRequest().json(message),
-            ServiceError::Unauthorized => HttpResponse::Unauthorized().json("Unauthorized"),
+            ServiceError::Unauthorized(ref message) => HttpResponse::Unauthorized().json(message),
         }
     }
 }
@@ -59,5 +59,59 @@ impl From<SqlxError> for ServiceError {
         }
     }
 }
+impl From<serde_json::Error> for ServiceError {
+    fn from(error: serde_json::Error) -> ServiceError {
+        // Right now we just care about UniqueViolation from diesel
+        // But this would be helpful to easily map errors as our app grows
+        error!("parse json error: {:?}", error);
 
+        ServiceError::BadRequest("parse json failed".to_string())
+    }
+}
+
+impl From<chrono::ParseError> for ServiceError {
+    fn from(error: chrono::ParseError) -> ServiceError {
+        // Right now we just care about UniqueViolation from diesel
+        // But this would be helpful to easily map errors as our app grows
+        error!("parse time error: {:?}", error);
+
+        ServiceError::BadRequest("parse time failed, please provide a rfc3382 time".to_string())
+    }
+}
+impl From<CreatePoolError> for ServiceError {
+    fn from(redis_error: CreatePoolError) -> ServiceError {
+        // Right now we just care about UniqueViolation from diesel
+        // But this would be helpful to easily map errors as our app grows
+        // server error
+
+        let error_meesage = format!("{:?}", redis_error);
+        error!("redis create pool error {:?}", error_meesage);
+        ServiceError::InternalServerError
+    }
+}
+
+impl From<deadpool::managed::PoolError<deadpool_redis::redis::RedisError>> for ServiceError {
+    fn from(
+        redis_error: deadpool::managed::PoolError<deadpool_redis::redis::RedisError>,
+    ) -> ServiceError {
+        // Right now we just care about UniqueViolation from diesel
+        // But this would be helpful to easily map errors as our app grows
+        // server error
+
+        let error_meesage = format!("{:?}", redis_error);
+        error!("redis pool error: {:?}", error_meesage);
+        ServiceError::InternalServerError
+    }
+}
+impl From<RedisError> for ServiceError {
+    fn from(redis_error: RedisError) -> ServiceError {
+        // Right now we just care about UniqueViolation from diesel
+        // But this would be helpful to easily map errors as our app grows
+        // server error
+
+        let error_meesage = format!("{:?}", redis_error);
+        error!("redis error: {:?}", error_meesage);
+        ServiceError::InternalServerError
+    }
+}
 pub type ServiceResult<V> = std::result::Result<V, crate::errors::ServiceError>;

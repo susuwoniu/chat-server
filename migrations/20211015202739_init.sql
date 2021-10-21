@@ -2,6 +2,8 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 -- create enum type identity_type
 CREATE TYPE identity_type AS ENUM ('phone','email','wechat', 'weibo','apple','google','facebook','twitter');
+CREATE TYPE gender AS ENUM ('male', 'female','intersex','other','unknown');
+CREATE TYPE target_gender AS ENUM ('male', 'female','all');
 
 -- Your SQL goes here
 -- 用户账号表
@@ -9,6 +11,10 @@ CREATE TABLE accounts (
    id bigint NOT NULL PRIMARY KEY,
    name character varying(255) NOT NULL,
    bio character varying(255) DEFAULT ''::text NOT NULL,
+   gender gender DEFAULT 'unknown' NOT NULL,
+   admin boolean DEFAULT false NOT NULL,
+   moderator boolean DEFAULT false NOT NULL,
+   vip boolean Default false NOT NULL,
    posts_count bigint DEFAULT 0  NOT NULL,
    likes_count bigint DEFAULT 0  NOT NULL,
    show_age boolean DEFAULT true NOT NULL,
@@ -16,6 +22,7 @@ CREATE TABLE accounts (
    suspended boolean DEFAULT false NOT NULL,
    deleted boolean DEFAULT false NOT NULL,
    suspended_at timestamp,
+   suspended_reason text,
    deleted_at timestamp,
    birthday date,
    phone_country_code integer,
@@ -34,48 +41,52 @@ CREATE TABLE accounts (
 --用户登录表
 CREATE TABLE account_auths (
     id bigint NOT NULL PRIMARY KEY,
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
-    sign_in_count bigint DEFAULT 0 NOT NULL,
+    signin_count bigint DEFAULT 0 NOT NULL,
     -- 10: mobile, 20: wechat, 30: apple
     identity_type identity_type NOT NULL,
     identifier character varying(1024),
+    refresh_token character varying(255) DEFAULT ''::text NOT NULL,
+    refresh_token_expires_at timestamp,
     hash BYTEA,
     salt VARCHAR(255),
-    auth_data json,
-    auth_expires_at timestamp without time zone,
-    source_from character varying(255),
-    current_sign_in_at timestamp without time zone,
-    last_sign_in_at timestamp without time zone,
-    current_sign_in_ip inet,
-    last_sign_in_ip inet,
-    admin boolean DEFAULT false NOT NULL,
+    third_party_data json,
+    third_party_token_expires_at timestamp without time zone,
+    third_party_refresh_token_expires_at timestamp without time zone,
+    current_signin_at timestamp without time zone,
+    last_signin_at timestamp,
+    current_signin_ip inet,
+    last_signin_ip inet,
     account_id bigint NOT NULL,
     disabled boolean DEFAULT false NOT NULL,
-    moderator boolean DEFAULT false NOT NULL,
     invite_id bigint,
-    sign_up_ip inet,
+    signup_ip inet,
     deleted boolean DEFAULT false NOT NULL,
     deleted_at boolean DEFAULT false NOT NULL
 );
 
-CREATE UNIQUE INDEX index_identity_type_and_identifier ON account_auths USING btree (identity_type, identifier);
+CREATE UNIQUE INDEX index_identity_type_and_identifier ON account_auths USING btree (identifier,identity_type,deleted);
+CREATE INDEX index_refresh_token_account_id_token ON account_auths USING btree (refresh_token, account_id,deleted);
 
 -- 用户登录记录表
 
 CREATE TABLE login_activities (
     id bigint NOT NULL PRIMARY KEY,
     account_auth_id bigint NOT NULL,
-    identity_type identity_type,
+    account_id bigint NOT NULL,
     -- iOS: 10, android: 20, web: 30
-    application_id bigint NOT NULL,
-    success boolean,
+    client_id bigint NOT NULL,
+    success boolean NOT NULL,
     failure_reason character varying,
     ip inet,
     user_agent character varying,
-    created_at timestamp without time zone
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    deleted boolean DEFAULT false NOT NULL,
+    deleted_at timestamp
 );
 
+CREATE INDEX index_login_activities_account_id ON account_auths USING btree (account_id,deleted);
 
 -- 邀请表
 CREATE TABLE invites (
@@ -84,7 +95,7 @@ CREATE TABLE invites (
     code character varying NOT NULL UNIQUE,
     max_uses bigint,
     uses bigint DEFAULT 0 NOT NULL,
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL
 );
 CREATE INDEX index_invites_code ON invites USING btree (code);
@@ -95,24 +106,26 @@ CREATE INDEX index_invites_account_id ON invites USING btree (account_id);
 
 CREATE TABLE blocks (
     id bigint NOT NULL PRIMARY KEY,
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
-    target_account_id bigint NOT NULL
+    target_account_id bigint NOT NULL,
+    deleted boolean DEFAULT false NOT NULL,
+    deleted_at timestamp
 );
 
-CREATE UNIQUE INDEX index_blocks_on_account_id_and_target_account_id ON blocks USING btree (account_id, target_account_id);
-
-CREATE INDEX index_blocks_on_target_account_id ON blocks USING btree (target_account_id);
-CREATE INDEX index_blocks_on_account_id ON blocks USING btree (account_id);
+CREATE INDEX index_blocks_on_account_id_and_target_account_id ON blocks USING btree (account_id, target_account_id,deleted);
+CREATE INDEX index_blocks_on_target_account_id ON blocks USING btree (target_account_id,deleted);
+CREATE INDEX index_blocks_on_account_id ON blocks USING btree (account_id,deleted);
 
 -- likes 表
 CREATE TABLE likes (
     id bigint NOT NULL PRIMARY KEY,
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
-    target_account_id bigint NOT NULL
+    target_account_id bigint NOT NULL,
+    deleted boolean DEFAULT false NOT NULL
 );
 
 CREATE UNIQUE INDEX index_likes_on_account_id_and_target_account_id ON likes USING btree (account_id, target_account_id);
@@ -131,7 +144,7 @@ CREATE TABLE reports (
     action_taken boolean DEFAULT false NOT NULL,
     action_taken_by_account_id bigint,
     action_comment text  DEFAULT ''::text NOT NULL,
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
     target_account_id bigint NOT NULL
@@ -141,10 +154,11 @@ CREATE TABLE reports (
 CREATE TABLE post_templates (
     id bigint NOT NULL PRIMARY KEY,
     content text DEFAULT ''::text NOT NULL,
-    used_counts bigint DEFAULT 0 NOT NULL,
+    used_count bigint DEFAULT 0 NOT NULL,
+    skip_count bigint DEFAULT 0 NOT NULL,
     background_image character varying,
     background_color character varying(255),
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
     verified boolean DEFAULT false NOT NULL
@@ -159,8 +173,11 @@ CREATE TABLE posts (
     background_image character varying,
     background_color character varying(255),
     post_template_id bigint NOT NULL,
-    application_id bigint NOT NULL,
-    created_at timestamp without time zone NOT NULL,
+    client_id bigint NOT NULL,
+    skip_count bigint DEFAULT 0 NOT NULL,
+    view_count bigint DEFAULT 0 NOT NULL,
+    target_gender target_gender DEFAULT 'all' NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     time_cursor timestamp without time zone NOT NULL,
     sensitive boolean DEFAULT false NOT NULL,
@@ -175,7 +192,7 @@ CREATE INDEX index_posts_on_account_id ON posts USING btree (account_id);
 
 CREATE TABLE views (
     id bigint NOT NULL PRIMARY KEY,
-    created_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
     post_id bigint NOT NULL

@@ -50,9 +50,7 @@ impl I18n {
       bundle_map: bundle_map,
     }
   }
-  pub fn get(&self, id: &str) -> String {
-    self.with_lang(id, self.fallback_lang.as_ref())
-  }
+
   pub fn with_args(&self, id: &str, lang: &str, args: FluentArgs) -> String {
     let bundle = self.get_bundle_by_lang(lang);
     let msg = bundle.get_message(id).expect("Message doesn't exist.");
@@ -95,13 +93,11 @@ mod test {
   #[test]
   fn new_i18n() {
     let i18n = I18n::new("en-US");
-    let message = i18n.get("hello");
     let message2 = i18n.with_lang("hello", "zh-Hans");
     let mut args = FluentArgs::new();
     args.set("random", "test");
     let message3 = i18n.with_args("default-name", "zh-Hans", args);
 
-    assert_eq!(message, "Hello");
     assert_eq!(message2, "你好");
     assert_eq!(message3, "用户test")
   }

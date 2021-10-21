@@ -1,7 +1,0 @@
-[posts]
-content = "text" 
-created_at = "int" 
-id = "char" 
-location = "geography" # 发帖时候的地理位置
-time_sort_index = "int" # 默认是 created_at, 时间排序索引
-updated_at = "int"

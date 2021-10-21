@@ -2,21 +2,38 @@ use crate::util::string::to_first_letter_uppertcase;
 use config::{Config as ConfigBuilder, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 use std::fmt;
+use url::Url;
+
+#[derive(Default, Debug, Deserialize, Clone)]
+pub struct Auth {
+  pub secret_key: String,
+  pub public_key: String,
+  pub access_token_expires_in_days: i64,
+  pub phone_code_verification_expires_in_minutes: i64,
+  pub signature_client_date_expires_in_minutes: i64,
+  pub refresh_token_expires_in_days: i64,
+}
+
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Log {
   pub level: String,
 }
 
-#[derive(Default, Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Server {
   pub host: String,
   pub port: u16,
-  pub url: String,
+  pub url: Url,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Db {
   pub url: String,
   pub max_connections: u32,
+}
+// kv storage
+#[derive(Default, Debug, Deserialize, Clone)]
+pub struct Kv {
+  pub url: String,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct I18n {
@@ -49,8 +66,13 @@ impl fmt::Display for ENV {
     }
   }
 }
-
-#[derive(Default, Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
+pub struct Client {
+  pub client_id: i64,
+  pub client_secret: String,
+  pub name: String,
+}
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
   pub server: Server,
   pub log: Log,
@@ -58,6 +80,9 @@ pub struct Config {
   pub i18n: I18n,
   pub db: Db,
   pub workers_count: Option<usize>,
+  pub auth: Auth,
+  pub kv: Kv,
+  pub clients: Vec<Client>,
 }
 const CONFIG_DIRECTORY: &str = "config";
 const CONFIG_ENV_PREFIX: &str = "COMMUNICATION";
