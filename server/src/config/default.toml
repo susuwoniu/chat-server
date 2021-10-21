@@ -3,6 +3,7 @@ env = "development"
 
 [auth]
 access_token_expires_in_days = 14
+phone_code_verification_duration_in_seconds = 60
 phone_code_verification_expires_in_minutes = 10
 public_key = ""
 refresh_token_expires_in_days = 180

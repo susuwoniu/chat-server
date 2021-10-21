@@ -1,4 +1,4 @@
-use crate::errors::ServiceError;
+use crate::error::ServiceError;
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac, NewMac};
 use sha2::Sha256;

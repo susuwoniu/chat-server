@@ -1,6 +1,6 @@
 use crate::account::model::SlimAccount;
 use crate::config::Config;
-use crate::errors::ServiceResult;
+use crate::error::ServiceResult;
 use crate::i18n::I18n;
 use crate::middleware::req_meta::ReqMeta;
 use crate::types::KvPool;

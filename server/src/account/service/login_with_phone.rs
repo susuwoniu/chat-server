@@ -2,7 +2,7 @@ use super::signin;
 use super::util::get_phone_code_temp_key;
 use crate::account::model::{AuthData, LoginActivityData, PhoneAuthPostData};
 use crate::config::Config;
-use crate::errors::{ServiceError, ServiceResult};
+use crate::error::{ServiceError, ServiceResult};
 use crate::i18n::I18n;
 use crate::middleware::req_meta::ReqMeta;
 use crate::types::{KvPool, Pool};
@@ -30,9 +30,7 @@ pub async fn login_with_phone(
         phone_auth_post_data.phone_number.clone(),
     );
     let mut conn = kv.get().await?;
-    // let code_option: Option<String> = cmd("GET").arg(&temp_key).query_async(&mut conn).await?;
-    // todo test only
-    let code_option: Option<String> = Some("123456".to_string());
+    let code_option: Option<String> = cmd("GET").arg(&temp_key).query_async(&mut conn).await?;
     if let Some(code) = code_option {
         if code == phone_auth_post_data.code {
             // del the key

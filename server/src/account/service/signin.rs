@@ -1,7 +1,7 @@
 use super::util::get_access_token_key;
 use crate::account::model::{AuthData, LoginActivityData};
 use crate::config::Config;
-use crate::errors::ServiceResult;
+use crate::error::ServiceResult;
 use crate::middleware::req_meta::ReqMeta;
 use crate::types::{KvPool, Pool};
 use crate::util::id::next_id;

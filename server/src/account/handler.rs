@@ -1,7 +1,7 @@
 use crate::account::model::{PhoneAuthPostData, PhoneCodePostData};
 use crate::account::service;
 use crate::config::Config;
-use crate::errors::ServiceError;
+use crate::error::ServiceError;
 use crate::i18n::I18n;
 use crate::middleware::auth::AuthToken;
 use crate::middleware::req_meta::ReqMeta;
@@ -10,21 +10,22 @@ use crate::types::{KvPool, Pool};
 use crate::util::key_pair::Pair;
 use actix_web::{web, HttpResponse};
 pub async fn login_with_phone(
-    phone_auth_post_data: web::Json<PhoneAuthPostData>,
     pool: web::Data<Pool>,
     i18n: web::Data<I18n>,
     req_meta: ReqMeta,
     kv: web::Data<KvPool>,
     pair: web::Data<Pair>,
     config: web::Data<Config>,
-    sign: SignatureVerifier,
-    text: String,
+    signature: SignatureVerifier,
 ) -> Result<HttpResponse, ServiceError> {
-    dbg!(sign);
-    dbg!(text);
+    if signature.body.is_none() {
+        return Err(ServiceError::BadRequest("body is empty".to_string()));
+    }
+    let post_data: PhoneAuthPostData = serde_json::from_str(&signature.body.unwrap())?;
+
     service::login_with_phone(
         req_meta,
-        phone_auth_post_data.into_inner(),
+        post_data,
         pool.get_ref(),
         i18n.get_ref(),
         kv.get_ref(),

@@ -10,6 +10,7 @@ pub struct Auth {
   pub public_key: String,
   pub access_token_expires_in_days: i64,
   pub phone_code_verification_expires_in_minutes: i64,
+  pub phone_code_verification_duration_in_seconds: i64,
   pub signature_client_date_expires_in_minutes: i64,
   pub refresh_token_expires_in_days: i64,
 }
@@ -45,7 +46,7 @@ pub struct Template {
   pub directory: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum ENV {
   Dev,
   Test,

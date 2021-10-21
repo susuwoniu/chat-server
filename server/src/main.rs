@@ -9,7 +9,7 @@ mod account;
 mod cli_args;
 mod config;
 mod constant;
-mod errors;
+mod error;
 mod i18n;
 mod init;
 mod middleware;
@@ -28,7 +28,7 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use deadpool_redis::Config;
 use middleware::auth::validator;
 #[actix_web::main]
-async fn main() -> Result<(), errors::InternalError> {
+async fn main() -> Result<(), error::InternalError> {
     // Gets enviroment variables from `.env.example`
     dotenv::dotenv().ok();
 

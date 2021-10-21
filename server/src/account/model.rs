@@ -57,6 +57,15 @@ pub struct AuthData {
     pub refresh_token: String,
     pub refresh_token_expires_at: NaiveDateTime,
 }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PhoneCodeMeta {
+    pub length: usize,
+    pub expires_in_minutes: i64,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PhoneCodeResponseData {
+    pub meta: PhoneCodeMeta,
+}
 
 impl AuthData {
     pub fn new(account_id: i64, client_id: i64, pair: &Pair, config: &Config) -> Self {
