@@ -2,4 +2,16 @@
 hello = Hello
 default-name = Default-{$random}!
 phone-verify-code-template = [{-brand-name}]Your Code is {$code}. Don't share it with anyone.
-phone-code-expired = Code is expired, please try again.
+phone-code-expired-title = Code is expired, please try again.
+phone-code-expired-detail = Please verify in time.
+phone-code-failed-or-expired-title=The verification code is expired or incorrect, please try again.
+phone-code-failed-or-expired-detail=Please check and try again!
+internal-error-title= Internal Error
+internal-error-detail= Sorry, the current request cannot be completed, please try again later!
+error-code-detail = [Code: {$code}]
+bad-request-title = The submitted content is invalid
+bad-request-detail = Please check everything and try again!
+unauthorized-title = You do not have permission to access the content
+unauthorized-detail = Please check everything and try again!
+get-phone-code-too-many-requests-title=Get the verification code too frequently
+get-phone-code-too-many-requests-detail=Please try again later

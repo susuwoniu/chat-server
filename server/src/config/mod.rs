@@ -2,8 +2,12 @@ use crate::util::string::to_first_letter_uppertcase;
 use config::{Config as ConfigBuilder, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 use std::fmt;
+use std::sync::RwLock;
 use url::Url;
-
+lazy_static! {
+  pub static ref CONFIG: RwLock<Config> =
+    RwLock::new(Config::new().expect("Failed to load settings file"));
+}
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {
   pub secret_key: String,
@@ -108,5 +112,8 @@ impl Config {
     // This makes it so "EA_SERVER__PORT overrides server.port
     s.merge(Environment::with_prefix(CONFIG_ENV_PREFIX))?;
     s.try_into()
+  }
+  pub fn get() -> Self {
+    CONFIG.read().expect("read config failed").to_owned()
   }
 }

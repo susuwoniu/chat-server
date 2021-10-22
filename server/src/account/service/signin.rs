@@ -16,13 +16,17 @@ pub async fn signin(
   pool: &Pool,
   kv: &KvPool,
   pair: &Pair,
-  config: &Config,
 ) -> ServiceResult<AuthData> {
   let login_activity_id = next_id();
   // generate new token
   let now = Utc::now();
   // TODO client id
-  let auth_data = AuthData::new(login_activity_data.account_id, 431242314231, pair, config);
+  let auth_data = AuthData::new(
+    login_activity_data.account_id,
+    431242314231,
+    pair,
+    &Config::get(),
+  );
   // add kv token
   // add to kv
   let temp_key = get_access_token_key(auth_data.access_token.clone());

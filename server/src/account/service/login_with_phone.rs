@@ -1,9 +1,8 @@
 use super::signin;
 use super::util::get_phone_code_temp_key;
 use crate::account::model::{AuthData, LoginActivityData, PhoneAuthPostData};
-use crate::config::Config;
-use crate::error::{ServiceError, ServiceResult};
-use crate::i18n::I18n;
+use crate::error::{Error, ServiceError, ServiceResult};
+use crate::i18n::I18N;
 use crate::middleware::req_meta::ReqMeta;
 use crate::types::{KvPool, Pool};
 use crate::util::id::next_id;
@@ -11,16 +10,14 @@ use crate::util::key_pair::Pair;
 use crate::util::string::get_random_letter;
 use chrono::{NaiveDateTime, Utc};
 use deadpool_redis::redis::cmd;
-use fluent::FluentArgs;
+use fluent_bundle::FluentArgs;
 use sqlx::query;
 pub async fn login_with_phone(
     req_meta: ReqMeta,
     phone_auth_post_data: PhoneAuthPostData,
     pool: &Pool,
-    i18n: &I18n,
     kv: &KvPool,
     pair: &Pair,
-    config: &Config,
 ) -> ServiceResult<AuthData> {
     // verify code
     // get kv value
@@ -50,9 +47,7 @@ pub async fn login_with_phone(
             // TODO check disabled
 
             if let Some(account_auth) = account_auth_row {
-                // login
-                //
-                //
+                // yes, user exists, login
                 signin(
                     req_meta,
                     LoginActivityData {
@@ -65,17 +60,19 @@ pub async fn login_with_phone(
                     pool,
                     kv,
                     pair,
-                    config,
                 )
                 .await
             } else {
                 // signup and login
-                // yes
                 let account_id = next_id();
                 // get random name
                 let mut args = FluentArgs::new();
                 args.set("random", get_random_letter(4));
-                let default_name = i18n.with_args("default-name", &req_meta.locale, args);
+                let default_name =
+                    &I18N
+                        .read()
+                        .unwrap()
+                        .with_args("default-name", &req_meta.locale, args);
                 let mut tx = pool.begin().await?;
                 // add acccount
                 query!(
@@ -119,18 +116,25 @@ VALUES ($1,'phone',$2,$3,$4)
                     pool,
                     kv,
                     pair,
-                    config,
                 )
                 .await
             }
         } else {
-            return Err(ServiceError::BadRequest(
-                i18n.with_lang("phone-code-failed-or-expired", &req_meta.locale),
+            return Err(ServiceError::phone_code_failed_or_expired(
+                &req_meta.locale,
+                Error::Other(format!(
+                    "Can not match code of {:?} from cache ",
+                    &phone_auth_post_data
+                )),
             ));
         }
     } else {
-        return Err(ServiceError::BadRequest(
-            i18n.with_lang("phone-code-expired", &req_meta.locale),
+        return Err(ServiceError::phone_code_expired(
+            &req_meta.locale,
+            Error::Other(format!(
+                "Can not get code of {:?} from cache ",
+                &phone_auth_post_data
+            )),
         ));
     }
 }

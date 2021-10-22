@@ -2,6 +2,8 @@
 extern crate serde;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate lazy_static;
 use dotenv;
 use env_logger;
 use std::collections::HashMap;
@@ -28,7 +30,7 @@ use actix_web_httpauth::middleware::HttpAuthentication;
 use deadpool_redis::Config;
 use middleware::auth::validator;
 #[actix_web::main]
-async fn main() -> Result<(), error::InternalError> {
+async fn main() -> Result<(), error::Error> {
     // Gets enviroment variables from `.env.example`
     dotenv::dotenv().ok();
 
@@ -39,7 +41,7 @@ async fn main() -> Result<(), error::InternalError> {
         use structopt::StructOpt;
         Opt::from_args()
     };
-    let cfg = config::Config::new()?;
+    let cfg = config::Config::get();
 
     // sub command
 
@@ -88,7 +90,6 @@ async fn main() -> Result<(), error::InternalError> {
             }
             // Server
             let server = HttpServer::new(move || {
-                let i18n_instance = i18n::I18n::new(&cfg.i18n.fallback_language.clone());
                 let pairs = Pair::from_string(secret_key.clone(), public_key.clone());
                 let auth = HttpAuthentication::bearer(validator);
 
@@ -100,8 +101,6 @@ async fn main() -> Result<(), error::InternalError> {
                     .app_data(web::Data::new(pool.clone()))
                     .app_data(web::Data::new(redis_pool.clone()))
                     // Options
-                    .app_data(web::Data::new(cfg.clone()))
-                    .app_data(web::Data::new(i18n_instance))
                     // Unauthorized route
                     .service(
                         web::resource(format!("{}/accounts/phone-auth", API_V1_PREFIX))

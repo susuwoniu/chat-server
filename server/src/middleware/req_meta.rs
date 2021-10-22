@@ -3,7 +3,7 @@ use accept_language::intersection;
 use actix_web::dev;
 use actix_web::error::ErrorBadRequest;
 use actix_web::http::header::HeaderValue;
-use actix_web::{web, Error, FromRequest, HttpRequest};
+use actix_web::{Error, FromRequest, HttpRequest};
 use futures::future::{err, ok, Ready};
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -91,7 +91,7 @@ impl FromRequest for ReqMeta {
   type Config = ();
 
   fn from_request(req: &HttpRequest, _payload: &mut dev::Payload) -> Self::Future {
-    let cfg: &web::Data<Config> = req.app_data().unwrap();
+    let cfg = Config::get();
     let fallback_language = cfg.i18n.fallback_language.clone();
     let default_header_value = &HeaderValue::from_str(&fallback_language).unwrap();
     let user_accept_language = req

@@ -1,20 +1,27 @@
-use fluent_bundle::FluentBundle;
+use fluent_bundle::bundle::FluentBundle;
 use fluent_bundle::{FluentArgs, FluentResource};
 use include_dir::{include_dir, Dir};
+use intl_memoizer::concurrent::IntlLangMemoizer;
 use std::collections::HashMap;
+use std::sync::RwLock;
 use unic_langid::LanguageIdentifier;
 
 const PROJECT_DIR: Dir = include_dir!("../resources/locales");
+
+lazy_static! {
+  pub static ref I18N: RwLock<I18n> = RwLock::new(I18n::new("zh-Hans"));
+}
 
 // Contains all gettext catalogs we use in compiled form.
 pub struct I18n {
   // pub catalogs: Vec<(&'static str, Catalog)>,
   fallback_lang: String,
-  bundle_map: HashMap<String, FluentBundle<FluentResource>>,
+  bundle_map: HashMap<String, FluentBundle<FluentResource, IntlLangMemoizer>>,
 }
 impl I18n {
   pub fn new(fallback_language: &str) -> I18n {
-    let mut bundle_map: HashMap<String, FluentBundle<FluentResource>> = HashMap::new();
+    let mut bundle_map: HashMap<String, FluentBundle<FluentResource, IntlLangMemoizer>> =
+      HashMap::new();
     let fallback_language_str: String = fallback_language.to_string();
     let fallback_lang_id: LanguageIdentifier = fallback_language_str
       .parse()
@@ -24,8 +31,8 @@ impl I18n {
     for locale_dir in dirs {
       let lang = locale_dir.path().to_str().unwrap();
       let lang_identifier: LanguageIdentifier = lang.parse().expect("Parsing lang folder failed.");
-      let mut bundle: FluentBundle<FluentResource> =
-        FluentBundle::new(vec![lang_identifier, fallback_lang_id.clone()]);
+      let mut bundle: FluentBundle<FluentResource, IntlLangMemoizer> =
+        FluentBundle::new_concurrent(vec![lang_identifier, fallback_lang_id.clone()]);
       bundle.set_use_isolating(false);
       let files = locale_dir.files();
       for locale_file in files {
@@ -72,9 +79,9 @@ impl I18n {
       return id.to_string();
     }
   }
-  pub fn get_bundle_by_lang(&self, lang: &str) -> &FluentBundle<FluentResource> {
+  pub fn get_bundle_by_lang(&self, lang: &str) -> &FluentBundle<FluentResource, IntlLangMemoizer> {
     let bundle_option = self.bundle_map.get(lang);
-    let bundle: &FluentBundle<FluentResource>;
+    let bundle: &FluentBundle<FluentResource, IntlLangMemoizer>;
     if let Some(the_bundle) = bundle_option {
       bundle = the_bundle;
     } else {

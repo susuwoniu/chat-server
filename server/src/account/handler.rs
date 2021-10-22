@@ -1,7 +1,7 @@
 use crate::account::model::{PhoneAuthPostData, PhoneCodePostData};
 use crate::account::service;
 use crate::config::Config;
-use crate::error::ServiceError;
+use crate::error::{Error, ServiceError};
 use crate::i18n::I18n;
 use crate::middleware::auth::AuthToken;
 use crate::middleware::req_meta::ReqMeta;
@@ -11,15 +11,17 @@ use crate::util::key_pair::Pair;
 use actix_web::{web, HttpResponse};
 pub async fn login_with_phone(
     pool: web::Data<Pool>,
-    i18n: web::Data<I18n>,
     req_meta: ReqMeta,
     kv: web::Data<KvPool>,
     pair: web::Data<Pair>,
-    config: web::Data<Config>,
     signature: SignatureVerifier,
 ) -> Result<HttpResponse, ServiceError> {
     if signature.body.is_none() {
-        return Err(ServiceError::BadRequest("body is empty".to_string()));
+        return Err(ServiceError::bad_request(
+            &req_meta.locale,
+            "body_can_not_be_empty",
+            Error::Other("post body is empty login_with_phone".to_string()),
+        ));
     }
     let post_data: PhoneAuthPostData = serde_json::from_str(&signature.body.unwrap())?;
 
@@ -27,35 +29,29 @@ pub async fn login_with_phone(
         req_meta,
         post_data,
         pool.get_ref(),
-        i18n.get_ref(),
         kv.get_ref(),
         pair.get_ref(),
-        config.get_ref(),
     )
     .await
     .map(|res| HttpResponse::Ok().json(&res))
 }
 pub async fn send_phone_code(
     kv: web::Data<KvPool>,
-    i18n: web::Data<I18n>,
     req_meta: ReqMeta,
-    config: web::Data<Config>,
     signature: SignatureVerifier,
 ) -> Result<HttpResponse, ServiceError> {
     if signature.body.is_none() {
-        return Err(ServiceError::BadRequest("body is empty".to_string()));
+        return Err(ServiceError::bad_request(
+            &req_meta.locale,
+            "body_can_not_be_empty",
+            Error::Other("post body is empty login_with_phone".to_string()),
+        ));
     }
     let post_data: PhoneCodePostData = serde_json::from_str(&signature.body.unwrap())?;
 
-    service::send_phone_code(
-        req_meta,
-        post_data,
-        kv.get_ref(),
-        i18n.get_ref(),
-        config.get_ref(),
-    )
-    .await
-    .map(|res| HttpResponse::Ok().json(&res))
+    service::send_phone_code(req_meta, post_data, kv.get_ref())
+        .await
+        .map(|res| HttpResponse::Ok().json(&res))
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestBody {

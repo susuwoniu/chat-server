@@ -1,4 +1,4 @@
-use crate::error::ServiceError;
+use crate::error::{Error, ServiceError};
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac, NewMac};
 use sha2::Sha256;
@@ -114,16 +114,23 @@ impl Sign {
     let offset = now - client_date;
     let offset_minutes = offset.num_minutes().abs();
     if offset_minutes > 10 {
-      return Err(ServiceError::Unauthorized(
-        "x-client-date is not match server time".to_string(),
+      return Err(ServiceError::unauthorized(
+        "zh-Hans",
+        "x_client_date_not_match_server_time",
+        Error::Other(format!(
+          "x-client-date: {}, now:{}, offset_minutes:{}",
+          client_date, now, offset_minutes
+        )),
       ));
     }
     let signature = self.get_sinature(secret);
     if signature == hex_code {
       Ok(true)
     } else {
-      Err(ServiceError::Unauthorized(
-        "x-client-signature error".to_string(),
+      Err(ServiceError::unauthorized(
+        "zh-Hans",
+        "x_client_signature_not_match_with_server",
+        Error::Other(format!("x-client-signature: {} ", hex_code)),
       ))
     }
     // calculate
