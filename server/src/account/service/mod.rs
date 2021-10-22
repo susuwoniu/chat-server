@@ -8,4 +8,5 @@ pub use send_phone_code::send_phone_code;
 mod signin;
 pub use signin::signin;
 mod get_user;
+pub use get_user::get_slim_user;
 pub use get_user::get_user;

@@ -2,6 +2,7 @@ use super::Error;
 use super::ServiceError;
 use crate::i18n::I18N;
 use actix_web::http::StatusCode;
+use chrono::NaiveDateTime;
 use fluent_bundle::FluentArgs;
 impl ServiceError {
   pub fn new(
@@ -27,6 +28,7 @@ impl ServiceError {
       .read()
       .unwrap()
       .with_args("error-code-detail", locale, args);
+    final_detail.push_str(" ");
     final_detail.push_str(code_info);
     return ServiceError {
       status,
@@ -46,6 +48,22 @@ impl ServiceError {
     Self::new(
       locale,
       StatusCode::BAD_REQUEST.as_u16(),
+      code,
+      title,
+      detail,
+      stack,
+    )
+  }
+  pub fn not_found_raw(
+    locale: &str,
+    code: &str,
+    title: &str,
+    detail: Option<&str>,
+    stack: Error,
+  ) -> Self {
+    Self::new(
+      locale,
+      StatusCode::NOT_FOUND.as_u16(),
       code,
       title,
       detail,
@@ -163,6 +181,55 @@ impl ServiceError {
   pub fn get_phone_code_too_many_requests(locale: &str, stack: Error) -> Self {
     let code = "get_phone_code_too_many_requests";
     Self::too_many_requests_raw(
+      locale,
+      code,
+      &I18N.read().unwrap().with_lang(&get_title(code), locale),
+      Some(&I18N.read().unwrap().with_lang(&get_detail(code), locale)),
+      stack,
+    )
+  }
+  pub fn account_suspended(
+    locale: &str,
+    reason: Option<String>,
+    suspended_until: Option<NaiveDateTime>,
+    stack: Error,
+  ) -> Self {
+    let code = "account_suspended";
+    let mut args = FluentArgs::new();
+    args.set(
+      "reason",
+      reason.unwrap_or(
+        I18N
+          .read()
+          .unwrap()
+          .with_lang("account-suspended-default-reason", locale),
+      ),
+    );
+    let mut suspended_until_final = I18N
+      .read()
+      .unwrap()
+      .with_lang("account-suspended-default-until", locale);
+
+    if let Some(suspend_until_naive_time) = suspended_until {
+      suspended_until_final = suspend_until_naive_time.to_string();
+    }
+    args.set("suspended_until", suspended_until_final);
+    Self::bad_request_raw(
+      locale,
+      code,
+      &I18N.read().unwrap().with_lang(&get_title(code), locale),
+      Some(
+        &I18N
+          .read()
+          .unwrap()
+          .with_args(&get_detail(code), locale, args),
+      ),
+      stack,
+    )
+  }
+  pub fn account_not_exist(locale: &str, stack: Error) -> Self {
+    let code = "account_not_exist";
+    Self::not_found_raw(
       locale,
       code,
       &I18N.read().unwrap().with_lang(&get_title(code), locale),

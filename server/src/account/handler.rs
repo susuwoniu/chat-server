@@ -1,8 +1,6 @@
 use crate::account::model::{PhoneAuthPostData, PhoneCodePostData};
 use crate::account::service;
-use crate::config::Config;
 use crate::error::{Error, ServiceError};
-use crate::i18n::I18n;
 use crate::middleware::auth::AuthToken;
 use crate::middleware::req_meta::ReqMeta;
 use crate::middleware::signature_verifier::SignatureVerifier;
@@ -66,15 +64,26 @@ pub async fn test(signature: SignatureVerifier) -> Result<HttpResponse, ServiceE
     }
     Ok(HttpResponse::Ok().json(""))
 }
-pub async fn get_user(
-    kv: web::Data<KvPool>,
-    i18n: web::Data<I18n>,
+#[derive(Deserialize)]
+pub struct SingleSlimAccountPath {
+    account_id: i64,
+}
+pub async fn get_slim_account(
+    pool: web::Data<Pool>,
     req_meta: ReqMeta,
-    config: web::Data<Config>,
+    info: web::Path<SingleSlimAccountPath>,
+) -> Result<HttpResponse, ServiceError> {
+    service::get_slim_user(pool.as_ref(), info.account_id, req_meta)
+        .await
+        .map(|res| HttpResponse::Ok().json(&res))
+}
+
+pub async fn get_me(
+    pool: web::Data<Pool>,
+    req_meta: ReqMeta,
     auth: AuthToken,
 ) -> Result<HttpResponse, ServiceError> {
-    dbg!(auth);
-    service::get_user(req_meta, kv.get_ref(), i18n.get_ref(), config.get_ref())
+    service::get_user(pool.as_ref(), auth.account_id, req_meta)
         .await
         .map(|res| HttpResponse::Ok().json(&res))
 }

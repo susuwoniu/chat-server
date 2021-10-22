@@ -16,6 +16,7 @@ pub fn to_first_letter_uppertcase(s: &str) -> String {
     s.chars().skip(1).collect::<String>()
   )
 }
+
 #[cfg(test)]
 mod tests {
   #[test]

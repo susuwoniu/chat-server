@@ -23,8 +23,8 @@ pub async fn login_with_phone(
     // get kv value
 
     let temp_key = get_phone_code_temp_key(
-        phone_auth_post_data.phone_country_code.clone(),
-        phone_auth_post_data.phone_number.clone(),
+        &phone_auth_post_data.phone_country_code,
+        &phone_auth_post_data.phone_number,
     );
     let mut conn = kv.get().await?;
     let code_option: Option<String> = cmd("GET").arg(&temp_key).query_async(&mut conn).await?;
@@ -39,15 +39,13 @@ pub async fn login_with_phone(
             );
             // let identify_type = IdentityType::Phone;
             let account_auth_row = query!(
-                "select id, account_id,current_signin_at,disabled from account_auths where identifier = $1 and identity_type = 'phone' and deleted = false",
+                r#"select id, account_id,current_signin_at from account_auths where identifier = $1 and identity_type = 'phone' and deleted = false"#,
                 identifier,
             )
             .fetch_optional(pool)
             .await?;
             // TODO check disabled
-
             if let Some(account_auth) = account_auth_row {
-                // yes, user exists, login
                 signin(
                     req_meta,
                     LoginActivityData {

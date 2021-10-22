@@ -8,6 +8,20 @@ lazy_static! {
   pub static ref CONFIG: RwLock<Config> =
     RwLock::new(Config::new().expect("Failed to load settings file"));
 }
+#[derive(Debug, Deserialize, Clone)]
+pub struct Config {
+  pub server: Server,
+  pub log: Log,
+  pub env: ENV,
+  pub i18n: I18n,
+  pub db: Db,
+  pub workers_count: Option<usize>,
+  pub auth: Auth,
+  pub kv: Kv,
+  pub clients: Vec<Client>,
+  pub invite_only: bool,
+  pub timezone_offset_in_seconds: i32,
+}
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {
   pub secret_key: String,
@@ -77,18 +91,7 @@ pub struct Client {
   pub client_secret: String,
   pub name: String,
 }
-#[derive(Debug, Deserialize, Clone)]
-pub struct Config {
-  pub server: Server,
-  pub log: Log,
-  pub env: ENV,
-  pub i18n: I18n,
-  pub db: Db,
-  pub workers_count: Option<usize>,
-  pub auth: Auth,
-  pub kv: Kv,
-  pub clients: Vec<Client>,
-}
+
 const CONFIG_DIRECTORY: &str = "config";
 const CONFIG_ENV_PREFIX: &str = "COMMUNICATION";
 impl Config {

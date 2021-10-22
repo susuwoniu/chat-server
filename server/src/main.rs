@@ -47,8 +47,9 @@ async fn main() -> Result<(), error::Error> {
 
     match opt {
         Opt::Init {} => {
-            println!("init start");
+            info!("init start");
             init::init();
+            info!("init finished");
         }
         Opt::Client {} => {
             let client_id = next_id();

@@ -29,8 +29,6 @@ pub enum Error {
   RedisError(#[from] RedisError),
   #[error("{0}")]
   Other(String),
-  #[error("unknown data store error")]
-  Unknown,
 }
 
 #[derive(Display, Debug, Serialize, Clone)]

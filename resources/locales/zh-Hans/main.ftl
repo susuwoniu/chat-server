@@ -15,3 +15,9 @@ unauthorized-title = 您没有权限访问该内容哦
 unauthorized-detail = 请检查所有内容后再试一次！
 get-phone-code-too-many-requests-title=获取验证码频率过快
 get-phone-code-too-many-requests-detail=请稍后再试
+account-not-exist-title=账户不存在
+account-not-exist-detail=无法找到您的账户，请核对后再试一次
+# only Chinese
+account-suspended-title=账户被限制登录
+account-suspended-detail=你好，该账户由于{$reason}，已被限制登录, 解禁时间:{$suspended_until}
+account-suspended-default-reason=某些原因

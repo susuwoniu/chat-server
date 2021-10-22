@@ -1,7 +1,9 @@
 pub mod file;
 pub mod id;
 pub mod key_pair;
+pub mod option_string_i64;
 pub mod password;
 pub mod random;
 pub mod sign;
 pub mod string;
+pub mod string_i64;

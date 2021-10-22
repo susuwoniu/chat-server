@@ -19,11 +19,12 @@ CREATE TABLE accounts (
    likes_count bigint DEFAULT 0  NOT NULL,
    show_age boolean DEFAULT true NOT NULL,
    show_distance boolean DEFAULT true NOT NULL,
-   suspended boolean DEFAULT false NOT NULL,
    deleted boolean DEFAULT false NOT NULL,
-   suspended_at timestamp,
-   suspended_reason text,
    deleted_at timestamp,
+   suspended boolean DEFAULT false NOT NULL,
+   suspended_at timestamp,
+   suspended_until timestamp,
+   suspended_reason text,
    birthday date,
    phone_country_code integer,
    phone_number character varying(255),
@@ -33,9 +34,15 @@ CREATE TABLE accounts (
    city_id integer,
    avatar character varying,
    profile_images json,
+   refresh_token_hash BYTEA,
+   refresh_token_expires_at timestamp,
+   refresh_token_salt VARCHAR(255),
    avatar_updated_at timestamp without time zone, 
    created_at timestamp without time zone DEFAULT now() NOT NULL,
-   updated_at timestamp without time zone NOT NULL
+   updated_at timestamp without time zone NOT NULL,
+   approved boolean DEFAULT false NOT NULL,
+   approved_at timestamp,
+   invite_id bigint
 );
 
 --用户登录表
@@ -47,8 +54,7 @@ CREATE TABLE account_auths (
     -- 10: mobile, 20: wechat, 30: apple
     identity_type identity_type NOT NULL,
     identifier character varying(1024),
-    refresh_token character varying(255) DEFAULT ''::text NOT NULL,
-    refresh_token_expires_at timestamp,
+
     hash BYTEA,
     salt VARCHAR(255),
     third_party_data json,
@@ -59,15 +65,12 @@ CREATE TABLE account_auths (
     current_signin_ip inet,
     last_signin_ip inet,
     account_id bigint NOT NULL,
-    disabled boolean DEFAULT false NOT NULL,
-    invite_id bigint,
     signup_ip inet,
     deleted boolean DEFAULT false NOT NULL,
     deleted_at boolean DEFAULT false NOT NULL
 );
 
 CREATE UNIQUE INDEX index_identity_type_and_identifier ON account_auths USING btree (identifier,identity_type,deleted);
-CREATE INDEX index_refresh_token_account_id_token ON account_auths USING btree (refresh_token, account_id,deleted);
 
 -- 用户登录记录表
 

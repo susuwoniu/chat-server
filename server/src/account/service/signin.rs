@@ -1,7 +1,8 @@
+use super::get_user::get_user;
 use super::util::get_access_token_key;
 use crate::account::model::{AuthData, LoginActivityData};
 use crate::config::Config;
-use crate::error::ServiceResult;
+use crate::error::{Error, ServiceError, ServiceResult};
 use crate::middleware::req_meta::ReqMeta;
 use crate::types::{KvPool, Pool};
 use crate::util::id::next_id;
@@ -17,13 +18,25 @@ pub async fn signin(
   kv: &KvPool,
   pair: &Pair,
 ) -> ServiceResult<AuthData> {
+  // lookup account
+  let user = get_user(pool, login_activity_data.account_id, req_meta.clone()).await?;
+
+  // if suspended
+  if user.suspended {
+    return Err(ServiceError::account_suspended(
+      &req_meta.locale,
+      user.suspended_reason.clone(),
+      user.suspended_until.clone(),
+      Error::Other(format!("account {} suspened.", user.id)),
+    ));
+  }
   let login_activity_id = next_id();
   // generate new token
   let now = Utc::now();
   // TODO client id
   let auth_data = AuthData::new(
     login_activity_data.account_id,
-    431242314231,
+    req_meta.client_id,
     pair,
     &Config::get(),
   );
@@ -46,15 +59,12 @@ pub async fn signin(
   query!(
     r#"
       UPDATE account_auths 
-      SET signin_count = signin_count + 1,current_signin_at = $1,  last_signin_at=$2,  refresh_token=$3, refresh_token_expires_at=$4
-      where id = $5
+      SET signin_count = signin_count + 1,current_signin_at = $1,  last_signin_at=$2
+      where id = $3
 "#,
     now.naive_utc(),
     login_activity_data.last_signin_at,
-    auth_data.refresh_token,
-    auth_data.refresh_token_expires_at,
     login_activity_data.account_auth_id,
-
   )
   .execute(&mut tx)
   .await?;

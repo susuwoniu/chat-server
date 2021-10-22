@@ -15,3 +15,5 @@ unauthorized-title = You do not have permission to access the content
 unauthorized-detail = Please check everything and try again!
 get-phone-code-too-many-requests-title=Get the verification code too frequently
 get-phone-code-too-many-requests-detail=Please try again later
+account-not-exist-title=Account does not exist
+account-not-exist-detail=Unable to find your account, please check and try again

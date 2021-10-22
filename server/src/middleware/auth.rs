@@ -55,10 +55,7 @@ pub async fn validator(
     .map(|data| data.clone())
     .unwrap_or_else(Default::default);
   let pair = req.app_data::<web::Data<Pair>>().expect("get pair failed");
-  let config = req
-    .app_data::<web::Data<Config>>()
-    .expect("get config failed");
-
+  let config = Config::get();
   match validate_token(credentials.token(), pair.as_ref(), &config) {
     Ok(res) => {
       dbg!(&res);
