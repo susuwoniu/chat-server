@@ -37,7 +37,6 @@ pub async fn login_with_phone(
                 "{}{}",
                 &phone_auth_post_data.phone_country_code, &phone_auth_post_data.phone_number
             );
-            // let identify_type = IdentityType::Phone;
             let account_auth_row = query!(
                 r#"select id, account_id,current_signin_at from account_auths where identifier = $1 and identity_type = 'phone' and deleted = false"#,
                 identifier,

@@ -60,12 +60,23 @@ impl I18n {
 
   pub fn with_args(&self, id: &str, lang: &str, args: FluentArgs) -> String {
     let bundle = self.get_bundle_by_lang(lang);
-    let msg = bundle.get_message(id).expect("Message doesn't exist.");
-    // 5. Format the value of the message
-    let mut errors = vec![];
-    let pattern = msg.value().expect("Message has no value.");
-    let x = bundle.format_pattern(&pattern, Some(&args), &mut errors);
-    return x.to_string();
+    let msg = bundle.get_message(id);
+
+    if let Some(the_msg) = msg {
+      // 5. Format the value of the message
+      let mut errors = vec![];
+      let pattern = the_msg.value().expect("Message has no value.");
+      let x = bundle.format_pattern(&pattern, Some(&args), &mut errors);
+      return x.to_string();
+    } else {
+      // get fallback lang
+
+      if lang == self.fallback_lang {
+        return id.to_string();
+      } else {
+        return self.with_args(id, &self.fallback_lang, args);
+      }
+    }
   }
   pub fn with_lang(&self, id: &str, lang: &str) -> String {
     let bundle = self.get_bundle_by_lang(lang);
@@ -76,7 +87,11 @@ impl I18n {
       let value = bundle.format_pattern(&pattern, None, &mut errors);
       return value.to_string();
     } else {
-      return id.to_string();
+      if lang == self.fallback_lang {
+        return id.to_string();
+      } else {
+        return self.with_lang(id, &self.fallback_lang);
+      }
     }
   }
   pub fn get_bundle_by_lang(&self, lang: &str) -> &FluentBundle<FluentResource, IntlLangMemoizer> {

@@ -21,3 +21,4 @@ account-not-exist-detail=无法找到您的账户，请核对后再试一次
 account-suspended-title=账户被限制登录
 account-suspended-detail=你好，该账户由于{$reason}，已被限制登录, 解禁时间:{$suspended_until}
 account-suspended-default-reason=某些原因
+account-suspended-default-until=无限期
