@@ -8,3 +8,5 @@ pub use locale::Locale;
 pub mod auth;
 pub use auth::Auth;
 pub use signature::Signature;
+pub mod refresh_token_auth;
+pub use refresh_token_auth::RefreshTokenAuth;

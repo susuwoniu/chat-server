@@ -3,11 +3,20 @@ use chrono::prelude::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum SigninType {
+  PhoneCode,
+  SignupWithPhoneCode,
+  RefreshToken,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SigninParam {
   pub account_id: i64,
   pub account_auth_id: i64,
   pub client_id: i64,
+  pub device_id: String,
+  pub signin_type: SigninType,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -17,6 +26,7 @@ pub struct SigninWithPhoneParam {
   pub code: String,
   pub timezone_in_seconds: i32,
   pub client_id: i64,
+  pub device_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type)]
@@ -100,6 +110,7 @@ pub struct PhoneAuthPathParam {
 #[derive(Debug, Deserialize)]
 pub struct PhoneAuthBodyParam {
   pub timezone_in_seconds: i32,
+  pub device_id: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PhoneCodeMeta {
@@ -107,8 +118,21 @@ pub struct PhoneCodeMeta {
   pub expires_in_minutes: i64,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeviceParam {
+  pub device_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PhoneCodeResponseData {
   pub meta: PhoneCodeMeta,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SuccessMeta {
+  pub ok: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SignoutResponseData {
+  pub meta: SuccessMeta,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {

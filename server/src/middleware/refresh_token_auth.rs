@@ -1,6 +1,6 @@
 use crate::{
   error::{Error, ServiceError},
-  global::{AccessTokenPair, Config},
+  global::{Config, RefreshTokenPair},
   middleware::{header_x_client_id::XClientId, Locale},
 };
 use axum::{
@@ -13,7 +13,7 @@ use pasetors::keys::{AsymmetricPublicKey, Version};
 use pasetors::public;
 use std::str::FromStr;
 #[derive(Debug)]
-pub struct Auth {
+pub struct RefreshTokenAuth {
   pub account_id: i64,
   pub client_id: i64,
   pub token_id: i64,
@@ -23,7 +23,7 @@ pub struct Auth {
   pub vip: bool,
 }
 #[async_trait]
-impl<B> FromRequest<B> for Auth
+impl<B> FromRequest<B> for RefreshTokenAuth
 where
   B: Send,
 {
@@ -43,7 +43,7 @@ where
     let mut validation_rules = ClaimsValidationRules::new();
     validation_rules.validate_issuer_with(cfg.server.url.as_str());
     validation_rules.validate_audience_with(cfg.server.url.as_str());
-    let access_token_pair = &AccessTokenPair::global().0;
+    let access_token_pair = &RefreshTokenPair::global().0;
     let pk = AsymmetricPublicKey::from(&access_token_pair.get_public_bytes(), Version::V4)
       .expect("get public key failed");
 

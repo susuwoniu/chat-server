@@ -1,6 +1,7 @@
 mod account;
 mod alias;
 mod cli_args;
+mod constant;
 mod error;
 mod global;
 mod middleware;

@@ -1,6 +1,6 @@
 use crate::{
   account::{
-    model::{PhoneCodeMeta, PhoneCodeResponseData, SendPhoneCodePathParam},
+    model::{DeviceParam, PhoneCodeMeta, PhoneCodeResponseData, SendPhoneCodePathParam},
     util::get_phone_code_temp_key,
   },
   alias::KvPool,
@@ -13,9 +13,10 @@ use deadpool_redis::redis::cmd;
 use fluent_bundle::FluentArgs;
 
 pub async fn send_phone_code(
-  path_param: SendPhoneCodePathParam,
-  kv: &KvPool,
   locale: &Locale,
+  kv: &KvPool,
+  path_param: SendPhoneCodePathParam,
+  body_param: DeviceParam,
 ) -> ServiceResult<PhoneCodeResponseData> {
   // verify code
   // get random code
@@ -27,7 +28,11 @@ pub async fn send_phone_code(
   };
 
   // add to kv
-  let temp_key = get_phone_code_temp_key(&path_param.phone_country_code, &path_param.phone_number);
+  let temp_key = get_phone_code_temp_key(
+    &path_param.phone_country_code,
+    &path_param.phone_number,
+    &body_param.device_id,
+  );
   let mut conn = kv.get().await?;
 
   // check time, if duration 1 minutes

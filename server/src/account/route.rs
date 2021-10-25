@@ -1,23 +1,26 @@
 use crate::{
   account::{
     model::{
-      Account, GetAccountPathParam, PhoneAuthBodyParam, PhoneAuthPathParam, PhoneCodeResponseData,
-      SendPhoneCodePathParam, SigninWithPhoneParam, SlimAccount,
+      Account, DeviceParam, GetAccountPathParam, PhoneAuthBodyParam, PhoneAuthPathParam,
+      PhoneCodeResponseData, SendPhoneCodePathParam, SigninWithPhoneParam, SignoutResponseData,
+      SlimAccount,
     },
     service::{
       get_account::{get_account, get_slim_account},
       login_with_phone::login_with_phone,
+      refresh_token_to_access_token::refresh_token_to_access_token,
       send_phone_code::send_phone_code,
+      signout::signout,
     },
     util::AuthData,
   },
   alias::{KvPool, Pool},
   error::ServiceJson,
-  middleware::{Auth, Locale, Signature},
+  middleware::{Auth, Locale, RefreshTokenAuth, Signature},
 };
 use axum::{
   extract::{Extension, Path},
-  routing::{get, post},
+  routing::{delete, get, post},
   Json, Router,
 };
 
@@ -31,8 +34,28 @@ pub fn service_route() -> Router {
       "/phone-sessions/:phone_country_code/:phone_number/:code",
       post(phone_auth_handler),
     )
+    .route("/sessions", delete(signout_handler))
     .route("/accounts/:account_id", get(get_account_handler))
     .route("/me", get(get_me_handler))
+    .route("/access-tokens", post(access_token_handler))
+}
+async fn signout_handler(
+  Extension(kv): Extension<KvPool>,
+  locale: Locale,
+  auth: Auth,
+) -> ServiceJson<SignoutResponseData> {
+  Ok(Json(signout(&locale, &kv, &auth).await?))
+}
+async fn access_token_handler(
+  Extension(pool): Extension<Pool>,
+
+  Extension(kv): Extension<KvPool>,
+  locale: Locale,
+  auth: RefreshTokenAuth,
+) -> ServiceJson<AuthData> {
+  Ok(Json(
+    refresh_token_to_access_token(&locale, &pool, &kv, &auth).await?,
+  ))
 }
 
 async fn phone_auth_handler(
@@ -58,6 +81,7 @@ async fn phone_auth_handler(
         phone_number,
         code,
         client_id,
+        device_id: payload.device_id,
         timezone_in_seconds: payload.timezone_in_seconds,
       },
     )
@@ -79,13 +103,17 @@ async fn get_me_handler(
   locale: Locale,
   auth: Auth,
 ) -> ServiceJson<Account> {
+  dbg!(&auth);
   Ok(Json(get_account(&pool, &auth.account_id, &locale).await?))
 }
 async fn send_phone_code_handler(
   Path(path_param): Path<SendPhoneCodePathParam>,
   Extension(kv): Extension<KvPool>,
   locale: Locale,
+  Json(payload): Json<DeviceParam>,
   _: Signature,
 ) -> ServiceJson<PhoneCodeResponseData> {
-  Ok(Json(send_phone_code(path_param, &kv, &locale).await?))
+  Ok(Json(
+    send_phone_code(&locale, &kv, path_param, payload).await?,
+  ))
 }

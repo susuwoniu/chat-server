@@ -1,6 +1,6 @@
 use crate::{
     account::{
-        model::{SigninParam, SigninWithPhoneParam},
+        model::{SigninParam, SigninType, SigninWithPhoneParam},
         service::signin::signin,
         util::{get_phone_code_temp_key, AuthData},
     },
@@ -29,9 +29,10 @@ pub async fn login_with_phone(
         code: verify_code,
         timezone_in_seconds,
         client_id,
+        device_id,
     } = param;
 
-    let temp_key = get_phone_code_temp_key(&phone_country_code, phone_number);
+    let temp_key = get_phone_code_temp_key(&phone_country_code, phone_number, device_id);
     let mut conn = kv.get().await?;
     let code_option: Option<String> = cmd("GET").arg(&temp_key).query_async(&mut conn).await?;
     if let Some(code) = code_option {
@@ -53,9 +54,11 @@ pub async fn login_with_phone(
                     pool,
                     kv,
                     &SigninParam {
+                        signin_type: SigninType::PhoneCode,
                         account_id: account_auth.account_id,
                         account_auth_id: account_auth.id,
                         client_id: *client_id,
+                        device_id: device_id.clone(),
                     },
                 )
                 .await
@@ -105,9 +108,11 @@ VALUES ($1,'phone',$2,$3,$4)
                     pool,
                     kv,
                     &SigninParam {
+                        signin_type: SigninType::SignupWithPhoneCode,
                         account_id: account_id,
                         account_auth_id: account_auth_id,
                         client_id: *client_id,
+                        device_id: device_id.clone(),
                     },
                 )
                 .await

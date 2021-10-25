@@ -112,7 +112,7 @@ impl Sign {
     if signature == hex_code {
       Ok(true)
     } else {
-      Err(ServiceError::unauthorized(
+      Err(ServiceError::bad_request(
         locale,
         "x_client_signature_not_match_with_server",
         Error::Other(format!("x-client-signature: {} ", hex_code)),

@@ -1,5 +1,5 @@
 use crate::{
-  account::constant::{ACCESS_TOKEN_KEY, PHONE_AUTH_CODE_TEMP_KEY},
+  constant::{PHONE_AUTH_CODE_TEMP_KEY, REFRESH_TOKEN_KEY},
   global::{AccessTokenPair, Config, RefreshTokenPair},
   util::{datetime_tz, id::next_id, key_pair::Pair, string_i64},
 };
@@ -8,21 +8,26 @@ use pasetors::claims::Claims;
 use pasetors::keys::{AsymmetricPublicKey, AsymmetricSecretKey, Version};
 use pasetors::public;
 use serde::{Deserialize, Serialize};
-pub fn get_phone_code_temp_key(phone_country_code: &i32, phone_number: &str) -> String {
+pub fn get_phone_code_temp_key(
+  phone_country_code: &i32,
+  phone_number: &str,
+  device_id: &str,
+) -> String {
   let temp_key = format!(
-    "{}/{}{}",
-    PHONE_AUTH_CODE_TEMP_KEY, phone_country_code, phone_number
+    "{}/{}{}/{}",
+    PHONE_AUTH_CODE_TEMP_KEY, phone_country_code, phone_number, device_id
   );
   return temp_key;
 }
-pub fn get_access_token_key(token: String) -> String {
-  let temp_key = format!("{}/{}", ACCESS_TOKEN_KEY, token);
+pub fn get_refresh_token_key(account_id: i64, device_id: &str) -> String {
+  let temp_key = format!("{}/{}/{}", REFRESH_TOKEN_KEY, account_id, device_id);
   return temp_key;
 }
 
 pub struct Token {
-  token: String,
-  expires_at: NaiveDateTime,
+  pub token: String,
+  pub expires_at: NaiveDateTime,
+  pub jti: i64,
 }
 
 impl Token {
@@ -33,6 +38,8 @@ impl Token {
     issuer: String,
     audience: String,
     client_id: &i64,
+    roles: Vec<String>,
+    device_id: String,
   ) -> Token {
     let mut claims = Claims::new().expect("new claims failed");
     claims.issuer(&issuer).expect("get issuer failed");
@@ -58,8 +65,14 @@ impl Token {
       .add_additional("client_id", client_id.to_string())
       .expect("get client_id failed");
     claims
+      .add_additional("device_id", device_id.to_string())
+      .expect("get device_id failed");
+    claims
       .token_identifier(&jti.to_string())
       .expect("get jti failed");
+    claims
+      .add_additional("roles", roles.join(","))
+      .expect("get roles failed");
     let sk = AsymmetricSecretKey::from(&pair.get_secret_bytes(), Version::V4)
       .expect("get secret key failed");
     let pk = AsymmetricPublicKey::from(&pair.get_public_bytes(), Version::V4)
@@ -67,6 +80,7 @@ impl Token {
     let pub_token = public::sign(&sk, &pk, &claims, None, None).expect("get token failed");
     Token {
       token: pub_token,
+      jti: jti,
       expires_at: expires_at.naive_utc(),
     }
   }
@@ -78,18 +92,29 @@ impl Token {
   }
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum TokenType {
+  Bearer,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthData {
   #[serde(with = "string_i64")]
   pub account_id: i64,
+  pub device_id: String,
   pub access_token: String,
+  #[serde(with = "string_i64")]
+  pub access_token_id: i64,
+  pub access_token_type: TokenType,
   #[serde(with = "datetime_tz")]
   pub expires_at: NaiveDateTime,
   pub refresh_token: String,
+  #[serde(with = "string_i64")]
+  pub refresh_token_id: i64,
+  pub refresh_token_type: TokenType,
   #[serde(with = "datetime_tz")]
   pub refresh_token_expires_at: NaiveDateTime,
 }
 impl AuthData {
-  pub fn new(account_id: &i64, client_id: &i64) -> Self {
+  pub fn new(account_id: &i64, client_id: &i64, device_id: String, roles: Vec<String>) -> Self {
     let config = Config::global();
     let token = Token::new(
       account_id,
@@ -98,25 +123,34 @@ impl AuthData {
       config.server.url.clone().into(),
       config.server.url.clone().into(),
       client_id,
+      roles.clone(),
+      device_id.clone(),
     );
     let access_token = token.get_token();
 
     let refresh = Token::new(
       account_id,
       &RefreshTokenPair::global().0,
-      config.auth.refresh_token_expires_in_days,
+      config.auth.refresh_token_expires_in_days * 24 * 60,
       config.server.url.clone().into(),
       config.server.url.clone().into(),
       client_id,
+      roles.clone(),
+      device_id.clone(),
     );
     let refresh_token = refresh.get_token();
     let expires_at = token.get_expires_at();
     Self {
       account_id: *account_id,
       access_token,
+      access_token_id: token.jti,
+      access_token_type: TokenType::Bearer,
       expires_at: expires_at,
       refresh_token,
+      refresh_token_id: refresh.jti,
+      refresh_token_type: TokenType::Bearer,
       refresh_token_expires_at: refresh.get_expires_at(),
+      device_id: device_id,
     }
   }
 }

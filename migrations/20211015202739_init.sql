@@ -82,6 +82,7 @@ CREATE TABLE login_activities (
     failure_reason character varying,
     ip inet,
     user_agent character varying,
+    device_id character varying,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
     deleted_at timestamp
