@@ -1,14 +1,13 @@
 use crate::{
   account::{
-    model::{LoginActivityData, SigninParam},
+    model::SigninParam,
     service::get_account::get_account,
     util::{get_access_token_key, AuthData},
   },
   alias::{KvPool, Pool},
   error::{Error, ServiceError, ServiceResult},
-  global::Config,
   middleware::Locale,
-  util::{id::next_id, key_pair::Pair},
+  util::id::next_id,
 };
 
 use chrono::Utc;

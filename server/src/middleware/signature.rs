@@ -23,7 +23,6 @@ where
 
   async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
     // get locale
-    // todo parallet
     // check is signature exists
     let TypedHeader(XClientSignature(x_client_signature)) =
       TypedHeader::<XClientSignature>::from_request(req).await?;
@@ -45,7 +44,6 @@ where
     let method = req.method().as_str();
 
     if let Some(client) = client_option {
-      // todo join all
       let sign = Sign::new(
         method.to_string(),
         path.to_string(),

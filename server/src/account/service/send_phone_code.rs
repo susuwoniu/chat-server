@@ -9,13 +9,8 @@ use crate::{
   middleware::Locale,
   util::random::get_randome_code,
 };
-use axum::{
-  extract::{Extension, Path},
-  Json,
-};
 use deadpool_redis::redis::cmd;
 use fluent_bundle::FluentArgs;
-use serde::{Deserialize, Serialize};
 
 pub async fn send_phone_code(
   path_param: SendPhoneCodePathParam,

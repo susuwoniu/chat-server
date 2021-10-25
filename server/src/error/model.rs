@@ -9,7 +9,7 @@ use config::ConfigError;
 use deadpool_redis::redis::RedisError;
 use deadpool_redis::CreatePoolError;
 use derive_more::Display;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use sqlx::Error as SqlxError;
 use std::convert::From;
@@ -47,6 +47,7 @@ pub enum Error {
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]
+  #[allow(dead_code)]
   Default,
 }
 

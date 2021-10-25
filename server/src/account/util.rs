@@ -1,9 +1,7 @@
 use crate::{
   account::constant::{ACCESS_TOKEN_KEY, PHONE_AUTH_CODE_TEMP_KEY},
   global::{AccessTokenPair, Config, RefreshTokenPair},
-  util::{
-    datetime_tz, id::next_id, key_pair::Pair, option_datetime_tz, option_string_i64, string_i64,
-  },
+  util::{datetime_tz, id::next_id, key_pair::Pair, string_i64},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use pasetors::claims::Claims;
@@ -112,7 +110,6 @@ impl AuthData {
       client_id,
     );
     let refresh_token = refresh.get_token();
-    // todo config
     let expires_at = token.get_expires_at();
     Self {
       account_id: *account_id,

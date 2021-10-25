@@ -1,4 +1,4 @@
-use crate::{global::ClientConfig, util::key_pair::Pair};
+use crate::global::ClientConfig;
 use once_cell::sync::OnceCell;
 use std::collections::HashMap;
 pub static CLIENT_MAP: OnceCell<Client> = OnceCell::new();

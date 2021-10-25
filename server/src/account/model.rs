@@ -1,8 +1,4 @@
-use super::util::Token;
-use crate::{
-  global::{Config, RefreshTokenPair},
-  util::{datetime_tz, key_pair::Pair, option_datetime_tz, option_string_i64, string_i64},
-};
+use crate::util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64};
 use chrono::prelude::{NaiveDate, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

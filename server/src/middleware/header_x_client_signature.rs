@@ -15,7 +15,6 @@ impl Header for XClientSignature {
     I: Iterator<Item = &'i HeaderValue>,
   {
     let value = values.next().ok_or_else(headers::Error::invalid)?;
-    // todo i64
     let x_client_signature: String = value
       .to_str()
       .map_err(|_| headers::Error::invalid())?

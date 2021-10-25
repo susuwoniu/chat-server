@@ -13,7 +13,6 @@ impl Header for XClientDate {
     I: Iterator<Item = &'i HeaderValue>,
   {
     let value = values.next().ok_or_else(headers::Error::invalid)?;
-    // todo i64
     let header_value: String = value
       .to_str()
       .map_err(|_| headers::Error::invalid())?

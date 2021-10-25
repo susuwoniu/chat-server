@@ -13,11 +13,13 @@ impl ServiceError {
     detail: Option<&str>,
     stack: Error,
   ) -> Self {
-    // TODO
-    // error!(
-    //   "Error occured: code:{}, title: {},detail: {:?}, stack:{:?}",
-    //   code, title, detail, stack
-    // );
+    tracing::error!(
+      "Error occured: code:{}, title: {},detail: {:?}, stack:{:?}",
+      code,
+      title,
+      detail,
+      stack
+    );
     let mut final_detail: String = String::from("");
     if detail.is_some() {
       let the_detail_string = detail.unwrap();
@@ -188,6 +190,7 @@ impl ServiceError {
       stack,
     )
   }
+  #[allow(dead_code)]
   pub fn base_bad_request() -> Self {
     let code = "base_bad_request";
     Self::not_found_raw(
