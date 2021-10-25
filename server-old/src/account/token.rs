@@ -1,3 +1,4 @@
+use crate::util::id::next_id;
 use crate::util::key_pair::Pair;
 use chrono::{Duration, NaiveDateTime, Utc};
 use pasetors::claims::Claims;
@@ -12,7 +13,7 @@ impl Token {
   pub fn new(
     account_id: i64,
     pair: &Pair,
-    expires_in_days: i64,
+    expires_in_minutes: i64,
     issuer: String,
     audience: String,
     client_id: i64,
@@ -26,7 +27,8 @@ impl Token {
     let now = Utc::now();
     let iat = now;
     let nbf = iat;
-    let expires_at = now + Duration::days(expires_in_days);
+    let expires_at = now + Duration::minutes(expires_in_minutes);
+    let jti = next_id();
     claims.issued_at(&iat.to_rfc3339()).expect("get iat failed");
     claims
       .not_before(&nbf.to_rfc3339())
@@ -37,9 +39,11 @@ impl Token {
     // add client id for token issueed to which client
     // azp
     claims
-      .add_additional("azp", client_id.to_string())
-      .expect("get azp failed");
-
+      .add_additional("client_id", client_id.to_string())
+      .expect("get client_id failed");
+    claims
+      .token_identifier(&jti.to_string())
+      .expect("get jti failed");
     let sk = AsymmetricSecretKey::from(&pair.get_secret_bytes(), Version::V4)
       .expect("get secret key failed");
     let pk = AsymmetricPublicKey::from(&pair.get_public_bytes(), Version::V4)

@@ -8,6 +8,7 @@ pub struct Pair {
   secret: SecretKey,
   public: PublicKey,
 }
+
 impl Pair {
   pub fn new() -> Pair {
     let mut csprng = rand07::rngs::OsRng {};

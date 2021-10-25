@@ -1,22 +1,30 @@
-use super::util::get_phone_code_temp_key;
-use crate::account::model::{PhoneCodeMeta, PhoneCodePostData, PhoneCodeResponseData};
-use crate::config::Config;
-use crate::config::ENV;
-use crate::error::{Error, ServiceError, ServiceResult};
-use crate::i18n::I18N;
-use crate::middleware::req_meta::ReqMeta;
-use crate::types::KvPool;
-use crate::util::random::get_randome_code;
+use crate::{
+  account::{
+    model::{PhoneCodeMeta, PhoneCodeResponseData, SendPhoneCodePathParam},
+    util::get_phone_code_temp_key,
+  },
+  alias::KvPool,
+  error::{Error, ServiceError, ServiceResult},
+  global::{Config, I18n, ENV},
+  middleware::Locale,
+  util::random::get_randome_code,
+};
+use axum::{
+  extract::{Extension, Path},
+  Json,
+};
 use deadpool_redis::redis::cmd;
 use fluent_bundle::FluentArgs;
+use serde::{Deserialize, Serialize};
+
 pub async fn send_phone_code(
-  req_meta: ReqMeta,
-  phone_code_post_data: PhoneCodePostData,
+  path_param: SendPhoneCodePathParam,
   kv: &KvPool,
+  locale: &Locale,
 ) -> ServiceResult<PhoneCodeResponseData> {
   // verify code
   // get random code
-  let cfg = Config::get();
+  let cfg = Config::global();
   let code = if cfg.env == ENV::Dev {
     "123456".to_string()
   } else {
@@ -24,10 +32,7 @@ pub async fn send_phone_code(
   };
 
   // add to kv
-  let temp_key = get_phone_code_temp_key(
-    &phone_code_post_data.phone_country_code,
-    &phone_code_post_data.phone_number,
-  );
+  let temp_key = get_phone_code_temp_key(&path_param.phone_country_code, &path_param.phone_number);
   let mut conn = kv.get().await?;
 
   // check time, if duration 1 minutes
@@ -41,8 +46,8 @@ pub async fn send_phone_code(
   {
     // try later
     return Err(ServiceError::get_phone_code_too_many_requests(
-      &req_meta.locale,
-      Error::Other(format!("ttl: {}, body: {:?}", ttl, &phone_code_post_data)),
+      &locale,
+      Error::Other(format!("ttl: {}, path: {:?}", ttl, &path_param)),
     ));
   }
   cmd("SET")
@@ -56,12 +61,9 @@ pub async fn send_phone_code(
     .await?;
   let mut args = FluentArgs::new();
   args.set("code", code.clone());
-  let phone_text =
-    &I18N
-      .read()
-      .unwrap()
-      .with_args("phone-verify-code-template", &req_meta.locale, args);
-  info!("Phone text: {}", phone_text);
+  let i18n = I18n::global();
+  let phone_text = &i18n.with_args("phone-verify-code-template", &locale, args);
+  tracing::info!("Phone text: {}", phone_text);
   // todo send sms
   // todo add auths table
   Ok(PhoneCodeResponseData {

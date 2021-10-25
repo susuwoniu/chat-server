@@ -1,4 +1,7 @@
-use crate::error::{Error, ServiceError};
+use crate::{
+  error::{Error, ServiceError},
+  middleware::Locale,
+};
 use chrono::{DateTime, Utc};
 use hmac::{Hmac, Mac, NewMac};
 use sha2::Sha256;
@@ -9,10 +12,8 @@ pub struct Sign {
   method: String,
   path: String,
   query: String,
-  content_type: String,
   client_id: String,
   client_date: String,
-  body: Option<String>,
 }
 
 /* postman js code generate
@@ -43,14 +44,12 @@ CanonicalRequest =
   CanonicalURI + '\n' +
   CanonicalQueryString + '\n' +
   CanonicalHeaders + '\n' +
-  HexEncode(Hash(RequestPayload))
 See https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
 
 POST
 /api/v1/accounts/phone-code
 
-content-type=application/json&x-client-date=202123414231&x-client-id=134124231424234
-hash(body)
+x-client-date=202123414231&x-client-id=134124231424234
 
 x-client-signature=v1.signature.<hash>
 
@@ -60,51 +59,37 @@ impl Sign {
     method: String,
     path: String,
     query: String,
-    content_type: String,
     client_id: String,
     client_date: String,
-    body: Option<String>,
   ) -> Self {
     Sign {
       method,
       path,
       query,
-      content_type,
       client_id,
       client_date,
-      body,
     }
   }
   pub fn get_sinature(&self, secret: String) -> String {
     let header_ensure = format!(
-      "content-type={}&x-client-id={}&x-client-date={}",
-      self.content_type, self.client_id, self.client_date
+      "x-client-id={}&x-client-date={}",
+      self.client_id, self.client_date
     );
     // Create alias for HMAC-SHA256
 
-    let mut body_hex = None;
-
-    if self.body.is_some() {
-      // Create HMAC-SHA256 instance which implements `Mac` trait
-      body_hex = Some(hmac_sha256(
-        self.body.clone().unwrap().as_str(),
-        secret.clone(),
-      ));
-    }
-
-    let mut body_ensutre = "".to_string();
-    if body_hex.is_some() {
-      body_ensutre = body_hex.unwrap();
-    }
-
     let plain_string = format!(
-      "{}\n{}\n{}\n{}\n{}",
-      self.method, self.path, self.query, header_ensure, body_ensutre
+      "{}\n{}\n{}\n{}",
+      self.method, self.path, self.query, header_ensure
     );
     let signature = format!("v1.signature.{}", hmac_sha256(&plain_string, secret));
     signature
   }
-  pub fn verify(&self, hex_code: String, secret: String) -> Result<bool, ServiceError> {
+  pub fn verify(
+    &self,
+    hex_code: String,
+    secret: String,
+    locale: &Locale,
+  ) -> Result<bool, ServiceError> {
     // verify time
 
     // signature_client_date_expires_in_minutes
@@ -115,7 +100,7 @@ impl Sign {
     let offset_minutes = offset.num_minutes().abs();
     if offset_minutes > 10 {
       return Err(ServiceError::unauthorized(
-        "zh-Hans",
+        locale,
         "x_client_date_not_match_server_time",
         Error::Other(format!(
           "x-client-date: {}, now:{}, offset_minutes:{}",
@@ -128,7 +113,7 @@ impl Sign {
       Ok(true)
     } else {
       Err(ServiceError::unauthorized(
-        "zh-Hans",
+        locale,
         "x_client_signature_not_match_with_server",
         Error::Other(format!("x-client-signature: {} ", hex_code)),
       ))

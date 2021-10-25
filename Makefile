@@ -6,9 +6,9 @@ init:
 db:
 	sqlx migrate add -r $(name)
 start:
-	cargo watch -x "run -- server"
+	RUST_LOG=info cargo watch -x "run -- server"
 run:
-	cargo run -- server
+	RUST_LOG=info cargo run -- server
 stop:
 	systemctl stop caddy
 reload:

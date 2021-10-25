@@ -1,13 +1,12 @@
 use crate::util::string::to_first_letter_uppertcase;
 use config::{Config as ConfigBuilder, ConfigError, Environment, File, FileFormat};
+use once_cell::sync::OnceCell;
 use serde::Deserialize;
 use std::fmt;
-use std::sync::RwLock;
 use url::Url;
-lazy_static! {
-  pub static ref CONFIG: RwLock<Config> =
-    RwLock::new(Config::new().expect("Failed to load settings file"));
-}
+pub static CONFIG: OnceCell<Config> = OnceCell::new();
+use std::net::SocketAddr;
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
   pub server: Server,
@@ -20,16 +19,18 @@ pub struct Config {
   pub kv: Kv,
   pub clients: Vec<Client>,
   pub invite_only: bool,
-  pub timezone_offset_in_seconds: i32,
+  pub default_timezone_offset_in_seconds: i32,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {
   pub secret_key: String,
   pub public_key: String,
-  pub access_token_expires_in_days: i64,
+  pub access_token_expires_in_minutes: i64,
   pub phone_code_verification_expires_in_minutes: i64,
   pub phone_code_verification_duration_in_seconds: i64,
   pub signature_client_date_expires_in_minutes: i64,
+  pub refresh_token_secret_key: String,
+  pub refresh_token_public_key: String,
   pub refresh_token_expires_in_days: i64,
 }
 
@@ -40,8 +41,7 @@ pub struct Log {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Server {
-  pub host: String,
-  pub port: u16,
+  pub socket_address: SocketAddr,
   pub url: Url,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
@@ -56,7 +56,6 @@ pub struct Kv {
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct I18n {
-  pub language: String,
   pub fallback_language: String,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
@@ -116,7 +115,7 @@ impl Config {
     s.merge(Environment::with_prefix(CONFIG_ENV_PREFIX))?;
     s.try_into()
   }
-  pub fn get() -> Self {
-    CONFIG.read().expect("read config failed").to_owned()
+  pub fn global() -> &'static Self {
+    CONFIG.get().expect("read config failed")
   }
 }

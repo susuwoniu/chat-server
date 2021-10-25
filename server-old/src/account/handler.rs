@@ -5,13 +5,14 @@ use crate::middleware::auth::AuthToken;
 use crate::middleware::req_meta::ReqMeta;
 use crate::middleware::signature_verifier::SignatureVerifier;
 use crate::types::{KvPool, Pool};
-use crate::util::key_pair::Pair;
+use crate::util::key_pair::{Pair, RefreshTokenPair};
 use actix_web::{web, HttpResponse};
 pub async fn login_with_phone(
     pool: web::Data<Pool>,
     req_meta: ReqMeta,
     kv: web::Data<KvPool>,
     pair: web::Data<Pair>,
+    refresh_token_pair: web::Data<RefreshTokenPair>,
     signature: SignatureVerifier,
 ) -> Result<HttpResponse, ServiceError> {
     if signature.body.is_none() {
@@ -29,6 +30,7 @@ pub async fn login_with_phone(
         pool.get_ref(),
         kv.get_ref(),
         pair.get_ref(),
+        refresh_token_pair.get_ref(),
     )
     .await
     .map(|res| HttpResponse::Ok().json(&res))

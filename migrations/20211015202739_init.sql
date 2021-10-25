@@ -26,6 +26,7 @@ CREATE TABLE accounts (
    suspended_until timestamp,
    suspended_reason text,
    birthday date,
+   timezone_in_seconds integer,
    phone_country_code integer,
    phone_number character varying(255),
    location character varying(255),

@@ -1,42 +1,45 @@
-use super::signin;
-use super::util::get_phone_code_temp_key;
-use crate::account::model::{AuthData, LoginActivityData, PhoneAuthPostData};
-use crate::error::{Error, ServiceError, ServiceResult};
-use crate::i18n::I18N;
-use crate::middleware::req_meta::ReqMeta;
-use crate::types::{KvPool, Pool};
-use crate::util::id::next_id;
-use crate::util::key_pair::Pair;
-use crate::util::string::get_random_letter;
-use chrono::{NaiveDateTime, Utc};
+use crate::{
+    account::{
+        model::{SigninParam, SigninWithPhoneParam},
+        service::signin::signin,
+        util::{get_phone_code_temp_key, AuthData},
+    },
+    alias::{KvPool, Pool},
+    error::{Error, ServiceError, ServiceResult},
+    global::I18n,
+    middleware::Locale,
+    util::{id::next_id, string::get_random_letter},
+};
+
+use chrono::Utc;
 use deadpool_redis::redis::cmd;
 use fluent_bundle::FluentArgs;
 use sqlx::query;
 pub async fn login_with_phone(
-    req_meta: ReqMeta,
-    phone_auth_post_data: PhoneAuthPostData,
+    locale: &Locale,
     pool: &Pool,
     kv: &KvPool,
-    pair: &Pair,
+    param: &SigninWithPhoneParam,
 ) -> ServiceResult<AuthData> {
     // verify code
     // get kv value
+    let SigninWithPhoneParam {
+        phone_country_code,
+        phone_number,
+        code: verify_code,
+        timezone_in_seconds,
+        client_id,
+    } = param;
 
-    let temp_key = get_phone_code_temp_key(
-        &phone_auth_post_data.phone_country_code,
-        &phone_auth_post_data.phone_number,
-    );
+    let temp_key = get_phone_code_temp_key(&phone_country_code, phone_number);
     let mut conn = kv.get().await?;
     let code_option: Option<String> = cmd("GET").arg(&temp_key).query_async(&mut conn).await?;
     if let Some(code) = code_option {
-        if code == phone_auth_post_data.code {
+        if &code == verify_code {
             // del the key
             cmd("DEL").arg(&temp_key).query_async(&mut conn).await?;
             // first check is registered.
-            let identifier = format!(
-                "{}{}",
-                &phone_auth_post_data.phone_country_code, &phone_auth_post_data.phone_number
-            );
+            let identifier = format!("{}{}", &phone_country_code, phone_number);
             let account_auth_row = query!(
                 r#"select id, account_id,current_signin_at from account_auths where identifier = $1 and identity_type = 'phone' and deleted = false"#,
                 identifier,
@@ -46,17 +49,14 @@ pub async fn login_with_phone(
             // TODO check disabled
             if let Some(account_auth) = account_auth_row {
                 signin(
-                    req_meta,
-                    LoginActivityData {
-                        account_id: account_auth.account_id,
-                        account_auth_id: account_auth.id,
-                        last_signin_at: account_auth
-                            .current_signin_at
-                            .unwrap_or(NaiveDateTime::from_timestamp(0, 0)),
-                    },
+                    locale,
                     pool,
                     kv,
-                    pair,
+                    &SigninParam {
+                        account_id: account_auth.account_id,
+                        account_auth_id: account_auth.id,
+                        client_id: *client_id,
+                    },
                 )
                 .await
             } else {
@@ -65,23 +65,20 @@ pub async fn login_with_phone(
                 // get random name
                 let mut args = FluentArgs::new();
                 args.set("random", get_random_letter(4));
-                let default_name =
-                    &I18N
-                        .read()
-                        .unwrap()
-                        .with_args("default-name", &req_meta.locale, args);
+                let default_name = I18n::global().with_args("default-name", &locale, args);
                 let mut tx = pool.begin().await?;
                 // add acccount
                 query!(
                     r#"
-INSERT INTO accounts (id,name,phone_country_code,phone_number,updated_at)
-VALUES ($1,$2,$3,$4,$5)
+INSERT INTO accounts (id,name,phone_country_code,phone_number,updated_at,timezone_in_seconds)
+VALUES ($1,$2,$3,$4,$5,$6)
 "#,
                     account_id,
                     default_name,
-                    phone_auth_post_data.phone_country_code,
-                    phone_auth_post_data.phone_number,
-                    Utc::now().naive_utc()
+                    phone_country_code,
+                    phone_number,
+                    Utc::now().naive_utc(),
+                    timezone_in_seconds
                 )
                 .execute(&mut tx)
                 .await?;
@@ -104,34 +101,27 @@ VALUES ($1,'phone',$2,$3,$4)
                 tx.commit().await?;
                 // todo add auths table
                 signin(
-                    req_meta,
-                    LoginActivityData {
-                        account_id: account_id,
-                        account_auth_id: account_auth_id,
-                        last_signin_at: NaiveDateTime::from_timestamp(0, 0),
-                    },
+                    locale,
                     pool,
                     kv,
-                    pair,
+                    &SigninParam {
+                        account_id: account_id,
+                        account_auth_id: account_auth_id,
+                        client_id: *client_id,
+                    },
                 )
                 .await
             }
         } else {
             return Err(ServiceError::phone_code_failed_or_expired(
-                &req_meta.locale,
-                Error::Other(format!(
-                    "Can not match code of {:?} from cache ",
-                    &phone_auth_post_data
-                )),
+                locale,
+                Error::Other(format!("Can not match code of {:?} from cache ", &param)),
             ));
         }
     } else {
         return Err(ServiceError::phone_code_expired(
-            &req_meta.locale,
-            Error::Other(format!(
-                "Can not get code of {:?} from cache ",
-                &phone_auth_post_data
-            )),
+            locale,
+            Error::Other(format!("Can not get code of {:?} from cache ", &param)),
         ));
     }
 }

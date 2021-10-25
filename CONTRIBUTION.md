@@ -31,7 +31,7 @@ cargo install sqlx-cli --no-default-features --features postgres
 # 初始化数据库等
 make init
 
-# 生成token密码
+# 生成access_token密钥对
 make keygen
 
 # 保存密码到配置文件 config/server-dev.toml or config/server-prod.toml
@@ -39,7 +39,16 @@ make keygen
 secret_key = ""
 public_key = ""
 
-# 生成一个客户端，用于后续所有的接口请求，以及部分接口的签名生成
+
+# 生成refresh_token密钥对
+make keygen
+
+# 保存密码到配置文件 config/server-dev.toml or config/server-prod.toml
+[auth]
+refresh_token_secret_key = ""
+refresh_token_public_key = ""
+
+# 生成一个客户端，用于后续所有的接口请求，以及部分接口的签名生成,理论上，ios一个，安卓1个
 
 make client
 

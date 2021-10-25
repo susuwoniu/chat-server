@@ -1,0 +1,30 @@
+clients = []
+# Beijing Timezone
+default_timezone_offset_in_seconds = 28800
+env = "development"
+invite_only = true
+[auth]
+access_token_expires_in_minutes = 1440
+phone_code_verification_duration_in_seconds = 60
+phone_code_verification_expires_in_minutes = 10
+public_key = ""
+refresh_token_expires_in_days = 180
+secret_key = ""
+signature_client_date_expires_in_minutes = 5
+[i18n]
+fallback_language = "zh-Hans"
+[server]
+socket_address = "0.0.0.0:3000"
+url = "http://localhost:4000"
+
+[log]
+level = "info"
+
+[db]
+
+max_connections = 10
+url = ""
+
+[kv]
+
+url = "redis://127.0.0.1:6379"

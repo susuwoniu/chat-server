@@ -1,9 +1,10 @@
 clients = []
+# Beijing Timezone
+default_timezone_offset_in_seconds = 28800
 env = "development"
 invite_only = true
-timezone_offset_in_seconds = 28800
 [auth]
-access_token_expires_in_days = 14
+access_token_expires_in_minutes = 1440
 phone_code_verification_duration_in_seconds = 60
 phone_code_verification_expires_in_minutes = 10
 public_key = ""
