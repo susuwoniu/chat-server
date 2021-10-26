@@ -10,13 +10,13 @@ use chrono::Datelike;
 use chrono::{Date, Utc};
 use sqlx::query;
 pub async fn get_slim_account(
+  locale: &Locale,
   pool: &Pool,
   account_id: &i64,
-  locale: &Locale,
 ) -> ServiceResult<SlimAccount> {
-  return Ok(get_account(pool, account_id, locale).await?.into());
+  return Ok(get_account(locale, pool, account_id).await?.into());
 }
-pub async fn get_account(pool: &Pool, account_id: &i64, locale: &Locale) -> ServiceResult<Account> {
+pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> ServiceResult<Account> {
   let account_row = query!(
     r#"
       select id,name,bio,gender as "gender:Gender",admin,moderator,vip,posts_count,likes_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,profile_images,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id from accounts where id = $1 and deleted=false

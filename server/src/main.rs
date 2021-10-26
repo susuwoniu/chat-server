@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 mod account;
 mod alias;
 mod cli_args;

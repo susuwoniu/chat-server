@@ -1,24 +1,19 @@
 use crate::{
   account::{
-    model::{SigninType, SignoutResponseData, SuccessMeta},
-    service::get_account::get_account,
-    util::{get_refresh_token_key, AuthData},
+    model::{SuccessMeta, SuccessResponseData},
+    util::get_refresh_token_key,
   },
-  alias::{KvPool, Pool},
-  error::{Error, ServiceError, ServiceResult},
+  alias::KvPool,
+  error::ServiceResult,
   middleware::{Auth, Locale},
-  util::id::next_id,
 };
-
-use chrono::Utc;
 use deadpool_redis::redis::cmd;
-use sqlx::query;
 // sign in a verified account
 pub async fn signout(
   locale: &Locale,
   kv: &KvPool,
   param: &Auth,
-) -> ServiceResult<SignoutResponseData> {
+) -> ServiceResult<SuccessResponseData> {
   let Auth {
     account_id,
     device_id,
@@ -34,7 +29,7 @@ pub async fn signout(
     .await?;
   // if not refresh token , so write
 
-  Ok(SignoutResponseData {
+  Ok(SuccessResponseData {
     meta: SuccessMeta { ok: true },
   })
 }

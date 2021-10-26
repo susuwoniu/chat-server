@@ -28,28 +28,27 @@ pub async fn signin(
     device_id,
   } = param;
   // lookup account
-  let user = get_account(pool, account_id, locale).await?;
-
+  let account = get_account(locale, pool, account_id).await?;
   // if suspended
-  if user.suspended {
+  if account.suspended {
     return Err(ServiceError::account_suspended(
       locale,
-      user.suspended_reason.clone(),
-      user.suspended_until.clone(),
-      Error::Other(format!("account {} suspened.", user.id)),
+      account.suspended_reason.clone(),
+      account.suspended_until.clone(),
+      Error::Other(format!("account {} suspened.", account.id)),
     ));
   }
   let login_activity_id = next_id();
   // generate new token
   let now = Utc::now();
   let mut roles: Vec<String> = Vec::new();
-  if user.admin {
+  if account.admin {
     roles.push("admin".to_string());
   }
-  if user.moderator {
+  if account.moderator {
     roles.push("moderator".to_string());
   }
-  if user.vip {
+  if account.vip {
     roles.push("vip".to_string());
   }
   // TODO client id

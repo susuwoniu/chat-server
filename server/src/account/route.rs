@@ -2,8 +2,8 @@ use crate::{
   account::{
     model::{
       Account, DeviceParam, GetAccountPathParam, PhoneAuthBodyParam, PhoneAuthPathParam,
-      PhoneCodeResponseData, SendPhoneCodePathParam, SigninWithPhoneParam, SignoutResponseData,
-      SlimAccount,
+      PhoneCodeResponseData, SendPhoneCodePathParam, SigninWithPhoneParam, SlimAccount,
+      SuccessResponseData, UpdateAccountParam,
     },
     service::{
       get_account::{get_account, get_slim_account},
@@ -11,6 +11,7 @@ use crate::{
       refresh_token_to_access_token::refresh_token_to_access_token,
       send_phone_code::send_phone_code,
       signout::signout,
+      update_account::update_account,
     },
     util::AuthData,
   },
@@ -20,7 +21,7 @@ use crate::{
 };
 use axum::{
   extract::{Extension, Path},
-  routing::{delete, get, post},
+  routing::{delete, get, patch, post},
   Json, Router,
 };
 
@@ -36,14 +37,24 @@ pub fn service_route() -> Router {
     )
     .route("/sessions", delete(signout_handler))
     .route("/accounts/:account_id", get(get_account_handler))
-    .route("/me", get(get_me_handler))
+    .route("/me", get(get_me_handler).patch(patch_account_handler))
     .route("/access-tokens", post(access_token_handler))
+}
+async fn patch_account_handler(
+  Extension(pool): Extension<Pool>,
+  locale: Locale,
+  Auth { account_id, .. }: Auth,
+  Json(payload): Json<UpdateAccountParam>,
+) -> ServiceJson<SuccessResponseData> {
+  Ok(Json(
+    update_account(&locale, &pool, &account_id, payload).await?,
+  ))
 }
 async fn signout_handler(
   Extension(kv): Extension<KvPool>,
   locale: Locale,
   auth: Auth,
-) -> ServiceJson<SignoutResponseData> {
+) -> ServiceJson<SuccessResponseData> {
   Ok(Json(signout(&locale, &kv, &auth).await?))
 }
 async fn access_token_handler(
@@ -95,7 +106,7 @@ async fn get_account_handler(
   locale: Locale,
 ) -> ServiceJson<SlimAccount> {
   Ok(Json(
-    get_slim_account(&pool, &path_param.account_id, &locale).await?,
+    get_slim_account(&locale, &pool, &path_param.account_id).await?,
   ))
 }
 async fn get_me_handler(
@@ -104,7 +115,7 @@ async fn get_me_handler(
   auth: Auth,
 ) -> ServiceJson<Account> {
   dbg!(&auth);
-  Ok(Json(get_account(&pool, &auth.account_id, &locale).await?))
+  Ok(Json(get_account(&locale, &pool, &auth.account_id).await?))
 }
 async fn send_phone_code_handler(
   Path(path_param): Path<SendPhoneCodePathParam>,

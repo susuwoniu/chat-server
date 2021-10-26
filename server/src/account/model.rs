@@ -131,8 +131,15 @@ pub struct SuccessMeta {
   pub ok: bool,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SignoutResponseData {
+pub struct SuccessResponseData {
   pub meta: SuccessMeta,
+}
+impl Default for SuccessResponseData {
+  fn default() -> Self {
+    Self {
+      meta: SuccessMeta { ok: true },
+    }
+  }
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Account {
@@ -165,6 +172,7 @@ pub struct Account {
   pub city_id: Option<i32>,
   pub avatar: Option<String>,
   pub profile_images: Option<Value>,
+  #[serde(default)]
   #[serde(with = "option_datetime_tz")]
   pub avatar_updated_at: Option<NaiveDateTime>,
   #[serde(with = "datetime_tz")]
@@ -172,9 +180,43 @@ pub struct Account {
   #[serde(with = "datetime_tz")]
   pub updated_at: NaiveDateTime,
   pub approved: bool,
+  #[serde(default)]
   #[serde(with = "option_datetime_tz")]
   pub approved_at: Option<NaiveDateTime>,
+  #[serde(default)]
   #[serde(with = "option_string_i64")]
+  pub invite_id: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateAccountParam {
+  pub name: Option<String>,
+  pub bio: Option<String>,
+  pub gender: Option<Gender>,
+  pub admin: Option<bool>,
+  pub moderator: Option<bool>,
+  pub vip: Option<bool>,
+  pub show_age: Option<bool>,
+  pub show_distance: Option<bool>,
+  pub suspended: Option<bool>,
+  #[serde(default)]
+  #[serde(with = "option_datetime_tz")]
+  pub suspended_at: Option<NaiveDateTime>,
+  #[serde(default)]
+  #[serde(with = "option_datetime_tz")]
+  pub suspended_until: Option<NaiveDateTime>,
+  pub suspended_reason: Option<String>,
+  pub birthday: Option<NaiveDate>,
+  pub timezone_in_seconds: Option<i32>,
+  pub phone_country_code: Option<i32>,
+  pub phone_number: Option<String>,
+  pub location: Option<String>,
+  pub country_id: Option<i32>,
+  pub state_id: Option<i32>,
+  pub city_id: Option<i32>,
+  pub avatar: Option<String>,
+  pub profile_images: Option<Value>,
+  pub approved: Option<bool>,
   pub invite_id: Option<i64>,
 }
 
