@@ -7,6 +7,7 @@ mod error;
 mod global;
 mod middleware;
 mod route;
+mod types;
 mod util;
 use crate::{
     cli_args::CliOpt,
@@ -26,6 +27,7 @@ use axum::AddExtensionLayer;
 use deadpool_redis::Config as RedisConfig;
 use sqlx::postgres::PgPoolOptions;
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use structopt::StructOpt;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -98,7 +100,7 @@ async fn main() -> Result<(), Error> {
                     app_route()
                         .layer(AddExtensionLayer::new(pool))
                         .layer(AddExtensionLayer::new(redis_pool))
-                        .into_make_service(),
+                        .into_make_service_with_connect_info::<SocketAddr, _>(),
                 )
                 .await
                 .unwrap();

@@ -1,9 +1,13 @@
 use crate::{
-  account::model::{Account, Gender, SlimAccount},
+  account::{
+    model::{Account, Gender, SlimAccount},
+    service::update_account_image::get_profile_images,
+  },
   alias::Pool,
-  error::{Error, ServiceError, ServiceResult},
+  error::{Error, ServiceError},
   global::Config,
   middleware::Locale,
+  types::ServiceResult,
 };
 use chrono::offset::FixedOffset;
 use chrono::Datelike;
@@ -19,7 +23,7 @@ pub async fn get_slim_account(
 pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> ServiceResult<Account> {
   let account_row = query!(
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,posts_count,likes_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,profile_images,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id from accounts where id = $1 and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,posts_count,likes_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id from accounts where id = $1 and deleted=false
 "#,
     account_id
   )
@@ -44,6 +48,8 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
       let birthday_utc_year = birthday_utc.year();
       age = Some(current_utc_year - birthday_utc_year);
     }
+    // todo 并行
+    let profile_images = get_profile_images(locale, pool, &account.id).await?;
 
     Ok(
       Account {
@@ -70,9 +76,9 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
         location: account.location,
         country_id: account.country_id,
         state_id: account.state_id,
+        profile_images: profile_images,
         city_id: account.city_id,
         avatar: account.avatar,
-        profile_images: account.profile_images,
         avatar_updated_at: account.avatar_updated_at,
         created_at: account.created_at,
         updated_at: account.updated_at,

@@ -37,7 +37,15 @@ impl ServiceError {
       detail: final_detail.to_string(),
     };
   }
-
+  pub fn forbidden_raw(
+    locale: &Locale,
+    code: &str,
+    title: &str,
+    detail: Option<&str>,
+    stack: Error,
+  ) -> Self {
+    Self::new(locale, StatusCode::FORBIDDEN, code, title, detail, stack)
+  }
   pub fn bad_request_raw(
     locale: &Locale,
     code: &str,
@@ -204,6 +212,26 @@ impl ServiceError {
   pub fn client_id_not_exist(locale: &Locale, stack: Error) -> Self {
     let code = "client_id_not_exist";
     Self::not_found_raw(
+      locale,
+      code,
+      &I18n::global().get(&get_title(code), locale),
+      Some(&I18n::global().get(&get_detail(code), locale)),
+      stack,
+    )
+  }
+  pub fn account_age_invalid(locale: &Locale, stack: Error) -> Self {
+    let code = "account_age_invalid";
+    Self::bad_request_raw(
+      locale,
+      code,
+      &I18n::global().get(&get_title(code), locale),
+      Some(&I18n::global().get(&get_detail(code), locale)),
+      stack,
+    )
+  }
+  pub fn permission_limit(locale: &Locale, stack: Error) -> Self {
+    let code = "permission_limit";
+    Self::forbidden_raw(
       locale,
       code,
       &I18n::global().get(&get_title(code), locale),

@@ -4,10 +4,12 @@ use crate::{
   util::{datetime_tz, id::next_id, key_pair::Pair, string_i64},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
+use jsonapi::{api::*, jsonapi_model, model::*};
 use pasetors::claims::Claims;
 use pasetors::keys::{AsymmetricPublicKey, AsymmetricSecretKey, Version};
 use pasetors::public;
 use serde::{Deserialize, Serialize};
+
 pub fn get_phone_code_temp_key(
   phone_country_code: &i32,
   phone_number: &str,
@@ -98,11 +100,11 @@ pub enum TokenType {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthData {
   #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "string_i64")]
   pub account_id: i64,
   pub device_id: String,
   pub access_token: String,
-  #[serde(with = "string_i64")]
-  pub access_token_id: i64,
   pub access_token_type: TokenType,
   #[serde(with = "datetime_tz")]
   pub expires_at: NaiveDateTime,
@@ -113,6 +115,7 @@ pub struct AuthData {
   #[serde(with = "datetime_tz")]
   pub refresh_token_expires_at: NaiveDateTime,
 }
+jsonapi_model!(AuthData; "token");
 impl AuthData {
   pub fn new(account_id: &i64, client_id: &i64, device_id: String, roles: Vec<String>) -> Self {
     let config = Config::global();
@@ -143,7 +146,7 @@ impl AuthData {
     Self {
       account_id: *account_id,
       access_token,
-      access_token_id: token.jti,
+      id: token.jti,
       access_token_type: TokenType::Bearer,
       expires_at: expires_at,
       refresh_token,

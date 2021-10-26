@@ -20,6 +20,7 @@ pub struct Config {
   pub clients: Vec<Client>,
   pub invite_only: bool,
   pub default_timezone_offset_in_seconds: i32,
+  pub account: Account,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {
@@ -38,7 +39,11 @@ pub struct Auth {
 pub struct Log {
   pub level: String,
 }
-
+#[derive(Default, Debug, Deserialize, Clone)]
+pub struct Account {
+  pub max_profile_images: i32,
+  pub min_age: i32,
+}
 #[derive(Debug, Deserialize, Clone)]
 pub struct Server {
   pub socket_address: SocketAddr,

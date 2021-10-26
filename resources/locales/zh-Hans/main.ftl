@@ -24,3 +24,7 @@ account-suspended-default-reason=某些原因
 account-suspended-default-until=无限期
 client-id-not-exist-title=客户端未授权
 client-id-not-exist-detail=你好，该客户端未授权，请联系开发者。
+account-age-invalid-title=不提供服务
+account-age-invalid-detail=你好，满18岁才可以使用我们的服务哦。
+permission-limit-title=权限不足
+permission-limit-detail=你好，你的权限还不足以做该操作哦

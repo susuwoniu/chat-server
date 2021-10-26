@@ -5,8 +5,9 @@ use crate::{
     util::{get_refresh_token_key, AuthData},
   },
   alias::{KvPool, Pool},
-  error::{Error, ServiceError, ServiceResult},
+  error::{Error, ServiceError},
   middleware::Locale,
+  types::ServiceResult,
   util::id::next_id,
 };
 

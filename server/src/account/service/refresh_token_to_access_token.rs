@@ -5,8 +5,9 @@ use crate::{
     util::{get_refresh_token_key, AuthData},
   },
   alias::{KvPool, Pool},
-  error::{Error, ServiceError, ServiceResult},
+  error::{Error, ServiceError},
   middleware::{Locale, RefreshTokenAuth},
+  types::ServiceResult,
 };
 
 use deadpool_redis::redis::cmd;
@@ -19,7 +20,6 @@ pub async fn refresh_token_to_access_token(
   // if redis record exist
   let RefreshTokenAuth {
     account_id,
-    token_id,
     client_id,
     device_id,
     ..
@@ -27,7 +27,7 @@ pub async fn refresh_token_to_access_token(
   let mut conn = kv.get().await?;
   let temp_key = get_refresh_token_key(*account_id, &device_id);
   let token_option: Option<String> = cmd("GET").arg(&temp_key).query_async(&mut conn).await?;
-  if let Some(token_exist) = token_option {
+  if let Some(_) = token_option {
     // yes
     // auth id not need for refresh token
     return signin(

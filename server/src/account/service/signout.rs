@@ -1,19 +1,12 @@
 use crate::{
-  account::{
-    model::{SuccessMeta, SuccessResponseData},
-    util::get_refresh_token_key,
-  },
+  account::util::get_refresh_token_key,
   alias::KvPool,
-  error::ServiceResult,
   middleware::{Auth, Locale},
+  types::ServiceResult,
 };
 use deadpool_redis::redis::cmd;
 // sign in a verified account
-pub async fn signout(
-  locale: &Locale,
-  kv: &KvPool,
-  param: &Auth,
-) -> ServiceResult<SuccessResponseData> {
+pub async fn signout(locale: &Locale, kv: &KvPool, param: &Auth) -> ServiceResult<()> {
   let Auth {
     account_id,
     device_id,
@@ -29,7 +22,5 @@ pub async fn signout(
     .await?;
   // if not refresh token , so write
 
-  Ok(SuccessResponseData {
-    meta: SuccessMeta { ok: true },
-  })
+  Ok(())
 }

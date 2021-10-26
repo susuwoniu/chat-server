@@ -2,7 +2,7 @@ clients = []
 # Beijing Timezone
 default_timezone_offset_in_seconds = 28800
 env = "development"
-invite_only = true
+invite_only = false
 [auth]
 access_token_expires_in_minutes = 1440
 phone_code_verification_duration_in_seconds = 60
@@ -28,3 +28,6 @@ url = ""
 [kv]
 
 url = "redis://127.0.0.1:6379"
+[account]
+max_profile_images = 9
+min_age = 18

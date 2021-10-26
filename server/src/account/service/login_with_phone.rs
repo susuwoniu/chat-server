@@ -1,19 +1,17 @@
 use crate::{
     account::{
-        model::{SigninParam, SigninType, SigninWithPhoneParam},
-        service::signin::signin,
+        model::{
+            IdentityType, SigninParam, SigninType, SigninWithPhoneParam, SignupData, SignupParam,
+        },
+        service::{signin::signin, signup::signup},
         util::{get_phone_code_temp_key, AuthData},
     },
     alias::{KvPool, Pool},
-    error::{Error, ServiceError, ServiceResult},
-    global::I18n,
+    error::{Error, ServiceError},
     middleware::Locale,
-    util::{id::next_id, string::get_random_letter},
+    types::ServiceResult,
 };
-
-use chrono::Utc;
 use deadpool_redis::redis::cmd;
-use fluent_bundle::FluentArgs;
 use sqlx::query;
 pub async fn login_with_phone(
     locale: &Locale,
@@ -64,44 +62,22 @@ pub async fn login_with_phone(
                 .await
             } else {
                 // signup and login
-                let account_id = next_id();
-                // get random name
-                let mut args = FluentArgs::new();
-                args.set("random", get_random_letter(4));
-                let default_name = I18n::global().with_args("default-name", &locale, args);
-                let mut tx = pool.begin().await?;
-                // add acccount
-                query!(
-                    r#"
-INSERT INTO accounts (id,name,phone_country_code,phone_number,updated_at,timezone_in_seconds)
-VALUES ($1,$2,$3,$4,$5,$6)
-"#,
-                    account_id,
-                    default_name,
-                    phone_country_code,
-                    phone_number,
-                    Utc::now().naive_utc(),
-                    timezone_in_seconds
+                let account_data = signup(
+                    locale,
+                    pool,
+                    SignupParam {
+                        identity_type: IdentityType::Phone,
+                        identifier,
+                        phone_country_code: Some(*phone_country_code),
+                        phone_number: Some(phone_number.clone()),
+                        timezone_in_seconds: *timezone_in_seconds,
+                    },
                 )
-                .execute(&mut tx)
                 .await?;
-                let account_auth_id = next_id();
-
-                // add account_auths
-                // TODO source_from, sign_up_ip, invite_id
-                query!(
-                    r#"
-INSERT INTO account_auths (id,identity_type,identifier,account_id,updated_at)
-VALUES ($1,'phone',$2,$3,$4)
-"#,
+                let SignupData {
+                    account_id,
                     account_auth_id,
-                    identifier,
-                    account_id,
-                    Utc::now().naive_utc()
-                )
-                .execute(&mut tx)
-                .await?;
-                tx.commit().await?;
+                } = account_data;
                 // todo add auths table
                 signin(
                     locale,

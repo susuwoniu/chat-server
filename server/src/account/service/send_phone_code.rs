@@ -1,12 +1,13 @@
 use crate::{
   account::{
-    model::{DeviceParam, PhoneCodeMeta, PhoneCodeResponseData, SendPhoneCodePathParam},
+    model::{DeviceParam, PhoneCodeMeta, SendPhoneCodePathParam},
     util::get_phone_code_temp_key,
   },
   alias::KvPool,
-  error::{Error, ServiceError, ServiceResult},
+  error::{Error, ServiceError},
   global::{Config, I18n, ENV},
   middleware::Locale,
+  types::ServiceResult,
   util::random::get_randome_code,
 };
 use deadpool_redis::redis::cmd;
@@ -17,7 +18,7 @@ pub async fn send_phone_code(
   kv: &KvPool,
   path_param: SendPhoneCodePathParam,
   body_param: DeviceParam,
-) -> ServiceResult<PhoneCodeResponseData> {
+) -> ServiceResult<PhoneCodeMeta> {
   // verify code
   // get random code
   let cfg = Config::global();
@@ -66,10 +67,8 @@ pub async fn send_phone_code(
   tracing::info!("Phone text: {}", phone_text);
   // todo send sms
   // todo add auths table
-  Ok(PhoneCodeResponseData {
-    meta: PhoneCodeMeta {
-      length: code.len(),
-      expires_in_minutes: cfg.auth.phone_code_verification_expires_in_minutes,
-    },
+  Ok(PhoneCodeMeta {
+    length: code.len(),
+    expires_in_minutes: cfg.auth.phone_code_verification_expires_in_minutes,
   })
 }

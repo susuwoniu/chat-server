@@ -203,6 +203,3 @@ impl From<RedisError> for ServiceError {
     ServiceError::internal(&Locale::default(), "redis_error", error.into())
   }
 }
-
-pub type ServiceResult<V> = std::result::Result<V, ServiceError>;
-pub type ServiceJson<V> = std::result::Result<Json<V>, ServiceError>;

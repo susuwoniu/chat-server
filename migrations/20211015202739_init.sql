@@ -34,7 +34,6 @@ CREATE TABLE accounts (
    state_id integer,
    city_id integer,
    avatar character varying,
-   profile_images json,
    avatar_updated_at timestamp without time zone, 
    created_at timestamp without time zone DEFAULT now() NOT NULL,
    updated_at timestamp without time zone NOT NULL,
@@ -42,6 +41,17 @@ CREATE TABLE accounts (
    approved_at timestamp,
    invite_id bigint
 );
+
+--用户头像表
+CREATE TABLE account_images (
+    id bigint NOT NULL PRIMARY KEY,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
+    account_id bigint NOT NULL,
+    sequence integer NOT NULL,
+    url character varying NOT NULL
+);
+CREATE UNIQUE INDEX index_unique_images ON account_images USING btree (account_id,sequence);
 
 --用户登录表
 CREATE TABLE account_auths (
@@ -52,7 +62,6 @@ CREATE TABLE account_auths (
     -- 10: mobile, 20: wechat, 30: apple
     identity_type identity_type NOT NULL,
     identifier character varying(1024),
-
     hash BYTEA,
     salt VARCHAR(255),
     third_party_data json,
