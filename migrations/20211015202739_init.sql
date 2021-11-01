@@ -1,5 +1,4 @@
--- Add migration script here
-CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- create enum type identity_type
 CREATE TYPE identity_type AS ENUM ('phone','email','wechat', 'weibo','apple','google','facebook','twitter');
 CREATE TYPE gender AS ENUM ('male', 'female','intersex','other','unknown');

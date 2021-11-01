@@ -1,10 +1,8 @@
 # Contribution
 
-## Pre Requirement
+## 环境安装
 
-MacOS
-
-### 后端环境：
+### MacOS
 
 ```bash
 # 安装数据库
@@ -19,12 +17,64 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup default nightly
 # 安装数据库管理工具
 cargo install sqlx-cli --no-default-features --features postgres
+
+```
+
+### Debian
+
+1. [Debian Server Setup](https://wiki.owenyoung.com/debian-server-setup/)
+2. 安装 postgres 数据库扩展
+
+> 参考： [Postgres Setup](https://wiki.owenyoung.com/postgres-setup-for-debian), [postgis setup](https://trac.osgeo.org/postgis/wiki/UsersWikiPostGIS24UbuntuPGSQL10Apt)
+
+```bash
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+sudo apt -y install postgresql-14 postgresql-14-postgis-3 postgresql-14-postgis-3-scripts postgresql-14-postgis-3-dbgsym
+```
+
+3. [Rust Enviroment setup](https://wiki.owenyoung.com/rust-enviroment-setup-for-debian/)
+
+```bash
+# 安装redis数据库
+sudo apt install redis-server
+# 使用rust nightly版本
+rustup default nightly
+# 安装数据库管理工具
+cargo install sqlx-cli --no-default-features --features postgres
+# 登录postgres用户
+sudo su - postgres
+# 进行psql命令行
+psql
+
+# 创建数据库扩展
+CREATE EXTENSION IF NOT EXISTS postgis;
+# 创建数据库
+CREATE DATABASE chat;
+# 创建postgres用户
+create user chat_postgres with encrypted password 'chat_postgres_password';
+# 授权给用户刚创建的数据库的权限
+grant all privileges on database chat to chat_postgres;
+# 退出到当前用户
+exit;
+exit
 ```
 
 ## 初始化
 
+生产环境`.env`参考:
+
+```ini
+DATABASE_URL=postgres://chat_postgres:chat_postgres_password@localhost/chat
+RUST_ENV=prod
+```
+
 ```bash
-# 和同事获取开发环境的的 .env 文件，粘贴到根目录
+# 下载源代码
+git clone git@github.com:susuwoniu/chat-server.git
+# 和同事获取开发环境的的 .env 文件，粘贴到根目录，把.env里的数据库地址改成你本地对应的地址
+# 比如 DATABASE_URL=postgres://chat_postgres:chat_postgres_password@localhost/chat
 # or
 # cp sample.env .env
 # 改变 .env里的值
