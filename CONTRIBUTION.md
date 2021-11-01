@@ -78,6 +78,10 @@ git clone git@github.com:susuwoniu/chat-server.git
 # or
 # cp sample.env .env
 # 改变 .env里的值
+
+# 拷贝配置文件，拷贝 config/server-default.toml, config/server-dev.toml, config/server-prod.toml
+
+
 # 初始化数据库等
 make init
 

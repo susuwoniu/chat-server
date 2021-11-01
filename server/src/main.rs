@@ -80,11 +80,11 @@ async fn main() -> Result<(), Error> {
                 client_map.insert(client.client_id, client);
             }
             CLIENT_MAP.set(Client(client_map)).unwrap();
-
+            let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env not set");
             // Database
             let pool = PgPoolOptions::new()
                 .max_connections(cfg.db.max_connections)
-                .connect(&cfg.db.url)
+                .connect(&database_url)
                 .await?;
 
             // let redis_client = redis::Client::open().expect("Can't create Redis client");

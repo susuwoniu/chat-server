@@ -51,7 +51,6 @@ pub struct Server {
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Db {
-  pub url: String,
   pub max_connections: u32,
 }
 // kv storage
