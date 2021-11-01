@@ -106,12 +106,12 @@ impl Config {
     let mut s = ConfigBuilder::default();
     let default_config = include_str!("./default.toml");
     s.merge(File::from_str(default_config, FileFormat::Toml))?;
-    s.merge(File::with_name(&format!("{}/server-default", CONFIG_DIRECTORY)).required(false))?;
+    s.merge(File::with_name(&format!("{}/default", CONFIG_DIRECTORY)).required(false))?;
     s.set("env", first_letter_uppercase_env.clone())?;
     let env_config_file_name = File::with_name(&format!(
       "{}/{}",
       CONFIG_DIRECTORY,
-      &format!("server-{}", lower_case_env)
+      &format!("{}", lower_case_env)
     ))
     .required(false);
     s.merge(env_config_file_name)?;
