@@ -13,10 +13,7 @@ brew install postgis
 brew install redis
 # 安装后端语言rust的管理工具 rustup
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-# 使用rust nightly版本
-rustup default nightly
-# 安装数据库管理工具
-cargo install sqlx-cli --no-default-features --features postgres
+
 
 ```
 
@@ -39,10 +36,6 @@ sudo apt -y install postgresql-14 postgresql-14-postgis-3 postgresql-14-postgis-
 ```bash
 # 安装redis数据库
 sudo apt install redis-server
-# 使用rust nightly版本
-rustup default nightly
-# 安装数据库管理工具
-cargo install sqlx-cli --no-default-features --features postgres
 # 登录postgres用户
 sudo su - postgres
 # 进行psql命令行
@@ -63,6 +56,15 @@ exit
 
 ## 初始化
 
+初始化 rust 开发编译环境
+
+```bash
+# 使用rust nightly版本
+rustup default nightly
+# 安装开发自动刷新工具 cargo-watch
+cargo install cargo-watch
+```
+
 生产环境`.env`参考:
 
 ```ini
@@ -79,7 +81,7 @@ git clone git@github.com:susuwoniu/chat-server.git
 # cp sample.env .env
 # 改变 .env里的值
 
-# 拷贝配置文件，拷贝 config/server-default.toml, config/server-dev.toml, config/server-prod.toml
+# 拷贝配置文件，拷贝 config/default.toml, config/dev.toml, config/prod.toml
 
 
 # 初始化数据库等
@@ -124,7 +126,75 @@ make start
 ## 生产环境
 
 ```bash
-make build && make serve
+make build
+```
+
+### Setup as system service
+
+You have to create a `chat.service` file in `/etc/systemd/system` that would contain the following text:
+
+```bash
+sudo vim /etc/systemd/system/chat.service
+```
+
+```bash
+[Unit]
+Description=Chat Daemon
+After=syslog.target network.target
+
+# After=syslog.target network.target sonarr.service radarr.service
+
+[Service]
+WorkingDirectory=/home/green/chat-server
+User=green
+Group=admin
+UMask=0002
+Restart=on-failure
+RestartSec=5
+Type=simple
+ExecStart=/home/green/chat-server/target/release/chat server
+KillSignal=SIGINT
+TimeoutStopSec=20
+SyslogIdentifier=chat
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now chat
+sudo systemctl status chat
+sudo systemctl restart chat
+
+```
+
+## Install nginx as reverse proxy
+
+See <https://wiki.owenyoung.com/nginx-setup-for-debian/>
+
+### Nginx conf
+
+See [online conf](https://www.digitalocean.com/community/tools/nginx?domains.0.server.domain=chat.scuinfo.com&domains.0.https.certType=custom&domains.0.php.php=false&domains.0.reverseProxy.reverseProxy=true&domains.0.routing.root=false&global.app.lang=zhCN) generate
+
+Or See `supports/nginx`
+
+Generate `dhparam.pem`:
+
+```bash
+openssl dhparam -out /etc/nginx/dhparam.pem 2048
+```
+
+## Generate SSL
+
+```
+acme.sh --issue --dns dns_cf -d chat.scuinfo.com
+```
+
+```
+acme.sh --install-cert -d chat.scuinfo.com \
+--key-file       /etc/nginx/ssl/chat.scuinfo.com.key  \
+--fullchain-file /etc/nginx/ssl/chat.scuinfo.com.crt \
+--reloadcmd     "service nginx force-reload"
 ```
 
 ## Update database schema
