@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct IndexMeta {
   pub version: String,
   pub prefix: String,
+  pub protocol: String,
 }
 
 pub fn app_route() -> Router {
@@ -16,6 +17,7 @@ pub fn app_route() -> Router {
         Json(IndexMeta {
           version: "v1".to_string(),
           prefix: API_V1_PREFIX.to_string(),
+          protocol: "jsonapi".to_string(),
         })
       }),
     )
