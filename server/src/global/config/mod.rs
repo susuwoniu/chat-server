@@ -21,6 +21,7 @@ pub struct Config {
   pub invite_only: bool,
   pub default_timezone_offset_in_seconds: i32,
   pub account: Account,
+  pub use_fixed_code: bool,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {

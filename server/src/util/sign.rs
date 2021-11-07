@@ -81,6 +81,7 @@ impl Sign {
       "{}\n{}\n{}\n{}",
       self.method, self.path, self.query, header_ensure
     );
+    tracing::debug!("{}", plain_string);
     let signature = format!("v1.signature.{}", hmac_sha256(&plain_string, secret));
     signature
   }

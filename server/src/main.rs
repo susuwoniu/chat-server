@@ -15,7 +15,7 @@ use crate::{
     global::{
         access_token_pair::ACCESS_TOKEN_PAIR,
         client::CLIENT_MAP,
-        config::{Client as ClientConfig, CONFIG},
+        config::{Client as ClientConfig, CONFIG, ENV},
         i18n::I18N,
         refresh_token_pair::REFRESH_TOKEN_PAIR,
         AccessTokenPair, Client, Config, I18n, RefreshTokenPair,
@@ -32,7 +32,20 @@ use structopt::StructOpt;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv::dotenv().ok();
-    tracing_subscriber::fmt::init();
+    CONFIG.set(Config::new().unwrap()).unwrap();
+    let cfg = Config::global();
+
+    if cfg.env == ENV::Dev {
+        let log_level_filter = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .finish();
+        tracing::subscriber::set_global_default(log_level_filter).unwrap();
+    } else {
+        let log_level_filter = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::WARN)
+            .finish();
+        tracing::subscriber::set_global_default(log_level_filter).unwrap();
+    }
     // sub command
     let opt = CliOpt::from_args();
     match opt {
@@ -54,9 +67,6 @@ async fn main() -> Result<(), Error> {
             println!("public_key: {}", public);
         }
         CliOpt::Server {} => {
-            // init global config;
-            CONFIG.set(Config::new().unwrap()).unwrap();
-            let cfg = Config::global();
             // init global i18n
             I18N.set(I18n::new(&cfg.i18n.fallback_language)).unwrap();
             // init refresh token pair

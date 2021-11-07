@@ -22,7 +22,7 @@ pub async fn send_phone_code(
   // verify code
   // get random code
   let cfg = Config::global();
-  let code = if cfg.env == ENV::Dev {
+  let code = if cfg.env == ENV::Dev || cfg.use_fixed_code {
     "123456".to_string()
   } else {
     get_randome_code()

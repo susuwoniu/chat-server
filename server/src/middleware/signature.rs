@@ -42,7 +42,6 @@ where
     let locale = Locale::from_request(req).await?;
     let client_option = Client::get(x_client_id);
     let method = req.method().as_str();
-
     if let Some(client) = client_option {
       let sign = Sign::new(
         method.to_string(),

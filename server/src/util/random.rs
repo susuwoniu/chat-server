@@ -6,7 +6,6 @@ pub fn get_randome_code() -> String {
   for _ in 0..6 {
     code.push_str(&rng.gen_range(0..10).to_string())
   }
-  dbg!(&code);
   return code;
 }
 
