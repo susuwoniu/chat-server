@@ -107,7 +107,7 @@ pub struct AuthData {
   pub access_token: String,
   pub access_token_type: TokenType,
   #[serde(with = "datetime_tz")]
-  pub expires_at: NaiveDateTime,
+  pub access_token_expires_at: NaiveDateTime,
   pub refresh_token: String,
   #[serde(with = "string_i64")]
   pub refresh_token_id: i64,
@@ -148,7 +148,7 @@ impl AuthData {
       access_token,
       id: token.jti,
       access_token_type: TokenType::Bearer,
-      expires_at: expires_at,
+      access_token_expires_at: expires_at,
       refresh_token,
       refresh_token_id: refresh.jti,
       refresh_token_type: TokenType::Bearer,
