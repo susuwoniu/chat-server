@@ -18,7 +18,7 @@ use crate::{
     },
   },
   alias::{KvPool, Pool},
-  middleware::{Auth, Locale, RefreshTokenAuth, Signature},
+  middleware::{Auth, Ip, Locale, RefreshTokenAuth, Signature},
   types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
 };
 
@@ -150,14 +150,14 @@ async fn phone_auth_handler(
   Path(path_param): Path<PhoneAuthPathParam>,
   Signature { client_id }: Signature,
   Json(payload): Json<PhoneAuthBodyParam>,
-  ConnectInfo(addr): ConnectInfo<SocketAddr>,
+  ip: Ip,
 ) -> JsonApiResponse {
+  dbg!(&ip);
   let PhoneAuthPathParam {
     phone_country_code,
     phone_number,
     code,
   } = path_param;
-  dbg!(&addr);
   let auth_data = login_with_phone(
     &locale,
     &pool,
@@ -198,10 +198,8 @@ async fn send_phone_code_handler(
   Extension(kv): Extension<KvPool>,
   locale: Locale,
   Json(payload): Json<DeviceParam>,
-  ConnectInfo(addr): ConnectInfo<SocketAddr>,
   _: Signature,
 ) -> SimpleMetaResponse<PhoneCodeMeta> {
-  dbg!(addr);
   let data = send_phone_code(&locale, &kv, path_param, payload).await?;
   QuickResponse::meta(data)
 }

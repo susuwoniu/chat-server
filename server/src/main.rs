@@ -110,7 +110,7 @@ async fn main() -> Result<(), Error> {
                     app_route()
                         .layer(AddExtensionLayer::new(pool))
                         .layer(AddExtensionLayer::new(redis_pool))
-                        .into_make_service_with_connect_info::<SocketAddr, _>(),
+                        .into_make_service(),
                 )
                 .await
                 .unwrap();
