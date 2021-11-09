@@ -9,7 +9,7 @@
 brew install postgres
 # 安装postgres数据库扩展
 brew install postgis
-# 安装redis数据库
+# 安装redis数据库 6.0+版本
 brew install redis
 # 安装后端语言rust的管理工具 rustup
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -35,7 +35,11 @@ sudo apt -y install postgresql-14 postgresql-14-postgis-3 postgresql-14-postgis-
 
 ```bash
 # 安装redis数据库
-sudo apt install redis-server
+# 6.0+版本
+curl https://packages.redis.io/gpg | sudo apt-key add -
+echo "deb https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+sudo apt-get update
+sudo apt-get install redis
 # 登录postgres用户
 sudo su - postgres
 # 进行psql命令行

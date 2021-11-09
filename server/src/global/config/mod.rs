@@ -97,7 +97,7 @@ pub struct Client {
 }
 
 const CONFIG_DIRECTORY: &str = "config";
-const CONFIG_ENV_PREFIX: &str = "COMMUNICATION";
+const CONFIG_ENV_PREFIX: &str = "CHAT";
 impl Config {
   pub fn new() -> Result<Self, ConfigError> {
     let env = std::env::var("RUST_ENV").unwrap_or("dev".into());

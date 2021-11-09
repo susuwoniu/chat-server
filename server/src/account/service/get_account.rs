@@ -7,7 +7,7 @@ use crate::{
   error::{Error, ServiceError},
   global::Config,
   middleware::Locale,
-  types::ServiceResult,
+  types::{Action, ActionType, ServiceResult},
 };
 use chrono::offset::FixedOffset;
 use chrono::Datelike;
@@ -23,7 +23,7 @@ pub async fn get_slim_account(
 pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> ServiceResult<Account> {
   let account_row = query!(
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,posts_count,likes_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id from accounts where id = $1 and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,posts_count,likes_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count from accounts where id = $1 and deleted=false
 "#,
     account_id
   )
@@ -34,6 +34,8 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
     // todo add auths table
     // get age
     //
+    // check
+
     let now = Utc::now();
 
     let current_utc_year = now.year();
@@ -49,8 +51,44 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
       age = Some(current_utc_year - birthday_utc_year);
     }
     // todo 并行
-    let profile_images = get_profile_images(locale, pool, &account.id).await?;
+    let profile_images = get_profile_images(pool, &account.id).await?;
+    let mut actions: Vec<Action> = Vec::new();
 
+    // required info
+    if account.birthday_change_count == 0 {
+      actions.push(Action {
+        action_type: ActionType::AddAccountBirthday,
+        required: true,
+      });
+    }
+    if account.gender_change_count == 0 {
+      actions.push(Action {
+        action_type: ActionType::AddAccountGender,
+        required: true,
+      });
+    }
+    // optional info
+
+    if account.skip_optional_info == false {
+      if account.name_change_count == 0 {
+        actions.push(Action {
+          action_type: ActionType::AddAccountName,
+          required: false,
+        });
+      }
+      if account.bio_change_count == 0 {
+        actions.push(Action {
+          action_type: ActionType::AddAccountBio,
+          required: false,
+        });
+      }
+      if account.profile_image_change_count == 0 {
+        actions.push(Action {
+          action_type: ActionType::AddAccountProfileImage,
+          required: false,
+        });
+      }
+    }
     Ok(
       Account {
         id: account.id,
@@ -85,6 +123,12 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
         approved: account.approved,
         approved_at: account.approved_at,
         invite_id: account.invite_id,
+        actions,
+        name_change_count: account.name_change_count,
+        bio_change_count: account.bio_change_count,
+        birthday_change_count: account.birthday_change_count,
+        phone_change_count: account.phone_change_count,
+        gender_change_count: account.gender_change_count,
       }
       .into(),
     )

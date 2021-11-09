@@ -1,14 +1,16 @@
-.PHONY: start reload stop init db test keygen client run build serve
+.PHONY: start reload stop init db test keygen client run build serve migrate
 init:
 	sqlx database create
 	sqlx migrate run
 	cargo run -- init
+migrate:
+	sqlx migrate run
 db:
-	sqlx migrate add -r $(name)
+	sqlx migrate add $(name)
 start:
 	RUST_LOG=info cargo watch -x "run -- server"
 build:
-	cargo build --release
+	sqlx migrate run && cargo build --release
 serve:
 	systemctl restart chat
 run:

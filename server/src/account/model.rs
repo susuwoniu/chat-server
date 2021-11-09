@@ -1,8 +1,10 @@
-use crate::util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64};
+use crate::{
+  types::Action,
+  util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
+};
 use chrono::prelude::{NaiveDate, NaiveDateTime};
 use jsonapi::{api::*, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SigninType {
   PhoneCode,
@@ -41,7 +43,7 @@ pub struct SignupData {
   pub account_id: i64,
   pub account_auth_id: i64,
 }
-#[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "gender", rename_all = "lowercase")]
 pub enum Gender {
@@ -193,6 +195,12 @@ pub struct Account {
   #[serde(default)]
   #[serde(with = "option_string_i64")]
   pub invite_id: Option<i64>,
+  pub name_change_count: i32,
+  pub bio_change_count: i32,
+  pub birthday_change_count: i32,
+  pub phone_change_count: i32,
+  pub gender_change_count: i32,
+  pub actions: Vec<Action>,
 }
 jsonapi_model!(Account; "account");
 

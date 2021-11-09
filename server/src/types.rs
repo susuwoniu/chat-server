@@ -39,3 +39,17 @@ impl QuickResponse {
     return Ok(Json(SimpleMetaDoc { meta }));
   }
 }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionType {
+  AddAccountName,
+  AddAccountBio,
+  AddAccountBirthday,
+  AddAccountProfileImage,
+  AddAccountGender,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Action {
+  pub action_type: ActionType,
+  pub required: bool,
+}

@@ -1,4 +1,4 @@
-use crate::middleware::Locale;
+use crate::{error::ServiceError, middleware::Locale};
 use axum::{
   body::{Bytes, Full},
   http::{Response, StatusCode},
@@ -10,11 +10,11 @@ use deadpool_redis::redis::RedisError;
 use deadpool_redis::CreatePoolError;
 use derive_more::Display;
 use serde::Serialize;
-use serde_json::json;
+use serde_json::{json, Value};
 use sqlx::Error as SqlxError;
 use std::convert::From;
 use std::convert::Infallible;
-use std::io;
+use std::{collections::HashMap, io};
 use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
@@ -52,24 +52,10 @@ pub enum Error {
 }
 
 #[derive(Display, Debug, Serialize, Clone)]
-#[display(
-  fmt = "status: {}, code: {}, title: {}, detail: {}",
-  status,
-  code,
-  title,
-  detail
-)]
-pub struct ServiceError {
-  #[serde(with = "http_serde::status_code")]
-  pub status: StatusCode,
-  pub code: String,
-  pub title: String,
-  pub detail: String,
-}
-#[derive(Display, Debug, Serialize, Clone)]
 #[display(fmt = "errors: {:?}", errors)]
 pub struct RootError {
   pub errors: Vec<ServiceError>,
+  pub meta: Option<HashMap<String, Value>>,
 }
 // impl IntoResponse for HeadersError {
 //   type Body = Full<Bytes>;
@@ -92,6 +78,7 @@ impl IntoResponse for ServiceError {
     let status = self.status;
     let body = Json(json!(RootError {
       errors: vec![self.clone()],
+      meta: None
     }));
     return (status, body).into_response();
   }
@@ -108,6 +95,7 @@ impl IntoResponse for RootError {
       return (
         StatusCode::INTERNAL_SERVER_ERROR,
         RootError {
+          meta: None,
           errors: vec![ServiceError::internal(
             &Locale::default(),
             "unknown_internal_error",

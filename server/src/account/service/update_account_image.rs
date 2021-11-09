@@ -9,11 +9,7 @@ use crate::{
 };
 use chrono::Utc;
 use sqlx::{query, query_as};
-pub async fn get_profile_images(
-  locale: &Locale,
-  pool: &Pool,
-  account_id: &i64,
-) -> ServiceResult<Vec<ProfileImage>> {
+pub async fn get_profile_images(pool: &Pool, account_id: &i64) -> ServiceResult<Vec<ProfileImage>> {
   let images = query_as!(
     ProfileImage,
     r#"
@@ -30,18 +26,19 @@ pub async fn get_profile_images(
 }
 async fn update_avatar(pool: &Pool, account_id: i64, image: ProfileImage) -> ServiceResult<()> {
   let now = Utc::now();
-  let row = query!(
+  query!(
     r#"
     UPDATE accounts
     SET 
     updated_at=$2,
     avatar_updated_at=$2,
-    avatar = $3
+    avatar = $3,
+    profile_image_change_count=profile_image_change_count+1
     where id = $1
 "#,
     account_id,
     now.naive_utc(),
-    image.url
+    image.url,
   )
   .execute(pool)
   .await?;
@@ -144,7 +141,6 @@ pub async fn update_profile_image(
 }
 
 pub async fn delete_profile_image(
-  locale: &Locale,
   pool: &Pool,
   account_id: &i64,
   sequence: i32,

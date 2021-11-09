@@ -1,18 +1,13 @@
 use crate::{
-  account::{
-    model::{Account, Gender, UpdateAccountParam},
-    service::get_account::get_account,
-  },
+  account::{model::UpdateAccountParam, service::get_account::get_account},
   alias::Pool,
   error::{Error, ServiceError},
   global::Config,
   middleware::{Auth, Locale},
   types::ServiceResult,
 };
-use chrono::offset::FixedOffset;
-use chrono::Datelike;
-use chrono::{Date, Utc};
-use serde_json::{json, Value};
+
+use chrono::Utc;
 use sqlx::query;
 pub async fn update_account(
   locale: &Locale,
@@ -59,6 +54,7 @@ pub async fn update_account(
   if !is_admin && (admin.is_some() || moderator.is_some()) {
     return Err(ServiceError::permission_limit(
       locale,
+      "no_permission_to_modify_admin_or_moderator",
       Error::Other(trace_info),
     ));
   }
@@ -70,15 +66,17 @@ pub async fn update_account(
   {
     return Err(ServiceError::permission_limit(
       locale,
+      "no_permission_to_modify_suspended",
       Error::Other(trace_info),
     ));
   }
 
   // only vip
 
-  if show_age.is_some() || show_distance.is_some() {
+  if (!is_vip || !is_admin) && show_age.is_some() || show_distance.is_some() {
     return Err(ServiceError::permission_limit(
       locale,
+      "no_permission_to_modify_show_age_or_show_distance",
       Error::Other(trace_info),
     ));
   }
@@ -98,8 +96,22 @@ pub async fn update_account(
   if approved.is_some() {
     approved_at = Some(now.naive_utc());
   }
-
+  let mut birthday_change_count = None;
   if let Some(birthday) = birthday {
+    // 修改次数限制
+    if account.birthday_change_count >= 1 {
+      // 不能再改
+      return Err(ServiceError::reach_max_change_limit(
+        locale,
+        "birthday_reach_max_change_limit",
+        "birthday",
+        None,
+        Error::Other(format!(
+          "account {} birthday reach max change limit",
+          account.id
+        )),
+      ));
+    }
     // birthday must > 18
     let duration = now.date().naive_utc() - birthday;
     let min_days = cfg.account.min_age * 365;
@@ -112,6 +124,41 @@ pub async fn update_account(
           account.id, birthday
         )),
       ));
+    }
+
+    if account.birthday.is_none() || Some(birthday) != account.birthday {
+      birthday_change_count = Some(account.birthday_change_count + 1);
+    }
+  }
+  let mut name_change_count = None;
+  if let Some(name) = name.clone() {
+    if name != account.name {
+      name_change_count = Some(account.name_change_count + 1);
+    }
+  }
+  let mut bio_change_count = None;
+  if let Some(bio) = bio.clone() {
+    if bio != account.bio {
+      bio_change_count = Some(account.bio_change_count + 1);
+    }
+  }
+  let mut gender_change_count = None;
+  if let Some(gender) = gender.clone() {
+    if account.gender_change_count >= 1 {
+      // 不能再改
+      return Err(ServiceError::reach_max_change_limit(
+        locale,
+        "gender_reach_max_change_limit",
+        "gender",
+        None,
+        Error::Other(format!(
+          "account {} gender reach max change limit",
+          account.id
+        )),
+      ));
+    }
+    if gender != account.gender {
+      gender_change_count = Some(account.gender_change_count + 1);
     }
   }
 
@@ -142,7 +189,11 @@ pub async fn update_account(
     country_id=COALESCE($22,country_id),
     state_id=COALESCE($23,state_id),
     city_id=COALESCE($24,city_id),
-    approved_at=COALESCE($25,approved_at)
+    approved_at=COALESCE($25,approved_at),
+    birthday_change_count=COALESCE($26,birthday_change_count),
+    name_change_count=COALESCE($27,name_change_count),
+    bio_change_count=COALESCE($28,bio_change_count),
+    gender_change_count=COALESCE($29,bio_change_count)
     where id = $1
 "#,
     account_id,
@@ -169,7 +220,11 @@ pub async fn update_account(
     country_id,
     state_id,
     city_id,
-    approved_at
+    approved_at,
+    birthday_change_count,
+    name_change_count,
+    bio_change_count,
+    gender_change_count
   )
   .execute(pool)
   .await?;

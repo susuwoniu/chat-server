@@ -1,9 +1,26 @@
 use super::Error;
-use super::ServiceError;
 use crate::{global::I18n, middleware::Locale};
 use axum::http::StatusCode;
 use chrono::NaiveDateTime;
+use derive_more::Display;
 use fluent_bundle::FluentArgs;
+use serde::Serialize;
+
+#[derive(Display, Debug, Serialize, Clone)]
+#[display(
+  fmt = "status: {}, code: {}, title: {}, detail: {}",
+  status,
+  code,
+  title,
+  detail
+)]
+pub struct ServiceError {
+  #[serde(with = "http_serde::status_code")]
+  pub status: StatusCode,
+  pub code: String,
+  pub title: String,
+  pub detail: String,
+}
 impl ServiceError {
   pub fn new(
     locale: &Locale,
@@ -55,6 +72,16 @@ impl ServiceError {
   ) -> Self {
     Self::new(locale, StatusCode::BAD_REQUEST, code, title, detail, stack)
   }
+  pub fn conflict_raw(
+    locale: &Locale,
+    code: &str,
+    title: &str,
+    detail: Option<&str>,
+    stack: Error,
+  ) -> Self {
+    Self::new(locale, StatusCode::CONFLICT, code, title, detail, stack)
+  }
+
   pub fn not_found_raw(
     locale: &Locale,
     code: &str,
@@ -180,7 +207,7 @@ impl ServiceError {
       suspended_until_final = suspend_until_naive_time.to_string();
     }
     args.set("suspended_until", suspended_until_final);
-    Self::bad_request_raw(
+    Self::conflict_raw(
       locale,
       code,
       &I18n::global().get(&get_title(code), locale),
@@ -188,6 +215,7 @@ impl ServiceError {
       stack,
     )
   }
+
   pub fn account_not_exist(locale: &Locale, stack: Error) -> Self {
     let code = "account_not_exist";
     Self::not_found_raw(
@@ -229,13 +257,37 @@ impl ServiceError {
       stack,
     )
   }
-  pub fn permission_limit(locale: &Locale, stack: Error) -> Self {
-    let code = "permission_limit";
+  pub fn reach_max_change_limit(
+    locale: &Locale,
+    code: &str,
+    field: &str,
+    until: Option<NaiveDateTime>,
+    stack: Error,
+  ) -> Self {
+    let locale_code = "reach_max_change_limit";
+    let mut args = FluentArgs::new();
+    args.set("field", I18n::global().get(field, locale));
+    let mut until_final = I18n::global().get("reach-max-change-limit-forever-until", locale);
+
+    if let Some(until) = until {
+      until_final = until.to_string();
+    }
+    args.set("until", until_final);
+    Self::too_many_requests_raw(
+      locale,
+      code,
+      &I18n::global().get(&get_title(locale_code), locale),
+      Some(&I18n::global().with_args(&get_detail(locale_code), locale, args)),
+      stack,
+    )
+  }
+  pub fn permission_limit(locale: &Locale, code: &str, stack: Error) -> Self {
+    let locale_code = "permission_limit";
     Self::forbidden_raw(
       locale,
       code,
-      &I18n::global().get(&get_title(code), locale),
-      Some(&I18n::global().get(&get_detail(code), locale)),
+      &I18n::global().get(&get_title(locale_code), locale),
+      Some(&I18n::global().get(&get_detail(locale_code), locale)),
       stack,
     )
   }

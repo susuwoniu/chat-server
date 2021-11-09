@@ -1,6 +1,7 @@
 use crate::{
   constant::{PHONE_AUTH_CODE_TEMP_KEY, REFRESH_TOKEN_KEY},
   global::{AccessTokenPair, Config, RefreshTokenPair},
+  types::Action,
   util::{datetime_tz, id::next_id, key_pair::Pair, string_i64},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
@@ -114,10 +115,17 @@ pub struct AuthData {
   pub refresh_token_type: TokenType,
   #[serde(with = "datetime_tz")]
   pub refresh_token_expires_at: NaiveDateTime,
+  pub actions: Vec<Action>,
 }
 jsonapi_model!(AuthData; "token");
 impl AuthData {
-  pub fn new(account_id: &i64, client_id: &i64, device_id: String, roles: Vec<String>) -> Self {
+  pub fn new(
+    account_id: &i64,
+    client_id: &i64,
+    device_id: String,
+    roles: Vec<String>,
+    actions: Vec<Action>,
+  ) -> Self {
     let config = Config::global();
     let token = Token::new(
       account_id,
@@ -154,6 +162,7 @@ impl AuthData {
       refresh_token_type: TokenType::Bearer,
       refresh_token_expires_at: refresh.get_expires_at(),
       device_id: device_id,
+      actions,
     }
   }
 }

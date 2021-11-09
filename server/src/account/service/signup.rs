@@ -1,10 +1,6 @@
 use crate::{
-  account::{
-    model::{IdentityType, SigninParam, SigninType, SignupData, SignupParam},
-    service::signin::signin,
-    util::{get_phone_code_temp_key, AuthData},
-  },
-  alias::{KvPool, Pool},
+  account::model::{IdentityType, SignupData, SignupParam},
+  alias::Pool,
   error::{Error, ServiceError},
   global::{Config, I18n},
   middleware::Locale,

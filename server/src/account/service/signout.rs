@@ -1,12 +1,9 @@
 use crate::{
-  account::util::get_refresh_token_key,
-  alias::KvPool,
-  middleware::{Auth, Locale},
-  types::ServiceResult,
+  account::util::get_refresh_token_key, alias::KvPool, middleware::Auth, types::ServiceResult,
 };
 use deadpool_redis::redis::cmd;
 // sign in a verified account
-pub async fn signout(locale: &Locale, kv: &KvPool, param: &Auth) -> ServiceResult<()> {
+pub async fn signout(kv: &KvPool, param: &Auth) -> ServiceResult<()> {
   let Auth {
     account_id,
     device_id,

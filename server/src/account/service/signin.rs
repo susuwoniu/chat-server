@@ -53,7 +53,13 @@ pub async fn signin(
     roles.push("vip".to_string());
   }
   // TODO client id
-  let auth_data = AuthData::new(account_id, client_id, device_id.to_string(), roles);
+  let auth_data = AuthData::new(
+    account_id,
+    client_id,
+    device_id.to_string(),
+    roles,
+    account.actions,
+  );
   // add refresh token to kv
   // add to kv
   let temp_key = get_refresh_token_key(*account_id, &auth_data.device_id);

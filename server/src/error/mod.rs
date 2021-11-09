@@ -1,3 +1,4 @@
 mod definition;
 mod model;
-pub use model::{Error, ServiceError};
+pub use definition::ServiceError;
+pub use model::Error;

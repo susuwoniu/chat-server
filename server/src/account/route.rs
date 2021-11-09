@@ -57,11 +57,10 @@ pub fn service_route() -> Router {
 }
 async fn delete_me_profile_image(
   Extension(pool): Extension<Pool>,
-  locale: Locale,
   Path(sequence): Path<u32>,
   Auth { account_id, .. }: Auth,
 ) -> JsonApiResponse {
-  delete_profile_image(&locale, &pool, &account_id, sequence as i32).await?;
+  delete_profile_image(&pool, &account_id, sequence as i32).await?;
   QuickResponse::default()
 }
 async fn patch_me_image_handler(
@@ -115,12 +114,8 @@ async fn add_me_image_handler(
   Ok(Json(doc))
 }
 
-async fn get_me_images_handler(
-  Extension(pool): Extension<Pool>,
-  locale: Locale,
-  auth: Auth,
-) -> JsonApiResponse {
-  let data = get_profile_images(&locale, &pool, &auth.account_id).await?;
+async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
+  let data = get_profile_images(&pool, &auth.account_id).await?;
   let mut resources = Vec::new();
   for image in data {
     let (res, _) = image.to_jsonapi_resource();
@@ -141,12 +136,8 @@ async fn patch_account_handler(
   update_account(&locale, &pool, &auth.account_id, payload, &auth).await?;
   QuickResponse::default()
 }
-async fn signout_handler(
-  Extension(kv): Extension<KvPool>,
-  locale: Locale,
-  auth: Auth,
-) -> JsonApiResponse {
-  signout(&locale, &kv, &auth).await?;
+async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {
+  signout(&kv, &auth).await?;
   QuickResponse::default()
 }
 async fn access_token_handler(
