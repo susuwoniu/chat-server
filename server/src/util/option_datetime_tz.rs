@@ -30,7 +30,6 @@ where
   D: Deserializer<'de>,
 {
   let s: Option<String> = Option::deserialize(deserializer)?;
-  dbg!(&s);
   if let Some(s) = s {
     return Ok(Some(
       DateTime::parse_from_rfc3339(&s)

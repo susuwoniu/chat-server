@@ -3,8 +3,10 @@ use crate::{
   util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
+use ipnetwork17::IpNetwork;
 use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SigninType {
   PhoneCode,
@@ -19,6 +21,7 @@ pub struct SigninParam {
   pub client_id: i64,
   pub device_id: String,
   pub signin_type: SigninType,
+  pub ip: IpNetwork,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,6 +32,7 @@ pub struct SigninWithPhoneParam {
   pub timezone_in_seconds: i32,
   pub client_id: i64,
   pub device_id: String,
+  pub ip: IpNetwork,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupParam {
@@ -37,6 +41,7 @@ pub struct SignupParam {
   pub phone_country_code: Option<i32>,
   pub phone_number: Option<String>,
   pub timezone_in_seconds: i32,
+  pub ip: IpNetwork,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupData {

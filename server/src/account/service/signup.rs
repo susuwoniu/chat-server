@@ -26,6 +26,7 @@ pub async fn signup(locale: &Locale, pool: &Pool, param: SignupParam) -> Service
     identity_type,
     identifier,
     timezone_in_seconds,
+    ip,
   } = param;
 
   if identity_type == IdentityType::Phone
@@ -56,8 +57,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     Utc::now().naive_utc(),
     timezone_in_seconds,
     approved,
-    approved_at
-
+    approved_at,
   )
   .execute(&mut tx)
   .await?;
@@ -67,13 +67,14 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
   // TODO source_from, sign_up_ip, invite_id
   query!(
     r#"
-INSERT INTO account_auths (id,identity_type,identifier,account_id,updated_at)
-VALUES ($1,'phone',$2,$3,$4)
+INSERT INTO account_auths (id,identity_type,identifier,account_id,updated_at,signup_ip)
+VALUES ($1,'phone',$2,$3,$4,$5)
 "#,
     account_auth_id,
     identifier,
     account_id,
-    now.naive_utc()
+    now.naive_utc(),
+    ip
   )
   .execute(&mut tx)
   .await?;

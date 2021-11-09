@@ -43,7 +43,8 @@ pub enum Error {
   InfallibleError(#[from] std::convert::Infallible),
   #[error("parse header failed")]
   TypedHeaderError(#[from] axum::extract::rejection::TypedHeaderRejection),
-
+  #[error("parse ip failed")]
+  IpNetworkError(#[from] ipnetwork17::IpNetworkError),
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]

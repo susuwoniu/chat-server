@@ -27,6 +27,7 @@ pub async fn signin(
     client_id,
     signin_type,
     device_id,
+    ip,
   } = param;
   // lookup account
   let account = get_account(locale, pool, account_id).await?;
@@ -86,25 +87,27 @@ pub async fn signin(
     query!(
       r#"
       UPDATE account_auths 
-      SET signin_count = signin_count + 1,current_signin_at = $1,  last_signin_at=current_signin_at
+      SET signin_count = signin_count + 1,current_signin_at = $1,  last_signin_at=current_signin_at, last_signin_ip=current_signin_ip,current_signin_ip = $3
       where id = $2
 "#,
       now.naive_utc(),
       account_auth_id,
+      &ip
     )
     .execute(&mut tx)
     .await?;
     // add login activity
     query!(
       r#"
-INSERT INTO login_activities (id,account_auth_id,account_id,client_id,success)
-VALUES ($1,$2,$3,$4,$5)
+INSERT INTO login_activities (id,account_auth_id,account_id,client_id,success,ip)
+VALUES ($1,$2,$3,$4,$5,$6)
 "#,
       login_activity_id,
       account_auth_id,
       account_id,
       client_id,
-      true
+      true,
+      ip
     )
     .execute(&mut tx)
     .await?;

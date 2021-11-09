@@ -23,12 +23,11 @@ use crate::{
 };
 
 use axum::{
-  extract::{ConnectInfo, Extension, Path},
+  extract::{Extension, Path},
   routing::{delete, get, post},
   Json, Router,
 };
 use jsonapi::{api::*, model::*};
-use std::net::SocketAddr;
 
 pub fn service_route() -> Router {
   Router::new()
@@ -138,8 +137,9 @@ async fn access_token_handler(
   Extension(kv): Extension<KvPool>,
   locale: Locale,
   auth: RefreshTokenAuth,
+  Ip(ip): Ip,
 ) -> JsonApiResponse {
-  let data = refresh_token_to_access_token(&locale, &pool, &kv, &auth).await?;
+  let data = refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip).await?;
   Ok(Json(data.to_jsonapi_document()))
 }
 
@@ -150,9 +150,8 @@ async fn phone_auth_handler(
   Path(path_param): Path<PhoneAuthPathParam>,
   Signature { client_id }: Signature,
   Json(payload): Json<PhoneAuthBodyParam>,
-  ip: Ip,
+  Ip(ip): Ip,
 ) -> JsonApiResponse {
-  dbg!(&ip);
   let PhoneAuthPathParam {
     phone_country_code,
     phone_number,
@@ -169,6 +168,7 @@ async fn phone_auth_handler(
       client_id,
       device_id: payload.device_id,
       timezone_in_seconds: payload.timezone_in_seconds,
+      ip,
     },
   )
   .await?;

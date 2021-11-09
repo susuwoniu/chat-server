@@ -9,13 +9,14 @@ use crate::{
   middleware::{Locale, RefreshTokenAuth},
   types::ServiceResult,
 };
-
 use deadpool_redis::redis::cmd;
+use ipnetwork17::IpNetwork;
 pub async fn refresh_token_to_access_token(
   locale: &Locale,
   pool: &Pool,
   kv: &KvPool,
   param: &RefreshTokenAuth,
+  ip: IpNetwork,
 ) -> ServiceResult<AuthData> {
   // if redis record exist
   let RefreshTokenAuth {
@@ -40,6 +41,7 @@ pub async fn refresh_token_to_access_token(
         account_auth_id: 0,
         device_id: device_id.clone(),
         signin_type: SigninType::RefreshToken,
+        ip: ip,
       },
     )
     .await;

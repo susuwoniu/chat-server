@@ -24,6 +24,8 @@ hmac = "0.11"
 http-serde = "1.0.3"
 include_dir = "0.6"
 intl-memoizer = {version = "0.5"}
+ipnetwork = "0.18"
+ipnetwork17 = {version = "0.17", package = "ipnetwork"}
 jsonapi = "0.7"
 jsonwebtoken = "7"
 num_cpus = "1.0"
