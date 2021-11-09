@@ -9,4 +9,4 @@ su - $build_user -c "cd $workspace && make build"
 commit_message=$(su - $build_user -c "cd $workspace && git log -1 --pretty=%B")
 sudo systemctl restart chat
 # send notice
-curl -X POST -H "Content-Type: application/json" -d "{\"value1\":\"成功部署chat-server到${ip4}, 提交信息:${commit_message}\"}" https://maker.ifttt.com/trigger/notice/with/key/$IFTTT_KEY
+curl -X POST -H "Content-Type: application/json" -d "{\"value1\":\"成功部署chat-server到${ip4}, 变化内容(${commit_message})\"}" https://maker.ifttt.com/trigger/notice/with/key/$IFTTT_KEY

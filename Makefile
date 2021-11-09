@@ -1,4 +1,4 @@
-.PHONY: start reload stop init db test keygen client run build serve migrate
+.PHONY: start reload stop init db test keygen client run build serve migrate redeploy
 init:
 	sqlx database create
 	sqlx migrate run
@@ -25,3 +25,5 @@ keygen:
 	cargo run -- keygen
 client:
 	cargo run -- client
+redeploy:
+	./scripts/redeploy.sh

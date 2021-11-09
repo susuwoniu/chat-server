@@ -20,4 +20,4 @@
 - [x] 成功的返回格式约束
 - [ ] 管理员权限等
 - [ ] ip 记录
-- [ ] redeploy 消息增加 git commit 信息
+- [x] redeploy 消息增加 git commit 信息
