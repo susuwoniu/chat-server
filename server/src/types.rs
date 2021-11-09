@@ -50,6 +50,7 @@ pub enum ActionType {
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Action {
-  pub action_type: ActionType,
+  #[serde(rename = "type")]
+  pub _type: ActionType,
   pub required: bool,
 }

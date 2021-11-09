@@ -1,10 +1,11 @@
 use crate::{
     account::{
         model::{
-            IdentityType, SigninParam, SigninType, SigninWithPhoneParam, SignupData, SignupParam,
+            AuthData, IdentityType, SigninParam, SigninType, SigninWithPhoneParam, SignupData,
+            SignupParam,
         },
         service::{signin::signin, signup::signup},
-        util::{get_phone_code_temp_key, AuthData},
+        util::get_phone_code_temp_key,
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},

@@ -33,3 +33,5 @@ reach-max-change-limit-detail=你好，{$field}暂时无法更改哦，预计可
 reach-max-change-limit-forever-until=永久无法更改
 gender=性别
 birthday=生日
+record-not-exist-title=记录不存在
+record-not-exist-detail=未在数据库中找到该记录，请检查后再试

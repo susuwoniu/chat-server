@@ -3,7 +3,7 @@ use crate::{
   util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
-use jsonapi::{api::*, jsonapi_model, model::*};
+use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SigninType {
@@ -66,6 +66,32 @@ pub enum IdentityType {
   Facebook,
   Twitter,
 }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum TokenType {
+  Bearer,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AuthData {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "string_i64")]
+  pub account_id: i64,
+  pub device_id: String,
+  pub access_token: String,
+  pub access_token_type: TokenType,
+  #[serde(with = "datetime_tz")]
+  pub access_token_expires_at: NaiveDateTime,
+  pub refresh_token: String,
+  #[serde(with = "string_i64")]
+  pub refresh_token_id: i64,
+  pub refresh_token_type: TokenType,
+  #[serde(with = "datetime_tz")]
+  pub refresh_token_expires_at: NaiveDateTime,
+  pub actions: Vec<Action>,
+  pub account: Account,
+}
+jsonapi_model!(AuthData; "tokens"; has one account);
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoginActivityData {
   #[serde(with = "string_i64")]
@@ -106,7 +132,7 @@ pub struct SlimAccount {
   pub approved_at: Option<NaiveDateTime>,
 }
 
-jsonapi_model!(SlimAccount; "slim_account");
+jsonapi_model!(SlimAccount; "slim-accounts"; has many profile_images);
 
 #[derive(Debug, Deserialize)]
 pub struct GetAccountPathParam {
@@ -150,7 +176,7 @@ pub struct SuccessMeta {
   pub ok: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Account {
   #[serde(with = "string_i64")]
   pub id: i64,
@@ -202,8 +228,20 @@ pub struct Account {
   pub gender_change_count: i32,
   pub actions: Vec<Action>,
 }
-jsonapi_model!(Account; "account");
-
+jsonapi_model!(Account; "accounts"; has many profile_images);
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProfileImage {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "string_i64")]
+  pub account_id: i64,
+  pub url: String,
+  #[serde(rename = "order")]
+  pub sequence: i32,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+}
+jsonapi_model!(ProfileImage; "profile-images");
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateAccountParam {
   pub name: Option<String>,
@@ -232,21 +270,8 @@ pub struct UpdateAccountParam {
   pub city_id: Option<i32>,
   pub approved: Option<bool>,
   pub invite_id: Option<i64>,
+  pub skip_optional_info: Option<bool>,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProfileImage {
-  #[serde(with = "string_i64")]
-  pub id: i64,
-  #[serde(with = "string_i64")]
-  pub account_id: i64,
-  pub url: String,
-  #[serde(rename = "order")]
-  pub sequence: i32,
-  #[serde(with = "datetime_tz")]
-  pub updated_at: NaiveDateTime,
-}
-
-jsonapi_model!(ProfileImage; "profile_image");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateAccountImageParam {

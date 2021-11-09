@@ -142,6 +142,9 @@ impl From<SqlxError> for ServiceError {
   fn from(error: SqlxError) -> ServiceError {
     // Right now we just care about UniqueViolation from diesel
     // But this would be helpful to easily map errors as our app grows
+    if let SqlxError::RowNotFound = error {
+      return ServiceError::record_not_exist(&Locale::default(), "db_row_not_found", error.into());
+    }
     ServiceError::internal(&Locale::default(), "database_failed", error.into())
   }
 }

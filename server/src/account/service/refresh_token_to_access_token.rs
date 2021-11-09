@@ -1,8 +1,8 @@
 use crate::{
   account::{
-    model::{SigninParam, SigninType},
+    model::{AuthData, SigninParam, SigninType},
     service::signin::signin,
-    util::{get_refresh_token_key, AuthData},
+    util::get_refresh_token_key,
   },
   alias::{KvPool, Pool},
   error::{Error, ServiceError},

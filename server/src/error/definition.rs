@@ -226,6 +226,16 @@ impl ServiceError {
       stack,
     )
   }
+  pub fn record_not_exist(locale: &Locale, code: &str, stack: Error) -> Self {
+    let locale_code = "record_not_exist";
+    Self::not_found_raw(
+      locale,
+      code,
+      &I18n::global().get(&get_title(locale_code), locale),
+      Some(&I18n::global().get(&get_detail(locale_code), locale)),
+      stack,
+    )
+  }
   #[allow(dead_code)]
   pub fn base_bad_request() -> Self {
     let code = "base_bad_request";

@@ -1,8 +1,8 @@
 use crate::{
   account::{
-    model::{SigninParam, SigninType},
+    model::{AuthData, SigninParam, SigninType},
     service::get_account::get_account,
-    util::{get_refresh_token_key, AuthData},
+    util::get_refresh_token_key,
   },
   alias::{KvPool, Pool},
   error::{Error, ServiceError},
@@ -30,6 +30,7 @@ pub async fn signin(
   } = param;
   // lookup account
   let account = get_account(locale, pool, account_id).await?;
+  let account_cloned = account.clone();
   // if suspended
   if account.suspended {
     return Err(ServiceError::account_suspended(
@@ -59,6 +60,7 @@ pub async fn signin(
     device_id.to_string(),
     roles,
     account.actions,
+    account_cloned,
   );
   // add refresh token to kv
   // add to kv

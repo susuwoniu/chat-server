@@ -57,13 +57,13 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
     // required info
     if account.birthday_change_count == 0 {
       actions.push(Action {
-        action_type: ActionType::AddAccountBirthday,
+        _type: ActionType::AddAccountBirthday,
         required: true,
       });
     }
     if account.gender_change_count == 0 {
       actions.push(Action {
-        action_type: ActionType::AddAccountGender,
+        _type: ActionType::AddAccountGender,
         required: true,
       });
     }
@@ -72,19 +72,19 @@ pub async fn get_account(locale: &Locale, pool: &Pool, account_id: &i64) -> Serv
     if account.skip_optional_info == false {
       if account.name_change_count == 0 {
         actions.push(Action {
-          action_type: ActionType::AddAccountName,
+          _type: ActionType::AddAccountName,
           required: false,
         });
       }
       if account.bio_change_count == 0 {
         actions.push(Action {
-          action_type: ActionType::AddAccountBio,
+          _type: ActionType::AddAccountBio,
           required: false,
         });
       }
       if account.profile_image_change_count == 0 {
         actions.push(Action {
-          action_type: ActionType::AddAccountProfileImage,
+          _type: ActionType::AddAccountProfileImage,
           required: false,
         });
       }

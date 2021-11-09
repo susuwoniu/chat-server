@@ -46,6 +46,7 @@ pub async fn update_account(
     city_id,
     approved,
     invite_id,
+    skip_optional_info,
   } = param;
   // check permiss
 
@@ -193,7 +194,8 @@ pub async fn update_account(
     birthday_change_count=COALESCE($26,birthday_change_count),
     name_change_count=COALESCE($27,name_change_count),
     bio_change_count=COALESCE($28,bio_change_count),
-    gender_change_count=COALESCE($29,bio_change_count)
+    gender_change_count=COALESCE($29,gender_change_count),
+    skip_optional_info=COALESCE($30,skip_optional_info)
     where id = $1
 "#,
     account_id,
@@ -224,7 +226,8 @@ pub async fn update_account(
     birthday_change_count,
     name_change_count,
     bio_change_count,
-    gender_change_count
+    gender_change_count,
+    skip_optional_info
   )
   .execute(pool)
   .await?;

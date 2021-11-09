@@ -116,16 +116,8 @@ async fn add_me_image_handler(
 
 async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
   let data = get_profile_images(&pool, &auth.account_id).await?;
-  let mut resources = Vec::new();
-  for image in data {
-    let (res, _) = image.to_jsonapi_resource();
-    resources.push(res);
-  }
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Multiple(resources)),
-    ..Default::default()
-  });
-  Ok(Json(doc))
+
+  Ok(Json(vec_to_jsonapi_document(data)))
 }
 async fn patch_account_handler(
   Extension(pool): Extension<Pool>,
@@ -148,12 +140,7 @@ async fn access_token_handler(
   auth: RefreshTokenAuth,
 ) -> JsonApiResponse {
   let data = refresh_token_to_access_token(&locale, &pool, &kv, &auth).await?;
-  let (res, _) = data.to_jsonapi_resource();
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Single(Box::new(res))),
-    ..Default::default()
-  });
-  Ok(Json(doc))
+  Ok(Json(data.to_jsonapi_document()))
 }
 
 async fn phone_auth_handler(
@@ -184,11 +171,7 @@ async fn phone_auth_handler(
     },
   )
   .await?;
-  let (res, _) = auth_data.to_jsonapi_resource();
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Single(Box::new(res))),
-    ..Default::default()
-  });
+  let doc = auth_data.to_jsonapi_document();
   Ok(Json(doc))
 }
 
@@ -198,12 +181,7 @@ async fn get_account_handler(
   locale: Locale,
 ) -> JsonApiResponse {
   let account = get_slim_account(&locale, &pool, &path_param.account_id).await?;
-  let (res, _) = account.to_jsonapi_resource();
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Single(Box::new(res))),
-    ..Default::default()
-  });
-  Ok(Json(doc))
+  Ok(Json(account.to_jsonapi_document()))
 }
 async fn get_me_handler(
   Extension(pool): Extension<Pool>,
@@ -211,11 +189,7 @@ async fn get_me_handler(
   auth: Auth,
 ) -> JsonApiResponse {
   let account = get_account(&locale, &pool, &auth.account_id).await?;
-  let (res, _) = account.to_jsonapi_resource();
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Single(Box::new(res))),
-    ..Default::default()
-  });
+  let doc = account.to_jsonapi_document();
   Ok(Json(doc))
 }
 async fn send_phone_code_handler(
