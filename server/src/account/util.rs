@@ -6,7 +6,6 @@ use crate::{
   util::{id::next_id, key_pair::Pair},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
-use jsonapi::{api::*, jsonapi_model, model::*};
 use pasetors::claims::Claims;
 use pasetors::keys::{AsymmetricPublicKey, AsymmetricSecretKey, Version};
 use pasetors::public;

@@ -45,6 +45,8 @@ pub enum Error {
   TypedHeaderError(#[from] axum::extract::rejection::TypedHeaderRejection),
   #[error("parse ip failed")]
   IpNetworkError(#[from] ipnetwork17::IpNetworkError),
+  #[error("parse semver failed")]
+  SemverError(#[from] semver::Error),
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]

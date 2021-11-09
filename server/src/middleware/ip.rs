@@ -1,8 +1,6 @@
 use crate::{
-  error::{Error, ServiceError},
-  middleware::header_x_forwarded_for::XForwardedFor,
-  middleware::header_x_real_ip::XRealIp,
-  middleware::Locale,
+  error::ServiceError, middleware::header_x_forwarded_for::XForwardedFor,
+  middleware::header_x_real_ip::XRealIp, middleware::Locale,
 };
 use axum::{
   async_trait,

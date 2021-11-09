@@ -27,7 +27,6 @@ use axum::AddExtensionLayer;
 use deadpool_redis::Config as RedisConfig;
 use sqlx::postgres::PgPoolOptions;
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use structopt::StructOpt;
 #[tokio::main]
 async fn main() -> Result<(), Error> {

@@ -1,7 +1,13 @@
-use crate::{account::route::service_route as account_service_route, constant::API_V1_PREFIX};
-use axum::{routing::get, Json, Router};
+use crate::{
+  account::route::service_route as account_service_route,
+  constant::API_V1_PREFIX,
+  middleware::{ClientVersion, Signature},
+};
+use axum::{extract::extractor_middleware, routing::get, Json, Router};
+use jsonapi::api::{DocumentData, JsonApiDocument, JsonApiInfo, JsonApiValue};
 use serde::{Deserialize, Serialize};
-
+use serde_json::json;
+use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IndexMeta {
   pub version: String,
@@ -10,20 +16,44 @@ pub struct IndexMeta {
 }
 
 pub fn app_route() -> Router {
+  let mut meta: HashMap<String, JsonApiValue> = HashMap::new();
+  meta.insert("prefix".to_string(), json!(API_V1_PREFIX));
+  meta.insert(
+    "build_date".to_string(),
+    json!(env!("VERGEN_BUILD_TIMESTAMP")),
+  );
+  meta.insert(
+    "server_version".to_string(),
+    json!(env!("VERGEN_BUILD_SEMVER")),
+  );
+  meta.insert("server_hash".to_string(), json!(env!("VERGEN_GIT_SHA")));
+  meta.insert(
+    "server_commit_date".to_string(),
+    json!(env!("VERGEN_GIT_COMMIT_TIMESTAMP")),
+  );
+
   let route = Router::new()
     .route(
       "/",
       get(|| async {
-        Json(IndexMeta {
-          version: "v1".to_string(),
-          prefix: API_V1_PREFIX.to_string(),
-          protocol: "jsonapi".to_string(),
-        })
+        let data = DocumentData {
+          jsonapi: Some(JsonApiInfo {
+            version: Some("1.0".to_string()),
+            meta: Some(meta),
+          }),
+          ..Default::default()
+        };
+
+        let doc = JsonApiDocument::Data(data);
+        Json(doc)
       }),
     )
     .nest(
       API_V1_PREFIX,
-      Router::new().nest("/account", account_service_route()),
+      Router::new()
+        .nest("/account", account_service_route())
+        .route_layer(extractor_middleware::<ClientVersion>())
+        .route_layer(extractor_middleware::<Signature>()),
     );
   route
 }
