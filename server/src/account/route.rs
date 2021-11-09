@@ -157,6 +157,7 @@ async fn phone_auth_handler(
     phone_number,
     code,
   } = path_param;
+  dbg!(&addr);
   let auth_data = login_with_phone(
     &locale,
     &pool,
