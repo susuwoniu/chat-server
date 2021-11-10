@@ -8,7 +8,7 @@ version = "0.1.0"
 [dependencies]
 
 accept-language = "2.0"
-axum = {git = "https://github.com/tokio-rs/axum", features = ["headers"]}
+axum = {version = "0.3", features = ["headers"]}
 chrono = {version = "0.4", features = ["serde"]}
 config = "0.11"
 deadpool = "0.8"
