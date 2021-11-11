@@ -80,12 +80,7 @@ async fn patch_me_image_handler(
     },
   )
   .await?;
-  let (res, _) = data.to_jsonapi_resource();
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Single(Box::new(res))),
-    ..Default::default()
-  });
-  Ok(Json(doc))
+  Ok(Json(data.to_jsonapi_document()))
 }
 async fn add_me_image_handler(
   Path(sequence): Path<u32>,
@@ -105,12 +100,7 @@ async fn add_me_image_handler(
     },
   )
   .await?;
-  let (res, _) = data.to_jsonapi_resource();
-  let doc = JsonApiDocument::Data(DocumentData {
-    data: Some(PrimaryData::Single(Box::new(res))),
-    ..Default::default()
-  });
-  Ok(Json(doc))
+  Ok(Json(data.to_jsonapi_document()))
 }
 
 async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
@@ -124,7 +114,7 @@ async fn patch_account_handler(
   auth: Auth,
   Json(payload): Json<UpdateAccountParam>,
 ) -> JsonApiResponse {
-  update_account(&locale, &pool, &auth.account_id, payload, &auth).await?;
+  update_account(&locale, &pool, payload, &auth).await?;
   QuickResponse::default()
 }
 async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {

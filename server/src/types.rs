@@ -1,4 +1,7 @@
-use crate::error::ServiceError;
+use crate::{
+  error::ServiceError,
+  util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
+};
 use axum::Json;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
 use std::collections::HashMap;
@@ -53,4 +56,11 @@ pub struct Action {
   #[serde(rename = "type")]
   pub _type: ActionType,
   pub required: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Filter {
+  #[serde(with = "option_string_i64")]
+  pub since_id: Option<i64>,
+  #[serde(with = "option_string_i64")]
+  pub until_id: Option<i64>,
 }

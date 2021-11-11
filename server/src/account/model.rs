@@ -232,6 +232,7 @@ pub struct Account {
   pub phone_change_count: i32,
   pub gender_change_count: i32,
   pub actions: Vec<Action>,
+  pub post_templates_count: i64,
 }
 jsonapi_model!(Account; "accounts"; has many profile_images);
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -247,7 +248,14 @@ pub struct ProfileImage {
   pub updated_at: NaiveDateTime,
 }
 jsonapi_model!(ProfileImage; "profile-images");
-#[derive(Debug, Serialize, Deserialize)]
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum FieldOpetation {
+  IncreaseOne,
+  DecreaseOne,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct UpdateAccountParam {
   pub name: Option<String>,
   pub bio: Option<String>,
@@ -276,6 +284,7 @@ pub struct UpdateAccountParam {
   pub approved: Option<bool>,
   pub invite_id: Option<i64>,
   pub skip_optional_info: Option<bool>,
+  pub post_templates_count: Option<FieldOpetation>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

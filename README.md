@@ -3,18 +3,20 @@
 ## Indexes
 
 See [[SUMMARY]]
+
 ## features
 
-## 通用feature
+## 通用 feature
 
-- 最小字数限制，至少10个字
+- 最小字数限制，至少 10 个字
 - 用户可以提交模版
 - 空模版
-- 每天最多联系10个人
+- 每天最多联系 10 个人
 
 ## 考虑
 
-- post限时
+- post 限时
+
 ### VIP features
 
 - 隐藏看过某人/某贴
@@ -25,18 +27,19 @@ See [[SUMMARY]]
 - 不展示年龄
 - 不展示距离
 - 不限制聊天人数
+- 提交模板
 
 ## 文章模板
 
 See [[post-template]]
+
 ## Price
 
-- 每周 6元
-- 按月 18元 7.5折
-- 按年 120元 4.8折
+- 每周 6 元
+- 按月 18 元 7.5 折
+- 按年 120 元 4.8 折
 
 ## Contribution
-
 
 See [[CONTRIBUTION]]
 

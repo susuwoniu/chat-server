@@ -1,4 +1,5 @@
 pub mod datetime_tz;
+pub mod default;
 pub mod file;
 pub mod id;
 pub mod key_pair;

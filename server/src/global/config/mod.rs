@@ -22,6 +22,7 @@ pub struct Config {
   pub default_timezone_offset_in_seconds: i32,
   pub account: Account,
   pub use_fixed_code: bool,
+  pub page_size: i64,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {

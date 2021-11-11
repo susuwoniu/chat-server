@@ -267,6 +267,16 @@ impl ServiceError {
       stack,
     )
   }
+  pub fn param_invalid(locale: &Locale, code: &str, stack: Error) -> Self {
+    let locale_code = "param_invalid";
+    Self::bad_request_raw(
+      locale,
+      code,
+      &I18n::global().get(&get_title(locale_code), locale),
+      Some(&I18n::global().get(&get_detail(locale_code), locale)),
+      stack,
+    )
+  }
   pub fn reach_max_change_limit(
     locale: &Locale,
     code: &str,

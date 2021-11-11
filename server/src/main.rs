@@ -6,6 +6,7 @@ mod constant;
 mod error;
 mod global;
 mod middleware;
+mod post;
 mod route;
 mod types;
 mod util;

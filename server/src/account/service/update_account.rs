@@ -1,5 +1,8 @@
 use crate::{
-  account::{model::UpdateAccountParam, service::get_account::get_account},
+  account::{
+    model::{FieldOpetation, UpdateAccountParam},
+    service::get_account::get_account,
+  },
   alias::Pool,
   error::{Error, ServiceError},
   global::Config,
@@ -12,11 +15,11 @@ use sqlx::query;
 pub async fn update_account(
   locale: &Locale,
   pool: &Pool,
-  account_id: &i64,
   param: UpdateAccountParam,
   auth: &Auth,
 ) -> ServiceResult<()> {
   // first get account
+  let account_id = &auth.account_id;
   let is_admin = auth.admin;
   let is_vip = auth.vip;
   let is_moderator = auth.moderator;
@@ -47,6 +50,7 @@ pub async fn update_account(
     approved,
     invite_id,
     skip_optional_info,
+    post_templates_count,
   } = param;
   // check permiss
 
@@ -163,6 +167,19 @@ pub async fn update_account(
     }
   }
 
+  let mut post_templates_count_value = None;
+
+  if let Some(post_templates_count) = post_templates_count {
+    match post_templates_count {
+      FieldOpetation::IncreaseOne => {
+        post_templates_count_value = Some(account.post_templates_count + 1);
+      }
+      FieldOpetation::DecreaseOne => {
+        post_templates_count_value = Some(account.post_templates_count - 1);
+      }
+    }
+  }
+
   query!(
     r#"
     UPDATE accounts 
@@ -195,7 +212,8 @@ pub async fn update_account(
     name_change_count=COALESCE($27,name_change_count),
     bio_change_count=COALESCE($28,bio_change_count),
     gender_change_count=COALESCE($29,gender_change_count),
-    skip_optional_info=COALESCE($30,skip_optional_info)
+    skip_optional_info=COALESCE($30,skip_optional_info),
+    post_templates_count=COALESCE($31,post_templates_count)
     where id = $1
 "#,
     account_id,
@@ -227,7 +245,8 @@ pub async fn update_account(
     name_change_count,
     bio_change_count,
     gender_change_count,
-    skip_optional_info
+    skip_optional_info,
+    post_templates_count_value
   )
   .execute(pool)
   .await?;

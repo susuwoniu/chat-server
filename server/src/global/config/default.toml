@@ -3,6 +3,7 @@ clients = []
 default_timezone_offset_in_seconds = 28800
 env = "development"
 invite_only = false
+page_size = 30
 use_fixed_code = false
 [auth]
 access_token_expires_in_minutes = 1440
