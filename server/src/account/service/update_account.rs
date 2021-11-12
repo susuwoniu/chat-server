@@ -1,13 +1,13 @@
 use crate::{
   account::{
-    model::{Account, DbAccount, FieldOpetation, UpdateAccountParam},
-    service::get_account::{format_account, get_account},
+    model::{DbAccount, FullAccount, UpdateAccountParam},
+    service::get_account::{format_account, get_full_account},
   },
   alias::Pool,
   error::{Error, ServiceError},
   global::Config,
   middleware::{Auth, Locale},
-  types::{Gender, ServiceResult},
+  types::{FieldAction, Gender, ServiceResult},
 };
 
 use chrono::Utc;
@@ -17,7 +17,7 @@ pub async fn update_account(
   pool: &Pool,
   param: UpdateAccountParam,
   auth: &Auth,
-) -> ServiceResult<Account> {
+) -> ServiceResult<FullAccount> {
   // first get account
   let account_id = auth.account_id;
   let is_admin = auth.admin;
@@ -50,9 +50,9 @@ pub async fn update_account(
     approved,
     invite_id,
     skip_optional_info,
-    post_templates_count,
-    posts_count,
-    likes_count,
+    post_template_count_action,
+    post_count_action,
+    like_count_action,
   } = param;
   // check permiss
 
@@ -88,7 +88,7 @@ pub async fn update_account(
     ));
   }
 
-  let account = get_account(locale, pool, account_id).await?;
+  let account = get_full_account(locale, pool, account_id).await?;
   // if suspended
   if account.suspended {
     return Err(ServiceError::account_suspended(
@@ -169,40 +169,40 @@ pub async fn update_account(
     }
   }
 
-  let mut post_templates_count_value = None;
+  let mut post_template_count_value = None;
 
-  if let Some(post_templates_count) = post_templates_count {
-    match post_templates_count {
-      FieldOpetation::IncreaseOne => {
-        post_templates_count_value = Some(account.post_templates_count + 1);
+  if let Some(post_template_count_action) = post_template_count_action {
+    match post_template_count_action {
+      FieldAction::IncreaseOne => {
+        post_template_count_value = Some(account.post_template_count + 1);
       }
-      FieldOpetation::DecreaseOne => {
-        post_templates_count_value = Some(account.post_templates_count - 1);
+      FieldAction::DecreaseOne => {
+        post_template_count_value = Some(account.post_template_count - 1);
       }
     }
   }
-  let mut posts_count_value = None;
+  let mut post_count_value = None;
 
-  if let Some(posts_count) = posts_count {
-    match posts_count {
-      FieldOpetation::IncreaseOne => {
-        posts_count_value = Some(account.posts_count + 1);
+  if let Some(post_count_action) = post_count_action {
+    match post_count_action {
+      FieldAction::IncreaseOne => {
+        post_count_value = Some(account.post_count + 1);
       }
-      FieldOpetation::DecreaseOne => {
-        posts_count_value = Some(account.posts_count - 1);
+      FieldAction::DecreaseOne => {
+        post_count_value = Some(account.post_count - 1);
       }
     }
   }
 
-  let mut likes_count_value = None;
+  let mut like_count_value = None;
 
-  if let Some(likes_count) = likes_count {
-    match likes_count {
-      FieldOpetation::IncreaseOne => {
-        likes_count_value = Some(account.likes_count + 1);
+  if let Some(like_count_action) = like_count_action {
+    match like_count_action {
+      FieldAction::IncreaseOne => {
+        like_count_value = Some(account.like_count + 1);
       }
-      FieldOpetation::DecreaseOne => {
-        likes_count_value = Some(account.likes_count - 1);
+      FieldAction::DecreaseOne => {
+        like_count_value = Some(account.like_count - 1);
       }
     }
   }
@@ -239,11 +239,11 @@ pub async fn update_account(
     bio_change_count=COALESCE($28,bio_change_count),
     gender_change_count=COALESCE($29,gender_change_count),
     skip_optional_info=COALESCE($30,skip_optional_info),
-    post_templates_count=COALESCE($31,post_templates_count),
-    posts_count=COALESCE($32,posts_count),
-    likes_count=COALESCE($33,likes_count)
+    post_template_count=COALESCE($31,post_template_count),
+    post_count=COALESCE($32,post_count),
+    like_count=COALESCE($33,like_count)
     where id = $1
-    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,posts_count,likes_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_templates_count
+    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count
 "#,
     account_id,
     now.naive_utc(),
@@ -275,13 +275,13 @@ pub async fn update_account(
     bio_change_count,
     gender_change_count,
     skip_optional_info,
-    post_templates_count_value,
-    posts_count_value,
-    likes_count_value
+    post_template_count_value,
+    post_count_value,
+    like_count_value
   )
   .fetch_one(pool)
   .await?;
   //
 
-  return format_account(locale, pool, account_row).await;
+  return Ok(format_account(account_row, account.profile_images));
 }

@@ -1,6 +1,6 @@
 use crate::{
-  account::model::SlimAccount,
-  types::{Action, Gender},
+  account::model::Account,
+  types::{Action, FieldAction, Gender},
   util::{datetime_tz, default, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
@@ -14,7 +14,7 @@ pub struct PostTemplate {
   pub id: i64,
   pub content: String,
   pub used_count: i64,
-  pub skip_count: i64,
+  pub skipped_count: i64,
   pub background_color: String,
   #[serde(with = "string_i64")]
   pub account_id: i64,
@@ -43,8 +43,9 @@ pub struct Post {
   #[serde(with = "string_i64")]
   pub id: i64,
   pub content: String,
-  pub view_count: i64,
-  pub skip_count: i64,
+  pub viewed_count: i64,
+  pub skipped_count: i64,
+  pub replied_count: i64,
   pub background_color: String,
   #[serde(with = "string_i64")]
   pub account_id: i64,
@@ -54,7 +55,7 @@ pub struct Post {
   pub updated_at: NaiveDateTime,
   pub visibility: Visibility,
   pub target_gender: Option<Gender>,
-  pub author: SlimAccount,
+  pub author: Account,
   #[serde(with = "string_i64")]
   pub post_template_id: i64,
   #[serde(with = "string_i64")]
@@ -66,8 +67,9 @@ jsonapi_model!(Post; "posts"; has one author);
 pub struct DbPost {
   pub id: i64,
   pub content: String,
-  pub view_count: i64,
-  pub skip_count: i64,
+  pub viewed_count: i64,
+  pub skipped_count: i64,
+  pub replied_count: i64,
   pub background_color: String,
   pub account_id: i64,
   pub created_at: NaiveDateTime,
@@ -90,13 +92,20 @@ pub struct PostTemplateFilter {
   pub featured: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+pub struct PostFilter {
+  pub since_id: Option<i64>,
+  pub until_id: Option<i64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FullPostTemplate {
   #[serde(with = "string_i64")]
   pub id: i64,
   pub content: String,
   pub used_count: i64,
-  pub skip_count: i64,
+  pub skipped_count: i64,
   pub background_color: String,
   #[serde(with = "string_i64")]
   pub account_id: i64,
@@ -116,7 +125,7 @@ pub struct DbPostTemplate {
   pub id: i64,
   pub content: String,
   pub used_count: i64,
-  pub skip_count: i64,
+  pub skipped_count: i64,
   pub background_color: String,
   pub account_id: i64,
   pub featured: bool,
@@ -148,20 +157,25 @@ fn default_visibility() -> Visibility {
   Visibility::Public
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdatePostTemplateParam {
-  #[serde(with = "string_i64")]
-  pub id: i64,
   pub content: Option<String>,
   pub background_color: Option<String>,
   pub featured: Option<bool>,
+  pub deleted: Option<bool>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiUpdatePostTemplateParam {
-  pub content: Option<String>,
-  pub background_color: Option<String>,
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdatePostParam {
+  pub promote: Option<bool>,
+  pub viewed_count_action: Option<FieldAction>,
+  pub skipped_count_action: Option<FieldAction>,
   pub featured: Option<bool>,
+  pub approved: Option<bool>,
+  pub visibility: Option<Visibility>,
+  pub deleted: Option<bool>,
+  pub replied_count_action: Option<FieldAction>,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiCreatePostTemplateParam {
   pub content: String,
@@ -174,7 +188,7 @@ impl From<FullPostTemplate> for PostTemplate {
       id,
       content,
       used_count,
-      skip_count,
+      skipped_count,
       background_color,
       account_id,
       featured,
@@ -188,7 +202,7 @@ impl From<FullPostTemplate> for PostTemplate {
       id,
       content,
       used_count,
-      skip_count,
+      skipped_count,
       background_color,
       account_id,
       featured,

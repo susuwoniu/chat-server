@@ -6,7 +6,7 @@ use crate::{
       UpdateAccountParam,
     },
     service::{
-      get_account::{get_account, get_slim_account},
+      get_account::{get_account, get_full_account},
       login_with_phone::login_with_phone,
       refresh_token_to_access_token::refresh_token_to_access_token,
       send_phone_code::send_phone_code,
@@ -104,7 +104,7 @@ async fn add_me_image_handler(
 }
 
 async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
-  let data = get_profile_images(&pool, &auth.account_id).await?;
+  let data = get_profile_images(&pool, auth.account_id).await?;
 
   Ok(Json(vec_to_jsonapi_document(data)))
 }
@@ -173,7 +173,7 @@ async fn get_account_handler(
   Path(path_param): Path<GetAccountPathParam>,
   locale: Locale,
 ) -> JsonApiResponse {
-  let account = get_slim_account(&locale, &pool, path_param.account_id).await?;
+  let account = get_account(&locale, &pool, path_param.account_id).await?;
   Ok(Json(account.to_jsonapi_document()))
 }
 async fn get_me_handler(
@@ -181,7 +181,7 @@ async fn get_me_handler(
   locale: Locale,
   auth: Auth,
 ) -> JsonApiResponse {
-  let account = get_account(&locale, &pool, auth.account_id).await?;
+  let account = get_full_account(&locale, &pool, auth.account_id).await?;
   let doc = account.to_jsonapi_document();
   Ok(Json(doc))
 }

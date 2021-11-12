@@ -1,8 +1,4 @@
 use crate::{
-  account::{
-    model::{Account, SlimAccount},
-    service::update_account_image::get_profile_images,
-  },
   alias::Pool,
   error::{Error, ServiceError},
   global::Config,
@@ -25,7 +21,7 @@ pub async fn get_full_post_templates(
   let cfg = Config::global();
   let rows = query_as!(DbPostTemplate,
       r#"
-        select id,content,used_count,skip_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and featured=$4 and deleted=false  order by id desc limit $1
+        select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and featured=$4 and deleted=false  order by id desc limit $1
   "#,
   &cfg.page_size,
   filter.since_id,
@@ -62,7 +58,7 @@ pub async fn get_full_post_template(
 ) -> ServiceResult<FullPostTemplate> {
   let row = query_as!(DbPostTemplate,
     r#"
-      select id,content,used_count,skip_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where id=$1 and deleted=false
+      select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where id=$1 and deleted=false
 "#,
 id
   )
@@ -92,7 +88,7 @@ pub fn format_post_template(row: DbPostTemplate) -> FullPostTemplate {
     id: row.id,
     content: row.content,
     used_count: row.used_count,
-    skip_count: row.skip_count,
+    skipped_count: row.skipped_count,
     background_color: row.background_color,
     account_id: row.account_id,
     featured: row.featured,

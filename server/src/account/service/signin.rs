@@ -1,7 +1,7 @@
 use crate::{
   account::{
     model::{AuthData, SigninParam, SigninType},
-    service::get_account::get_account,
+    service::get_account::get_full_account,
     util::get_refresh_token_key,
   },
   alias::{KvPool, Pool},
@@ -30,7 +30,7 @@ pub async fn signin(
     ip,
   } = param;
   // lookup account
-  let account = get_account(locale, pool, *account_id).await?;
+  let account = get_full_account(locale, pool, *account_id).await?;
   let account_cloned = account.clone();
   // if suspended
   if account.suspended {

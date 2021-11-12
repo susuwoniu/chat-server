@@ -1,8 +1,5 @@
 use crate::{
-  account::{
-    model::{FieldOpetation, UpdateAccountParam},
-    service::update_account::update_account,
-  },
+  account::{model::UpdateAccountParam, service::update_account::update_account},
   alias::Pool,
   error::{Error, ServiceError},
   middleware::{Auth, Locale},
@@ -11,7 +8,7 @@ use crate::{
     service::get_post_template::{format_post_template, get_post_template},
     util,
   },
-  types::ServiceResult,
+  types::{FieldAction, ServiceResult},
 };
 
 use chrono::Utc;
@@ -19,6 +16,7 @@ use sqlx::query_as;
 pub async fn update_post_template(
   locale: &Locale,
   pool: &Pool,
+  id: i64,
   param: UpdatePostTemplateParam,
   auth: Auth,
 ) -> ServiceResult<PostTemplate> {
@@ -26,8 +24,9 @@ pub async fn update_post_template(
     content,
     featured,
     background_color,
-    id,
+    deleted,
   } = param;
+
   // get post template
   let current = get_post_template(locale, pool, id).await?;
 
@@ -52,36 +51,52 @@ pub async fn update_post_template(
       ));
     }
   }
-
+  let mut deleted_edit_value = None;
+  if let Some(deleted_value) = deleted {
+    if deleted_value {
+      deleted_edit_value = Some(deleted_value);
+    }
+  }
   let mut featured_at = None;
+  let mut featured_by = None;
   if featured_edit_value.is_some() {
     featured_at = Some(now);
+    featured_by = Some(auth.account_id);
+  }
+  let mut deleted_at = None;
+  let mut deleted_by = None;
+  if deleted_edit_value.is_some() {
+    deleted_at = Some(now);
+    deleted_by = Some(auth.account_id);
   }
   let row =  query_as!(DbPostTemplate,
     r#"
-UPDATE post_templates set content = COALESCE($1,content), featured = COALESCE($2,featured), featured_at = COALESCE($3,featured_at), updated_at = $4, background_color= COALESCE($6,background_color)
-WHERE id = $5
-RETURNING id,content,used_count,skip_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at
+UPDATE post_templates set 
+content = COALESCE($1,content), 
+featured = COALESCE($2,featured),
+featured_at = COALESCE($3,featured_at), 
+updated_at = $4, 
+background_color= COALESCE($5,background_color), 
+featured_by = COALESCE($6,featured_by),
+deleted = COALESCE($7,deleted), 
+deleted_at = COALESCE($8,deleted_at), 
+deleted_by = COALESCE($9,deleted_by)
+WHERE id = $10 and deleted = false
+RETURNING id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at
 "#,
     content,
     featured_edit_value,
     featured_at,
     now,
-    id,
     background_color,
+    featured_by,
+    deleted_edit_value,
+    deleted_at,
+    deleted_by,
+    id
   )
   .fetch_one(pool)
   .await?;
-  // update account post template count
-  update_account(
-    locale,
-    pool,
-    UpdateAccountParam {
-      post_templates_count: Some(FieldOpetation::IncreaseOne),
-      ..Default::default()
-    },
-    &auth,
-  )
-  .await?;
+
   Ok(format_post_template(row).into())
 }

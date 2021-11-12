@@ -9,7 +9,7 @@ use crate::{
 };
 use chrono::Utc;
 use sqlx::{query, query_as};
-pub async fn get_profile_images(pool: &Pool, account_id: &i64) -> ServiceResult<Vec<ProfileImage>> {
+pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<Vec<ProfileImage>> {
   let images = query_as!(
     ProfileImage,
     r#"

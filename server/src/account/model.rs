@@ -1,5 +1,5 @@
 use crate::{
-  types::{Action, Gender},
+  types::{Action, FieldAction, Gender},
   util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
@@ -84,7 +84,7 @@ pub struct AuthData {
   #[serde(with = "datetime_tz")]
   pub refresh_token_expires_at: NaiveDateTime,
   pub actions: Vec<Action>,
-  pub account: Account,
+  pub account: FullAccount,
 }
 jsonapi_model!(AuthData; "tokens"; has one account);
 
@@ -96,15 +96,15 @@ pub struct LoginActivityData {
   pub last_signin_at: NaiveDateTime,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SlimAccount {
+pub struct Account {
   #[serde(with = "string_i64")]
   pub id: i64,
   pub name: String,
   pub bio: String,
   pub gender: Gender,
   pub vip: bool,
-  pub posts_count: i64,
-  pub likes_count: i64,
+  pub post_count: i64,
+  pub like_count: i64,
   pub show_age: bool,
   pub show_distance: bool,
   pub suspended: bool,
@@ -116,7 +116,6 @@ pub struct SlimAccount {
   pub location: Option<String>,
   pub avatar: Option<String>,
   pub age: Option<i32>,
-  pub profile_images: Vec<ProfileImage>,
   #[serde(with = "option_datetime_tz")]
   pub avatar_updated_at: Option<NaiveDateTime>,
   #[serde(with = "datetime_tz")]
@@ -128,7 +127,7 @@ pub struct SlimAccount {
   pub approved_at: Option<NaiveDateTime>,
 }
 
-jsonapi_model!(SlimAccount; "slim-accounts"; has many profile_images);
+jsonapi_model!(Account; "accounts");
 
 #[derive(Debug, Deserialize)]
 pub struct GetAccountPathParam {
@@ -173,7 +172,7 @@ pub struct SuccessMeta {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Account {
+pub struct FullAccount {
   #[serde(with = "string_i64")]
   pub id: i64,
   pub name: String,
@@ -182,8 +181,8 @@ pub struct Account {
   pub admin: bool,
   pub moderator: bool,
   pub vip: bool,
-  pub posts_count: i64,
-  pub likes_count: i64,
+  pub post_count: i64,
+  pub like_count: i64,
   pub show_age: bool,
   pub show_distance: bool,
   pub age: Option<i32>,
@@ -223,9 +222,9 @@ pub struct Account {
   pub phone_change_count: i32,
   pub gender_change_count: i32,
   pub actions: Vec<Action>,
-  pub post_templates_count: i64,
+  pub post_template_count: i64,
 }
-jsonapi_model!(Account; "accounts"; has many profile_images);
+jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
 
 #[derive(Debug, Clone)]
 
@@ -237,8 +236,8 @@ pub struct DbAccount {
   pub admin: bool,
   pub moderator: bool,
   pub vip: bool,
-  pub posts_count: i64,
-  pub likes_count: i64,
+  pub post_count: i64,
+  pub like_count: i64,
   pub show_age: bool,
   pub show_distance: bool,
   pub suspended: bool,
@@ -265,7 +264,7 @@ pub struct DbAccount {
   pub birthday_change_count: i32,
   pub phone_change_count: i32,
   pub gender_change_count: i32,
-  pub post_templates_count: i64,
+  pub post_template_count: i64,
   pub skip_optional_info: bool,
   pub profile_image_change_count: i32,
 }
@@ -283,12 +282,6 @@ pub struct ProfileImage {
   pub updated_at: NaiveDateTime,
 }
 jsonapi_model!(ProfileImage; "profile-images");
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum FieldOpetation {
-  IncreaseOne,
-  DecreaseOne,
-}
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct UpdateAccountParam {
@@ -319,9 +312,9 @@ pub struct UpdateAccountParam {
   pub approved: Option<bool>,
   pub invite_id: Option<i64>,
   pub skip_optional_info: Option<bool>,
-  pub post_templates_count: Option<FieldOpetation>,
-  pub posts_count: Option<FieldOpetation>,
-  pub likes_count: Option<FieldOpetation>,
+  pub post_template_count_action: Option<FieldAction>,
+  pub post_count_action: Option<FieldAction>,
+  pub like_count_action: Option<FieldAction>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -330,16 +323,16 @@ pub struct UpdateAccountImageParam {
   pub sequence: i32,
   pub url: String,
 }
-impl From<Account> for SlimAccount {
-  fn from(account: Account) -> Self {
-    let Account {
+impl From<FullAccount> for Account {
+  fn from(account: FullAccount) -> Self {
+    let FullAccount {
       id,
       name,
       bio,
       gender,
       vip,
-      posts_count,
-      likes_count,
+      post_count,
+      like_count,
       show_age,
       show_distance,
       suspended,
@@ -364,8 +357,8 @@ impl From<Account> for SlimAccount {
       bio,
       gender,
       vip,
-      posts_count,
-      likes_count,
+      post_count,
+      like_count,
       show_age,
       show_distance,
       suspended,
@@ -375,7 +368,6 @@ impl From<Account> for SlimAccount {
       location,
       avatar,
       age,
-      profile_images,
       avatar_updated_at,
       created_at,
       updated_at,

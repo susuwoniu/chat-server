@@ -57,6 +57,14 @@ pub struct Action {
   pub _type: ActionType,
   pub required: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum FieldAction {
+  IncreaseOne,
+  DecreaseOne,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Filter {
   #[serde(with = "option_string_i64")]

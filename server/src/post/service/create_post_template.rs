@@ -1,15 +1,12 @@
 use crate::{
-  account::{
-    model::{FieldOpetation, UpdateAccountParam},
-    service::update_account::update_account,
-  },
+  account::{model::UpdateAccountParam, service::update_account::update_account},
   alias::Pool,
   middleware::{Auth, Locale},
   post::{
     model::{CreatePostTemplateParam, PostTemplate},
     util,
   },
-  types::ServiceResult,
+  types::{FieldAction, ServiceResult},
   util::id::next_id,
 };
 use ipnetwork17::IpNetwork;
@@ -63,7 +60,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     locale,
     pool,
     UpdateAccountParam {
-      post_templates_count: Some(FieldOpetation::IncreaseOne),
+      post_template_count_action: Some(FieldAction::IncreaseOne),
       ..Default::default()
     },
     &auth,
@@ -79,6 +76,6 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     featured: featured,
     featured_at: featured_at,
     used_count: 0,
-    skip_count: 0,
+    skipped_count: 0,
   });
 }

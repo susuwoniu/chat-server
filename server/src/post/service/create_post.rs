@@ -1,6 +1,6 @@
 use crate::{
   account::{
-    model::{FieldOpetation, UpdateAccountParam},
+    model::UpdateAccountParam,
     service::{get_account::get_account, update_account::update_account},
   },
   alias::Pool,
@@ -10,7 +10,7 @@ use crate::{
     service::{get_post::format_post, get_post_template::get_post_template},
     util,
   },
-  types::{Gender, ServiceResult},
+  types::{FieldAction, Gender, ServiceResult},
   util::id::next_id,
 };
 use chrono::Utc;
@@ -48,9 +48,9 @@ pub async fn create_post(
   }
   let post = query_as!(DbPost,
     r#"
-INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skip_count,view_count
+INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count
 "#,
     id,
     content,
@@ -63,7 +63,10 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     ip,
     author.gender as Gender,
     target_gender as Option<Gender>,
-    visibility as Visibility 
+    visibility as Visibility,
+    true,
+    now,
+    auth.account_id
   )
   .fetch_one(pool)
   .await?;
@@ -72,7 +75,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     locale,
     pool,
     UpdateAccountParam {
-      posts_count: Some(FieldOpetation::IncreaseOne),
+      post_count_action: Some(FieldAction::IncreaseOne),
       ..Default::default()
     },
     &auth,

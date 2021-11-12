@@ -1,5 +1,5 @@
 use crate::{
-  account::model::{Account, AuthData, TokenType},
+  account::model::{AuthData, FullAccount, TokenType},
   constant::{PHONE_AUTH_CODE_TEMP_KEY, REFRESH_TOKEN_KEY},
   global::{AccessTokenPair, Config, RefreshTokenPair},
   types::Action,
@@ -101,7 +101,7 @@ impl AuthData {
     device_id: String,
     roles: Vec<String>,
     actions: Vec<Action>,
-    account: Account,
+    account: FullAccount,
   ) -> Self {
     let config = Config::global();
     let token = Token::new(
