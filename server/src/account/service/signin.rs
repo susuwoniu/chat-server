@@ -30,7 +30,7 @@ pub async fn signin(
     ip,
   } = param;
   // lookup account
-  let account = get_account(locale, pool, account_id).await?;
+  let account = get_account(locale, pool, *account_id).await?;
   let account_cloned = account.clone();
   // if suspended
   if account.suspended {

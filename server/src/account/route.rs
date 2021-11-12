@@ -27,7 +27,7 @@ use axum::{
   routing::{delete, get, post},
   Json, Router,
 };
-use jsonapi::{api::*, model::*};
+use jsonapi::model::*;
 
 pub fn service_route() -> Router {
   Router::new()
@@ -114,8 +114,8 @@ async fn patch_account_handler(
   auth: Auth,
   Json(payload): Json<UpdateAccountParam>,
 ) -> JsonApiResponse {
-  update_account(&locale, &pool, payload, &auth).await?;
-  QuickResponse::default()
+  let account = update_account(&locale, &pool, payload, &auth).await?;
+  Ok(Json(account.to_jsonapi_document()))
 }
 async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {
   signout(&kv, &auth).await?;
@@ -173,7 +173,7 @@ async fn get_account_handler(
   Path(path_param): Path<GetAccountPathParam>,
   locale: Locale,
 ) -> JsonApiResponse {
-  let account = get_slim_account(&locale, &pool, &path_param.account_id).await?;
+  let account = get_slim_account(&locale, &pool, path_param.account_id).await?;
   Ok(Json(account.to_jsonapi_document()))
 }
 async fn get_me_handler(
@@ -181,7 +181,7 @@ async fn get_me_handler(
   locale: Locale,
   auth: Auth,
 ) -> JsonApiResponse {
-  let account = get_account(&locale, &pool, &auth.account_id).await?;
+  let account = get_account(&locale, &pool, auth.account_id).await?;
   let doc = account.to_jsonapi_document();
   Ok(Json(doc))
 }

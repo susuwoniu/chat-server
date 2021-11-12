@@ -3,11 +3,13 @@ use crate::{
   middleware::{Auth, ClientVersion, Ip, Locale, RefreshTokenAuth, Signature},
   post::{
     model::{
-      ApiCreatePostTemplateParam, ApiUpdatePostTemplateParam, CreatePostTemplateParam,
-      PostTemplateFilter, UpdatePostTemplateParam,
+      ApiUpdatePostTemplateParam, CreatePostParam, CreatePostTemplateParam, PostTemplateFilter,
+      UpdatePostTemplateParam,
     },
     service::{
+      create_post::create_post,
       create_post_template::create_post_template,
+      get_post::get_post,
       get_post_template::{get_post_template, get_post_templates},
       update_prost_template::update_post_template,
     },
@@ -32,28 +34,39 @@ pub fn service_route() -> Router {
       "/post-templates/:id",
       get(get_post_template_handler).patch(patch_post_template_handler),
     )
+    .route("/posts", post(create_post_handler))
+    .route(
+      "/posts/:id",
+      get(get_post_handler).patch(patch_post_template_handler),
+    )
 }
 
 async fn create_post_template_handler(
   Extension(pool): Extension<Pool>,
   locale: Locale,
-  Json(payload): Json<ApiCreatePostTemplateParam>,
+  Json(payload): Json<CreatePostTemplateParam>,
   auth: Auth,
   Ip(ip): Ip,
 ) -> JsonApiResponse {
-  let data = create_post_template(
-    &locale,
-    &pool,
-    CreatePostTemplateParam {
-      content: payload.content,
-      background_color: payload.background_color,
-      account_id: auth.account_id,
-      featured: payload.featured,
-      ip: ip,
-    },
-    auth,
-  )
-  .await?;
+  let data = create_post_template(&locale, &pool, payload, auth, ip).await?;
+  Ok(Json(data.to_jsonapi_document()))
+}
+async fn create_post_handler(
+  Extension(pool): Extension<Pool>,
+  locale: Locale,
+  Json(payload): Json<CreatePostParam>,
+  auth: Auth,
+  Ip(ip): Ip,
+) -> JsonApiResponse {
+  let data = create_post(&locale, &pool, payload, auth, ip).await?;
+  Ok(Json(data.to_jsonapi_document()))
+}
+async fn get_post_handler(
+  Extension(pool): Extension<Pool>,
+  Path(id): Path<i64>,
+  locale: Locale,
+) -> JsonApiResponse {
+  let data = get_post(&locale, &pool, id).await?;
   Ok(Json(data.to_jsonapi_document()))
 }
 async fn get_post_template_handler(
@@ -61,7 +74,7 @@ async fn get_post_template_handler(
   Path(id): Path<i64>,
   locale: Locale,
 ) -> JsonApiResponse {
-  let data = get_post_template(&locale, &pool, &id).await?;
+  let data = get_post_template(&locale, &pool, id).await?;
   Ok(Json(data.to_jsonapi_document()))
 }
 async fn get_post_templates_handler(

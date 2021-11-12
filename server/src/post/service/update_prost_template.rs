@@ -7,22 +7,21 @@ use crate::{
   error::{Error, ServiceError},
   middleware::{Auth, Locale},
   post::{
-    model::{PostTemplate, UpdatePostTemplateParam},
-    service::get_post_template::get_post_template,
+    model::{DbPostTemplate, PostTemplate, UpdatePostTemplateParam},
+    service::get_post_template::{format_post_template, get_post_template},
     util,
   },
   types::ServiceResult,
-  util::id::next_id,
 };
 
 use chrono::Utc;
-use sqlx::query;
+use sqlx::query_as;
 pub async fn update_post_template(
   locale: &Locale,
   pool: &Pool,
   param: UpdatePostTemplateParam,
   auth: Auth,
-) -> ServiceResult<()> {
+) -> ServiceResult<PostTemplate> {
   let UpdatePostTemplateParam {
     content,
     featured,
@@ -30,7 +29,7 @@ pub async fn update_post_template(
     id,
   } = param;
   // get post template
-  let current = get_post_template(locale, pool, &id).await?;
+  let current = get_post_template(locale, pool, id).await?;
 
   let now = Utc::now().naive_utc();
   let mut featured_edit_value = None;
@@ -58,10 +57,11 @@ pub async fn update_post_template(
   if featured_edit_value.is_some() {
     featured_at = Some(now);
   }
-  query!(
+  let row =  query_as!(DbPostTemplate,
     r#"
 UPDATE post_templates set content = COALESCE($1,content), featured = COALESCE($2,featured), featured_at = COALESCE($3,featured_at), updated_at = $4, background_color= COALESCE($6,background_color)
 WHERE id = $5
+RETURNING id,content,used_count,skip_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at
 "#,
     content,
     featured_edit_value,
@@ -70,7 +70,7 @@ WHERE id = $5
     id,
     background_color,
   )
-  .execute(pool)
+  .fetch_one(pool)
   .await?;
   // update account post template count
   update_account(
@@ -83,5 +83,5 @@ WHERE id = $5
     &auth,
   )
   .await?;
-  Ok(())
+  Ok(format_post_template(row).into())
 }

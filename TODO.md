@@ -21,3 +21,4 @@
 - [ ] 管理员权限等
 - [ ] ip 记录
 - [x] redeploy 消息增加 git commit 信息
+- [ ] account 支持分字段

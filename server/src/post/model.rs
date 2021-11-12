@@ -1,5 +1,6 @@
 use crate::{
-  types::Action,
+  account::model::SlimAccount,
+  types::{Action, Gender},
   util::{datetime_tz, default, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
@@ -27,6 +28,58 @@ pub struct PostTemplate {
 }
 jsonapi_model!(PostTemplate; "post-templates");
 
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "visibility", rename_all = "lowercase")]
+pub enum Visibility {
+  Public,
+  Unlisted,
+  Related,
+  Private,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Post {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  pub content: String,
+  pub view_count: i64,
+  pub skip_count: i64,
+  pub background_color: String,
+  #[serde(with = "string_i64")]
+  pub account_id: i64,
+  #[serde(with = "datetime_tz")]
+  pub created_at: NaiveDateTime,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+  pub visibility: Visibility,
+  pub target_gender: Option<Gender>,
+  pub author: SlimAccount,
+  #[serde(with = "string_i64")]
+  pub post_template_id: i64,
+  #[serde(with = "string_i64")]
+  pub time_cursor: i64,
+  pub gender: Gender,
+}
+jsonapi_model!(Post; "posts"; has one author);
+#[derive(Debug, Clone)]
+pub struct DbPost {
+  pub id: i64,
+  pub content: String,
+  pub view_count: i64,
+  pub skip_count: i64,
+  pub background_color: String,
+  pub account_id: i64,
+  pub created_at: NaiveDateTime,
+  pub updated_at: NaiveDateTime,
+  pub visibility: Visibility,
+  pub target_gender: Option<Gender>,
+  pub post_template_id: i64,
+  pub time_cursor: i64,
+  pub gender: Gender,
+  pub client_id: i64,
+  pub ip: Option<IpNetwork>,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct PostTemplateFilter {
@@ -58,14 +111,41 @@ pub struct FullPostTemplate {
   pub updated_at: NaiveDateTime,
 }
 jsonapi_model!(FullPostTemplate; "full-post-templates");
-
+#[derive(Debug, Clone)]
+pub struct DbPostTemplate {
+  pub id: i64,
+  pub content: String,
+  pub used_count: i64,
+  pub skip_count: i64,
+  pub background_color: String,
+  pub account_id: i64,
+  pub featured: bool,
+  pub featured_by: Option<i64>,
+  pub featured_at: Option<NaiveDateTime>,
+  pub created_at: NaiveDateTime,
+  pub updated_at: NaiveDateTime,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePostTemplateParam {
   pub content: String,
   pub background_color: String,
-  pub account_id: i64,
   pub featured: Option<bool>,
-  pub ip: IpNetwork,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+pub struct CreatePostParam {
+  pub content: String,
+  #[serde(with = "string_i64")]
+  pub post_template_id: i64,
+  pub background_color: Option<String>,
+  pub target_gender: Option<Gender>,
+  #[serde(default = "default_visibility")]
+  #[derivative(Default(value = "Visibility::Public"))]
+  pub visibility: Visibility,
+}
+fn default_visibility() -> Visibility {
+  Visibility::Public
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

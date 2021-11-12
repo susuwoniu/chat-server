@@ -1,5 +1,5 @@
 use crate::{
-  types::Action,
+  types::{Action, Gender},
   util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
@@ -48,16 +48,7 @@ pub struct SignupData {
   pub account_id: i64,
   pub account_auth_id: i64,
 }
-#[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
-#[serde(rename_all = "lowercase")]
-#[sqlx(type_name = "gender", rename_all = "lowercase")]
-pub enum Gender {
-  Unknown,
-  Male,
-  Female,
-  Other,
-  Intersex,
-}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "identity_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -104,7 +95,7 @@ pub struct LoginActivityData {
   pub account_auth_id: i64,
   pub last_signin_at: NaiveDateTime,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SlimAccount {
   #[serde(with = "string_i64")]
   pub id: i64,
@@ -235,6 +226,50 @@ pub struct Account {
   pub post_templates_count: i64,
 }
 jsonapi_model!(Account; "accounts"; has many profile_images);
+
+#[derive(Debug, Clone)]
+
+pub struct DbAccount {
+  pub id: i64,
+  pub name: String,
+  pub bio: String,
+  pub gender: Gender,
+  pub admin: bool,
+  pub moderator: bool,
+  pub vip: bool,
+  pub posts_count: i64,
+  pub likes_count: i64,
+  pub show_age: bool,
+  pub show_distance: bool,
+  pub suspended: bool,
+  pub suspended_at: Option<NaiveDateTime>,
+  pub suspended_until: Option<NaiveDateTime>,
+  pub suspended_reason: Option<String>,
+  pub birthday: Option<NaiveDate>,
+  pub timezone_in_seconds: Option<i32>,
+  pub phone_country_code: Option<i32>,
+  pub phone_number: Option<String>,
+  pub location: Option<String>,
+  pub country_id: Option<i32>,
+  pub state_id: Option<i32>,
+  pub city_id: Option<i32>,
+  pub avatar: Option<String>,
+  pub avatar_updated_at: Option<NaiveDateTime>,
+  pub created_at: NaiveDateTime,
+  pub updated_at: NaiveDateTime,
+  pub approved: bool,
+  pub approved_at: Option<NaiveDateTime>,
+  pub invite_id: Option<i64>,
+  pub name_change_count: i32,
+  pub bio_change_count: i32,
+  pub birthday_change_count: i32,
+  pub phone_change_count: i32,
+  pub gender_change_count: i32,
+  pub post_templates_count: i64,
+  pub skip_optional_info: bool,
+  pub profile_image_change_count: i32,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProfileImage {
   #[serde(with = "string_i64")]
@@ -285,6 +320,8 @@ pub struct UpdateAccountParam {
   pub invite_id: Option<i64>,
   pub skip_optional_info: Option<bool>,
   pub post_templates_count: Option<FieldOpetation>,
+  pub posts_count: Option<FieldOpetation>,
+  pub likes_count: Option<FieldOpetation>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

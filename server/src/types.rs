@@ -64,3 +64,13 @@ pub struct Filter {
   #[serde(with = "option_string_i64")]
   pub until_id: Option<i64>,
 }
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "gender", rename_all = "lowercase")]
+pub enum Gender {
+  Unknown,
+  Male,
+  Female,
+  Other,
+  Intersex,
+}

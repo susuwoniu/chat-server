@@ -12,6 +12,7 @@ use crate::{
   types::ServiceResult,
   util::id::next_id,
 };
+use ipnetwork17::IpNetwork;
 
 use chrono::Utc;
 use sqlx::query;
@@ -20,6 +21,7 @@ pub async fn create_post_template(
   pool: &Pool,
   param: CreatePostTemplateParam,
   auth: Auth,
+  ip: IpNetwork,
 ) -> ServiceResult<PostTemplate> {
   // add post template
   let id = next_id();
@@ -48,11 +50,11 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     id,
     param.content,
     param.background_color,
-    param.account_id,
+    auth.account_id,
     now,
     featured,
     featured_at,
-    param.ip,
+    ip,
   )
   .execute(pool)
   .await?;
@@ -71,7 +73,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     id,
     content: param.content,
     background_color: param.background_color,
-    account_id: param.account_id,
+    account_id: auth.account_id,
     updated_at: now,
     created_at: now,
     featured: featured,
