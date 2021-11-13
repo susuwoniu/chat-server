@@ -47,6 +47,8 @@ pub enum Error {
   IpNetworkError(#[from] ipnetwork17::IpNetworkError),
   #[error("parse semver failed")]
   SemverError(#[from] semver::Error),
+  #[error("parse url query failed")]
+  SerdeQsError(#[from] serde_qs::Error),
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]
@@ -110,6 +112,7 @@ impl IntoResponse for RootError {
     }
   }
 }
+
 impl From<axum::extract::rejection::PathParamsRejection> for ServiceError {
   fn from(error: axum::extract::rejection::PathParamsRejection) -> ServiceError {
     // Right now we just care about UniqueViolation from diesel

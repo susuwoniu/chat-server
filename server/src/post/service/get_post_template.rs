@@ -19,13 +19,20 @@ pub async fn get_full_post_templates(
   filter: &PostTemplateFilter,
 ) -> ServiceResult<Vec<FullPostTemplate>> {
   let cfg = Config::global();
+  let mut limit = cfg.page_size;
+  if let Some(featured) = filter.featured {
+    if featured {
+      // featured 默认200
+      limit = 200
+    }
+  }
   let rows = query_as!(DbPostTemplate,
       r#"
-        select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and featured=$4 and deleted=false  order by id desc limit $1
+        select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and ($4::bool is null or featured = $4) and deleted=false  order by id desc limit $1
   "#,
-  &cfg.page_size,
-  filter.since_id,
-  filter.until_id,
+  limit ,
+  filter.after,
+  filter.before,
   filter.featured
     )
     .fetch_all(pool)

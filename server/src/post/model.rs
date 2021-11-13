@@ -1,13 +1,18 @@
 use crate::{
   account::model::Account,
-  types::{Action, FieldAction, Gender},
-  util::{datetime_tz, default, option_datetime_tz, option_string_i64, string_i64},
+  error::ServiceError,
+  types::{FieldAction, Gender, PageInfo},
+  util::{
+    base62_i64, base62_to_i64, datetime_tz, default, option_base62_i64, option_datetime_tz,
+    option_string_i64, string::parse_skip_range, string_i64,
+  },
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
 use derivative::Derivative;
 use ipnetwork17::IpNetwork;
 use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PostTemplate {
   #[serde(with = "string_i64")]
@@ -58,8 +63,8 @@ pub struct Post {
   pub author: Account,
   #[serde(with = "string_i64")]
   pub post_template_id: i64,
-  #[serde(with = "string_i64")]
-  pub time_cursor: i64,
+  #[serde(with = "base62_i64")]
+  pub cursor: i64,
   pub gender: Gender,
 }
 jsonapi_model!(Post; "posts"; has one author);
@@ -82,21 +87,49 @@ pub struct DbPost {
   pub client_id: i64,
   pub ip: Option<IpNetwork>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PostTemplateFilter {
-  pub since_id: Option<i64>,
-  pub until_id: Option<i64>,
-  #[serde(default = "default::default_true")]
-  #[derivative(Default(value = "true"))]
-  pub featured: bool,
+  #[serde(with = "option_base62_i64")]
+  pub after: Option<i64>,
+  #[serde(with = "option_base62_i64")]
+  pub before: Option<i64>,
+  pub featured: Option<bool>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ApiPostFilter {
+  pub after: Option<String>,
+  pub before: Option<String>,
+  pub skip: Option<Vec<String>>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PostFilter {
+  pub after: Option<i64>,
+  pub before: Option<i64>,
+  pub skip: Vec<[i64; 2]>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
-pub struct PostFilter {
-  pub since_id: Option<i64>,
-  pub until_id: Option<i64>,
+impl TryFrom<ApiPostFilter> for PostFilter {
+  type Error = ServiceError;
+
+  fn try_from(value: ApiPostFilter) -> Result<Self, Self::Error> {
+    let mut after = None;
+    if let Some(after_value) = value.after {
+      after = Some(base62_to_i64(&after_value)?);
+    }
+    let mut before = None;
+    if let Some(before_value) = value.before {
+      before = Some(base62_to_i64(&before_value)?);
+    }
+    let mut skip = Vec::new();
+    if let Some(skip_value) = value.skip {
+      skip = parse_skip_range(&skip_value)?;
+    }
+    Ok(PostFilter {
+      after,
+      before,
+      skip,
+    })
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

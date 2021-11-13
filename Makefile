@@ -8,7 +8,7 @@ migrate:
 db:
 	sqlx migrate add $(name)
 start:
-	RUST_LOG=info cargo watch -x "run -- server"
+	RUST_LOG=debug cargo watch -x "run -- server"
 build:
 	sqlx migrate run && cargo build --release
 serve:

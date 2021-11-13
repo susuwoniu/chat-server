@@ -32,6 +32,7 @@ use structopt::StructOpt;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv::dotenv().ok();
+    env_logger::init();
     CONFIG.set(Config::new().unwrap()).unwrap();
     let cfg = Config::global();
 

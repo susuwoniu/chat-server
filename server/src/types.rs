@@ -1,6 +1,8 @@
 use crate::{
   error::ServiceError,
-  util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
+  util::{
+    base62_i64, datetime_tz, option_base62_i64, option_datetime_tz, option_string_i64, string_i64,
+  },
 };
 use axum::Json;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
@@ -12,7 +14,7 @@ pub type JsonApiResponse = ServiceJson<JsonApiDocument>;
 pub type SimpleMetaResponse<T> = ServiceJson<SimpleMetaDoc<T>>;
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 pub struct QuickResponse;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SimpleMetaDoc<T>
@@ -64,13 +66,30 @@ pub enum FieldAction {
   IncreaseOne,
   DecreaseOne,
 }
-
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PageInfo {
+  #[serde(with = "option_base62_i64")]
+  pub start: Option<i64>,
+  #[serde(with = "option_base62_i64")]
+  pub end: Option<i64>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataWithPageInfo<T> {
+  pub data: Vec<T>,
+  pub page_info: PageInfo,
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Filter {
-  #[serde(with = "option_string_i64")]
-  pub since_id: Option<i64>,
-  #[serde(with = "option_string_i64")]
-  pub until_id: Option<i64>,
+  #[serde(with = "option_base62_i64")]
+  pub after: Option<i64>,
+  #[serde(with = "option_base62_i64")]
+  pub before: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Range {
+  pub start: i64,
+  pub end: i64,
 }
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]

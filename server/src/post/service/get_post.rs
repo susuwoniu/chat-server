@@ -11,12 +11,12 @@ use crate::{
   global::Config,
   middleware::{Auth, Locale},
   post::{
-    model::{CreatePostParam, DbPost, Post, PostFilter, Visibility},
+    model::{DbPost, Post, PostFilter, Visibility},
     service::get_post_template::get_post_template,
     util,
   },
-  types::{Gender, ServiceResult},
-  util::id::next_id,
+  types::{DataWithPageInfo, Gender, PageInfo, Range, ServiceResult},
+  util::{id::next_id, string::parse_skip_range},
 };
 use chrono::Utc;
 use ipnetwork17::IpNetwork;
@@ -26,17 +26,39 @@ pub async fn get_posts(
   locale: &Locale,
   pool: &Pool,
   filter: &PostFilter,
-) -> ServiceResult<Vec<Post>> {
+) -> ServiceResult<DataWithPageInfo<Post>> {
   let cfg = Config::global();
-
+  let skip = filter.skip.clone();
   let rows = query_as!(DbPost,
     r#"
-      select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count from posts where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and visibility=$4 and approved=true and deleted=false order by time_cursor desc limit $1
+      select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count from posts where 
+      ($2::bigint is null or time_cursor > $2) 
+      and ($3::bigint is null or time_cursor < $3) 
+      and visibility=$4 
+      and approved=true 
+      and deleted=false 
+      and ($5::bigint is null or time_cursor > $5 or time_cursor < $6)
+      and ($7::bigint is null or time_cursor > $7 or time_cursor < $8)
+      and ($9::bigint is null or time_cursor > $9 or time_cursor < $10)
+      and ($11::bigint is null or time_cursor > $11 or time_cursor < $12)
+      and ($13::bigint is null or time_cursor > $13 or time_cursor < $14)
+      order by time_cursor desc 
+      limit $1
 "#,
 &cfg.page_size,
-filter.since_id,
-filter.until_id,
-Visibility::Public as Visibility, 
+filter.before,
+filter.after,
+Visibility::Public as Visibility,
+get_range_value_or_none(&skip.get(0),0),
+get_range_value_or_none(&skip.get(0),1),
+get_range_value_or_none(&skip.get(1),0),
+get_range_value_or_none(&skip.get(1),1),
+get_range_value_or_none(&skip.get(2),0),
+get_range_value_or_none(&skip.get(2),1),
+get_range_value_or_none(&skip.get(3),0),
+get_range_value_or_none(&skip.get(3),1),
+get_range_value_or_none(&skip.get(4),0),
+get_range_value_or_none(&skip.get(4),1),
   )
   .fetch_all(pool)
   .await?;
@@ -55,19 +77,30 @@ Visibility::Public as Visibility,
     .map(|account| (account.id, account))
     .collect::<std::collections::HashMap<_, _>>();
 
-  return Ok(
-    rows
-      .into_iter()
-      .filter_map(|row| {
-        let account = account_map.get(&row.account_id);
-        if let Some(account) = account {
-          return Some(format_post(row, account.clone()));
-        } else {
-          return None;
-        }
-      })
-      .collect(),
-  );
+  let data: Vec<Post> = rows
+    .into_iter()
+    .filter_map(|row| {
+      let account = account_map.get(&row.account_id);
+      if let Some(account) = account {
+        return Some(format_post(row, account.clone()));
+      } else {
+        return None;
+      }
+    })
+    .collect();
+  let mut start = None;
+  let mut end = None;
+  if let Some(row) = data.first() {
+    start = Some(row.cursor);
+  }
+  if let Some(row) = data.last() {
+    end = Some(row.cursor);
+  }
+  let post_collection = DataWithPageInfo::<Post> {
+    data,
+    page_info: PageInfo { start, end },
+  };
+  return Ok(post_collection);
 }
 
 pub async fn get_post(locale: &Locale, pool: &Pool, id: i64) -> ServiceResult<Post> {
@@ -121,10 +154,17 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
     replied_count,
     viewed_count,
     post_template_id,
-    time_cursor,
+    cursor: time_cursor,
     target_gender,
     gender,
     visibility,
     author: author,
   };
+}
+fn get_range_value_or_none(range: &Option<&[i64; 2]>, position: usize) -> Option<i64> {
+  if let Some(range) = range {
+    return Some(range[position]);
+  } else {
+    return None;
+  }
 }

@@ -9,6 +9,7 @@ version = "0.1.0"
 
 accept-language = "2.0"
 axum = {version = "0.3", features = ["headers"]}
+bs62 = "0.1"
 chrono = {version = "0.4", features = ["serde"]}
 config = "0.11"
 deadpool = "0.8"
@@ -17,6 +18,7 @@ derivative = "2.2"
 derive_more = {version = "0.99", default-features = false, features = ["display"]}
 dotenv = "0.15"
 ed25519-dalek = "1.0"
+env_logger = "0.9"
 fluent-bundle = {version = "0.15"}
 futures = "0.3"
 futures-util = {version = "0.3.7", default-features = false}
@@ -37,6 +39,8 @@ rand07 = {version = "0.7", package = "rand"}
 semver = "1.0"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
+serde_qs = "0.8"
+serde_urlencoded = "0.7"
 sha2 = "0.9"
 sonyflake = "0.1"
 sqlx = {version = "0.5", features = ["runtime-actix-native-tls", "chrono", "macros", "ipnetwork", "json", "postgres"]}

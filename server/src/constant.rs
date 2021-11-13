@@ -1,4 +1,7 @@
 pub const API_V1_PREFIX: &str = "/api/v1";
+pub const ACCOUNT_SERVICE_PATH: &str = "/account";
+pub const POST_SERVICE_PATH: &str = "/post";
+
 #[allow(dead_code)]
 pub const NAMESPACE: &str = "chat";
 pub const PHONE_AUTH_CODE_TEMP_KEY: &str = "chat/phone_auth_code_temp";

@@ -1,10 +1,11 @@
 use crate::{
   alias::{KvPool, Pool},
-  middleware::{Auth, ClientVersion, Ip, Locale, RefreshTokenAuth, Signature},
+  constant::POST_SERVICE_PATH,
+  middleware::{Auth, ClientVersion, Ip, Locale, Qs, RefreshTokenAuth, Signature},
   post::{
     model::{
-      CreatePostParam, CreatePostTemplateParam, PostFilter, PostTemplateFilter, UpdatePostParam,
-      UpdatePostTemplateParam,
+      ApiPostFilter, CreatePostParam, CreatePostTemplateParam, PostFilter, PostTemplateFilter,
+      UpdatePostParam, UpdatePostTemplateParam,
     },
     service::{
       create_post::create_post,
@@ -15,11 +16,13 @@ use crate::{
       update_post_template::update_post_template,
     },
   },
-  types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
+  types::{JsonApiResponse, PageInfo, QuickResponse},
+  util::page::{format_page_links, format_page_meta},
 };
 
 use axum::{
-  extract::{Extension, Path, Query},
+  extract::{Extension, OriginalUri, Path, Query},
+  http::Uri,
   routing::{delete, get, post},
   Json, Router,
 };
@@ -69,10 +72,25 @@ async fn create_post_handler(
 async fn get_posts_handler(
   Extension(pool): Extension<Pool>,
   locale: Locale,
-  Query(filter): Query<PostFilter>,
+  Qs(filter): Qs<ApiPostFilter>,
+  Query(query): Query<HashMap<String, String>>,
+  uri: Uri,
 ) -> JsonApiResponse {
-  let data = get_posts(&locale, &pool, &filter).await?;
-  Ok(Json(vec_to_jsonapi_document(data)))
+  let posts_filter = PostFilter::try_from(filter)?;
+  let data = get_posts(&locale, &pool, &posts_filter).await?;
+  let json_api_data = vec_to_jsonapi_resources(data.data).0;
+  let response = JsonApiDocument::Data(DocumentData {
+    meta: Some(format_page_meta(data.page_info.clone())),
+    data: Some(PrimaryData::Multiple(json_api_data)),
+    links: Some(format_page_links(
+      POST_SERVICE_PATH,
+      uri.path(),
+      query,
+      data.page_info,
+    )),
+    ..Default::default()
+  });
+  Ok(Json(response))
 }
 async fn get_post_handler(
   Extension(pool): Extension<Pool>,

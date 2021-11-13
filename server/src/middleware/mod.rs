@@ -17,3 +17,5 @@ pub use ip::Ip;
 pub use refresh_token_auth::RefreshTokenAuth;
 pub mod client_version;
 pub use client_version::ClientVersion;
+pub mod qs;
+pub use qs::Qs;
