@@ -17,7 +17,7 @@ use sqlx::query_as;
 async fn get_db_account(locale: &Locale, pool: &Pool, account_id: i64) -> ServiceResult<DbAccount> {
   let row=  query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count from accounts where id = $1 and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count from accounts where id = $1 and deleted=false
 "#,
 account_id
   )
@@ -34,13 +34,13 @@ account_id
 }
 
 async fn get_db_accounts(
-  locale: &Locale,
+  _: &Locale,
   pool: &Pool,
   account_ids: &Vec<i64>,
 ) -> ServiceResult<Vec<DbAccount>> {
   let rows = query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count from accounts where id = ANY ($1::bigint[]) and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count from accounts where id = ANY ($1::bigint[]) and deleted=false
 "#,
 account_ids
   )
@@ -177,5 +177,6 @@ pub fn format_account(account: DbAccount, profile_images: Vec<ProfileImage>) -> 
     phone_change_count: account.phone_change_count,
     gender_change_count: account.gender_change_count,
     post_template_count: account.post_template_count,
+    show_viewed_action: account.show_viewed_action,
   }
 }

@@ -12,7 +12,7 @@ use pasetors::claims::ClaimsValidationRules;
 use pasetors::keys::{AsymmetricPublicKey, Version};
 use pasetors::public;
 use std::str::FromStr;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Auth {
   pub account_id: i64,
   pub client_id: i64,

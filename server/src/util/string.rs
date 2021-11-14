@@ -1,8 +1,4 @@
-use crate::{
-  error::ServiceError,
-  types::{Range, ServiceResult},
-  util::base62_to_i64,
-};
+use crate::{types::ServiceResult, util::base62_to_i64};
 use rand::{distributions::Alphanumeric, Rng}; // 0.8
 
 pub fn get_random_letter(len: usize) -> String {

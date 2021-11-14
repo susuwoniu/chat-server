@@ -1,40 +1,44 @@
 use crate::{
   account::{
-    model::{Account, UpdateAccountParam},
-    service::{
-      get_account::{get_account, get_accounts},
-      update_account::update_account,
-    },
+    model::Account,
+    service::get_account::{get_account, get_accounts},
   },
   alias::Pool,
   error::{Error, ServiceError},
   global::Config,
   middleware::{Auth, Locale},
-  post::{
-    model::{DbPost, Post, PostFilter, Visibility},
-    service::get_post_template::get_post_template,
-    util,
-  },
-  types::{DataWithPageInfo, Gender, PageInfo, Range, ServiceResult},
-  util::{id::next_id, string::parse_skip_range},
+  post::model::{DbPost, DbPostView, Post, PostFilter, PostView, PostViewFilter, Visibility},
+  types::{DataWithPageInfo, Gender, PageInfo, ServiceResult},
 };
-use chrono::Utc;
-use ipnetwork17::IpNetwork;
+
 use sqlx::query_as;
 
 pub async fn get_posts(
   locale: &Locale,
   pool: &Pool,
   filter: &PostFilter,
+  auth: &Option<Auth>,
 ) -> ServiceResult<DataWithPageInfo<Post>> {
   let cfg = Config::global();
   let skip = filter.skip.clone();
+  let mut default_visibility = Some(Visibility::Public);
+  if let Some(ref auth) = auth {
+    if let Some(filter_account_id) = filter.account_id {
+      if auth.account_id == filter_account_id {
+        // 用户可以看自己所有的帖子
+        default_visibility = None;
+      }
+    }
+  }
   let rows = query_as!(DbPost,
     r#"
       select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count from posts where 
-      ($2::bigint is null or time_cursor > $2) 
+      ($27::bigint is null or account_id=$27)
+      and ($15::timestamp is null or created_at > $15)
+      and ($16::timestamp is null or created_at < $16)
+      and ($2::bigint is null or time_cursor > $2) 
       and ($3::bigint is null or time_cursor < $3) 
-      and visibility=$4 
+      and ($4::visibility is null or visibility=$4) 
       and approved=true 
       and deleted=false 
       and ($5::bigint is null or time_cursor > $5 or time_cursor < $6)
@@ -42,13 +46,18 @@ pub async fn get_posts(
       and ($9::bigint is null or time_cursor > $9 or time_cursor < $10)
       and ($11::bigint is null or time_cursor > $11 or time_cursor < $12)
       and ($13::bigint is null or time_cursor > $13 or time_cursor < $14)
+      and ($17::bigint is null or time_cursor > $17 or time_cursor < $18)
+      and ($19::bigint is null or time_cursor > $19 or time_cursor < $20)
+      and ($21::bigint is null or time_cursor > $21 or time_cursor < $22)
+      and ($23::bigint is null or time_cursor > $23 or time_cursor < $24)
+      and ($25::bigint is null or time_cursor > $25 or time_cursor < $26)
       order by time_cursor desc 
       limit $1
 "#,
 &cfg.page_size,
 filter.before,
 filter.after,
-Visibility::Public as Visibility,
+default_visibility as Option<Visibility>,
 get_range_value_or_none(&skip.get(0),0),
 get_range_value_or_none(&skip.get(0),1),
 get_range_value_or_none(&skip.get(1),0),
@@ -59,6 +68,19 @@ get_range_value_or_none(&skip.get(3),0),
 get_range_value_or_none(&skip.get(3),1),
 get_range_value_or_none(&skip.get(4),0),
 get_range_value_or_none(&skip.get(4),1),
+filter.start_time,
+filter.end_time,
+get_range_value_or_none(&skip.get(5),0),
+get_range_value_or_none(&skip.get(5),1),
+get_range_value_or_none(&skip.get(6),0),
+get_range_value_or_none(&skip.get(6),1),
+get_range_value_or_none(&skip.get(7),0),
+get_range_value_or_none(&skip.get(7),1),
+get_range_value_or_none(&skip.get(8),0),
+get_range_value_or_none(&skip.get(8),1),
+get_range_value_or_none(&skip.get(9),0),
+get_range_value_or_none(&skip.get(9),1),
+filter.account_id
   )
   .fetch_all(pool)
   .await?;
@@ -103,7 +125,85 @@ get_range_value_or_none(&skip.get(4),1),
   return Ok(post_collection);
 }
 
-pub async fn get_post(locale: &Locale, pool: &Pool, id: i64) -> ServiceResult<Post> {
+pub async fn get_post_views(
+  locale: &Locale,
+  pool: &Pool,
+  filter: &PostViewFilter,
+  post_id: i64,
+) -> ServiceResult<DataWithPageInfo<PostView>> {
+  let cfg = Config::global();
+  let rows = query_as!(
+    DbPostView,
+    r#"
+      select id,created_at,updated_at,viewed_by,post_id,post_account_id from post_view where 
+      post_id=$2
+      and ($3::bigint is null or id > $3) 
+      and ($4::bigint is null or id < $4) 
+      and ($5::bigint is null or post_account_id=$5)
+      and ($6::timestamp is null or created_at > $6)
+      and ($7::timestamp is null or created_at < $7)
+      order by id desc 
+      limit $1
+"#,
+    &cfg.page_size,
+    post_id,
+    filter.before,
+    filter.after,
+    filter.post_account_id,
+    filter.start_time,
+    filter.end_time,
+  )
+  .fetch_all(pool)
+  .await?;
+
+  // fetch all account
+
+  let accounts = get_accounts(
+    locale,
+    pool,
+    &rows.clone().into_iter().map(|row| row.viewed_by).collect(),
+  )
+  .await?;
+
+  let account_map = accounts
+    .into_iter()
+    .map(|account| (account.id, account))
+    .collect::<std::collections::HashMap<_, _>>();
+
+  let data: Vec<PostView> = rows
+    .into_iter()
+    .filter_map(|row| {
+      let account = account_map.get(&row.viewed_by);
+      if let Some(account) = account {
+        return Some(format_post_view(row, account.clone()));
+      } else {
+        return None;
+      }
+    })
+    .collect();
+  let mut start = None;
+  let mut end = None;
+  if let Some(row) = data.first() {
+    start = Some(row.cursor);
+  }
+  if let Some(row) = data.last() {
+    end = Some(row.cursor);
+  }
+  let collection = DataWithPageInfo::<PostView> {
+    data,
+    page_info: PageInfo { start, end },
+  };
+  return Ok(collection);
+}
+// 获取文章
+pub async fn get_post(
+  locale: &Locale,
+  pool: &Pool,
+  id: i64,
+  auth: &Option<Auth>,
+) -> ServiceResult<Post> {
+  let mut has_permission_view = false;
+
   let row = query_as!(DbPost,
     r#"
       select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count from posts where id=$1 and deleted=false
@@ -113,6 +213,23 @@ id
   .fetch_optional(pool)
   .await?;
   if let Some(row) = row {
+    // is public
+    if row.visibility == Visibility::Public {
+      has_permission_view = true;
+    } else if let Some(ref auth) = auth {
+      if auth.account_id == row.account_id {
+        // 用户可以看自己所有的帖子
+        has_permission_view = true;
+      }
+    }
+    // 没有权限则拒绝
+    if !has_permission_view {
+      return Err(ServiceError::permission_limit(
+        locale,
+        "no_permission_to_view_post",
+        Error::Other(format!("Can not view not public post {}", id)),
+      ));
+    }
     let account = get_account(locale, pool, row.account_id).await?;
 
     return Ok(format_post(row, account.into()));
@@ -123,6 +240,26 @@ id
       Error::Other(format!("Can not found post template id: {} at db", id)),
     ));
   }
+}
+pub fn format_post_view(raw: DbPostView, viewed_by_account: Account) -> PostView {
+  let DbPostView {
+    id,
+    created_at,
+    updated_at,
+    viewed_by,
+    post_id,
+    post_account_id,
+  } = raw;
+  return PostView {
+    id,
+    created_at,
+    updated_at,
+    viewed_by,
+    post_id,
+    post_account_id,
+    cursor: id,
+    viewed_by_account,
+  };
 }
 pub fn format_post(raw: DbPost, author: Account) -> Post {
   let DbPost {

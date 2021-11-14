@@ -34,7 +34,8 @@ pub async fn create_post(
   let id = next_id();
   let now = Utc::now().naive_utc();
 
-  // TODO check param is valid
+  util::is_post_content_valid(locale, &content)?;
+  let final_visibility = util::get_post_content_visibility(&content, visibility);
 
   // get post template info
   let post_template = get_post_template(locale, pool, post_template_id).await?;
@@ -63,10 +64,11 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     ip,
     author.gender as Gender,
     target_gender as Option<Gender>,
-    visibility as Visibility,
+    final_visibility as Visibility,
     true,
     now,
-    auth.account_id
+    auth.account_id,
+
   )
   .fetch_one(pool)
   .await?;

@@ -8,4 +8,7 @@ pub use self::config::Client as ClientConfig;
 pub use access_token_pair::AccessTokenPair;
 pub use refresh_token_pair::RefreshTokenPair;
 pub mod client;
-pub use self::config::ENV;pub use client::Client;
+pub use self::config::ENV;
+pub use client::Client;
+pub mod sensitive_words;
+pub use sensitive_words::SensitiveWords;

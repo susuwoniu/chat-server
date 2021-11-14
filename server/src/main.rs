@@ -19,7 +19,8 @@ use crate::{
         config::{Client as ClientConfig, CONFIG, ENV},
         i18n::I18N,
         refresh_token_pair::REFRESH_TOKEN_PAIR,
-        AccessTokenPair, Client, Config, I18n, RefreshTokenPair,
+        sensitive_words::SENSITIVE_WORDS,
+        AccessTokenPair, Client, Config, I18n, RefreshTokenPair, SensitiveWords,
     },
     route::app_route,
     util::{id::next_id, key_pair::Pair},
@@ -91,6 +92,33 @@ async fn main() -> Result<(), Error> {
                 client_map.insert(client.client_id, client);
             }
             CLIENT_MAP.set(Client(client_map)).unwrap();
+
+            // init sensitive words
+            let mut sensitive_words: Vec<String> = Vec::new();
+            include_str!("../../resources/sensitive-words/politics.txt")
+                .split("\n")
+                .for_each(|word| {
+                    sensitive_words.push(word.to_string());
+                });
+            include_str!("../../resources/sensitive-words/gun.txt")
+                .split("\n")
+                .for_each(|word| {
+                    sensitive_words.push(word.to_string());
+                });
+            include_str!("../../resources/sensitive-words/porn.txt")
+                .split("\n")
+                .for_each(|word| {
+                    sensitive_words.push(word.to_string());
+                });
+            include_str!("../../resources/sensitive-words/other.txt")
+                .split("\n")
+                .for_each(|word| {
+                    sensitive_words.push(word.to_string());
+                });
+            SENSITIVE_WORDS
+                .set(SensitiveWords(sensitive_words))
+                .unwrap();
+
             let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env not set");
             // Database
             let pool = PgPoolOptions::new()

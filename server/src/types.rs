@@ -1,9 +1,4 @@
-use crate::{
-  error::ServiceError,
-  util::{
-    base62_i64, datetime_tz, option_base62_i64, option_datetime_tz, option_string_i64, string_i64,
-  },
-};
+use crate::{error::ServiceError, util::option_base62_i64};
 use axum::Json;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
 use std::collections::HashMap;
@@ -14,7 +9,7 @@ pub type JsonApiResponse = ServiceJson<JsonApiDocument>;
 pub type SimpleMetaResponse<T> = ServiceJson<SimpleMetaDoc<T>>;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 pub struct QuickResponse;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SimpleMetaDoc<T>
@@ -86,11 +81,6 @@ pub struct Filter {
   pub before: Option<i64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Range {
-  pub start: i64,
-  pub end: i64,
-}
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "gender", rename_all = "lowercase")]

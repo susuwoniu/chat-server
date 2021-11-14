@@ -1,9 +1,7 @@
 use crate::{error::ServiceError, middleware::Locale};
 use axum::{
   async_trait,
-  extract::{FromRequest, RawQuery, RequestParts},
-  routing::get,
-  Router,
+  extract::{FromRequest, RequestParts},
 };
 use serde::de::DeserializeOwned;
 use std::ops::Deref;

@@ -37,12 +37,12 @@ pub async fn create_post_template(
   }
   // TODO check param is valid
 
-  util::is_post_template_content_valid(locale, param.content.clone())?;
+  util::is_post_template_content_valid(locale, &param.content)?;
 
   query!(
     r#"
-INSERT INTO post_templates (id,content,background_color,account_id,updated_at,featured,featured_at,ip)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+INSERT INTO post_templates (id,content,background_color,account_id,updated_at,featured,featured_at,ip,time_cursor)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 "#,
     id,
     param.content,
@@ -52,6 +52,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     featured,
     featured_at,
     ip,
+    id
   )
   .execute(pool)
   .await?;

@@ -5,6 +5,9 @@ env = "development"
 invite_only = false
 page_size = 30
 use_fixed_code = false
+[post]
+default_listed_posts_duration_in_days = 30
+min_post_content_count = 6
 [auth]
 access_token_expires_in_minutes = 1440
 phone_code_verification_duration_in_seconds = 60

@@ -3,18 +3,14 @@ use crate::{
   error::{Error, ServiceError},
   global::Config,
   middleware::Locale,
-  post::model::{
-    CreatePostTemplateParam, DbPostTemplate, FullPostTemplate, PostTemplate, PostTemplateFilter,
-  },
-  types::{Action, ActionType, ServiceResult},
+  post::model::{DbPostTemplate, FullPostTemplate, PostTemplate, PostTemplateFilter},
+  types::ServiceResult,
 };
-use chrono::offset::FixedOffset;
-use chrono::Datelike;
-use chrono::{Date, Utc};
-use sqlx::{query, query_as};
+
+use sqlx::query_as;
 
 pub async fn get_full_post_templates(
-  locale: &Locale,
+  _: &Locale,
   pool: &Pool,
   filter: &PostTemplateFilter,
 ) -> ServiceResult<Vec<FullPostTemplate>> {
@@ -28,7 +24,7 @@ pub async fn get_full_post_templates(
   }
   let rows = query_as!(DbPostTemplate,
       r#"
-        select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and ($4::bool is null or featured = $4) and deleted=false  order by id desc limit $1
+        select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,time_cursor,featured_at from post_templates where  ($2::bigint is null or id > $2) and ($3::bigint is null or id < $3) and ($4::bool is null or featured = $4) and deleted=false  order by priority,time_cursor desc limit $1
   "#,
   limit ,
   filter.after,
@@ -65,7 +61,7 @@ pub async fn get_full_post_template(
 ) -> ServiceResult<FullPostTemplate> {
   let row = query_as!(DbPostTemplate,
     r#"
-      select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at from post_templates where id=$1 and deleted=false
+      select id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor from post_templates where id=$1 and deleted=false
 "#,
 id
   )
@@ -103,5 +99,6 @@ pub fn format_post_template(row: DbPostTemplate) -> FullPostTemplate {
     created_at: row.created_at,
     updated_at: row.updated_at,
     featured_by: row.featured_by,
+    cursor: row.time_cursor,
   };
 }

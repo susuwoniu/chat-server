@@ -1,16 +1,20 @@
 use crate::{
   account::model::Account,
   error::ServiceError,
-  types::{FieldAction, Gender, PageInfo},
+  global::Config,
+  types::{FieldAction, Gender},
   util::{
-    base62_i64, base62_to_i64, datetime_tz, default, option_base62_i64, option_datetime_tz,
-    option_string_i64, string::parse_skip_range, string_i64,
+    base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64,
+    string::parse_skip_range, string_i64,
   },
 };
-use chrono::prelude::{NaiveDate, NaiveDateTime};
+use chrono::{
+  prelude::{NaiveDateTime, Utc},
+  Duration,
+};
 use derivative::Derivative;
 use ipnetwork17::IpNetwork;
-use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
+use jsonapi::{api::*, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,6 +45,79 @@ pub enum Visibility {
   Unlisted,
   Related,
   Private,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostView {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "datetime_tz")]
+  pub created_at: NaiveDateTime,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+  #[serde(with = "string_i64")]
+  pub post_id: i64,
+  #[serde(with = "string_i64")]
+  pub post_account_id: i64,
+  #[serde(with = "string_i64")]
+  pub viewed_by: i64,
+  pub viewed_by_account: Account,
+  #[serde(with = "base62_i64")]
+  pub cursor: i64,
+}
+jsonapi_model!(PostView; "post-views"; has one viewed_by_account);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbPostView {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "datetime_tz")]
+  pub created_at: NaiveDateTime,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+  #[serde(with = "string_i64")]
+  pub post_id: i64,
+  #[serde(with = "string_i64")]
+  pub post_account_id: i64,
+  #[serde(with = "string_i64")]
+  pub viewed_by: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostSkip {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "datetime_tz")]
+  pub created_at: NaiveDateTime,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+  #[serde(with = "string_i64")]
+  pub post_id: i64,
+  #[serde(with = "string_i64")]
+  pub post_account_id: i64,
+  #[serde(with = "string_i64")]
+  pub skipped_by: i64,
+  pub skipped_by_account: Account,
+  #[serde(with = "base62_i64")]
+  pub cursor: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostReply {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "datetime_tz")]
+  pub created_at: NaiveDateTime,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+  #[serde(with = "string_i64")]
+  pub post_id: i64,
+  #[serde(with = "string_i64")]
+  pub post_account_id: i64,
+  #[serde(with = "string_i64")]
+  pub replied_by: i64,
+  pub replied_by_account: Account,
+  #[serde(with = "base62_i64")]
+  pub cursor: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,10 +165,14 @@ pub struct DbPost {
   pub ip: Option<IpNetwork>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiPostTemplateFilter {
+  pub after: Option<String>,
+  pub before: Option<String>,
+  pub featured: Option<bool>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PostTemplateFilter {
-  #[serde(with = "option_base62_i64")]
   pub after: Option<i64>,
-  #[serde(with = "option_base62_i64")]
   pub before: Option<i64>,
   pub featured: Option<bool>,
 }
@@ -100,12 +181,34 @@ pub struct ApiPostFilter {
   pub after: Option<String>,
   pub before: Option<String>,
   pub skip: Option<Vec<String>>,
+  pub start_time: Option<NaiveDateTime>,
+  pub end_time: Option<NaiveDateTime>,
+  pub account_id: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
   pub after: Option<i64>,
   pub before: Option<i64>,
   pub skip: Vec<[i64; 2]>,
+  pub start_time: Option<NaiveDateTime>,
+  pub end_time: Option<NaiveDateTime>,
+  pub account_id: Option<i64>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ApiPostViewFilter {
+  pub after: Option<String>,
+  pub before: Option<String>,
+  pub start_time: Option<NaiveDateTime>,
+  pub end_time: Option<NaiveDateTime>,
+  pub post_account_id: Option<i64>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PostViewFilter {
+  pub after: Option<i64>,
+  pub before: Option<i64>,
+  pub start_time: Option<NaiveDateTime>,
+  pub end_time: Option<NaiveDateTime>,
+  pub post_account_id: Option<i64>,
 }
 
 impl TryFrom<ApiPostFilter> for PostFilter {
@@ -124,14 +227,65 @@ impl TryFrom<ApiPostFilter> for PostFilter {
     if let Some(skip_value) = value.skip {
       skip = parse_skip_range(&skip_value)?;
     }
+    let mut start_time = value.start_time;
+    if value.start_time.is_none() {
+      let cfg = Config::global();
+      let days = cfg.post.default_listed_posts_duration_in_days;
+      let duration = Duration::days(days);
+      let now = Utc::now().naive_utc();
+      //start_time 默认一个月内的帖子，减少服务器消耗
+      start_time = Some(now - duration);
+    }
     Ok(PostFilter {
       after,
       before,
       skip,
+      start_time: start_time,
+      end_time: value.end_time,
+      account_id: value.account_id,
     })
   }
 }
+impl TryFrom<ApiPostViewFilter> for PostViewFilter {
+  type Error = ServiceError;
 
+  fn try_from(value: ApiPostViewFilter) -> Result<Self, Self::Error> {
+    let mut after = None;
+    if let Some(after_value) = value.after {
+      after = Some(base62_to_i64(&after_value)?);
+    }
+    let mut before = None;
+    if let Some(before_value) = value.before {
+      before = Some(base62_to_i64(&before_value)?);
+    }
+    Ok(Self {
+      after,
+      before,
+      start_time: value.start_time,
+      end_time: value.end_time,
+      post_account_id: value.post_account_id,
+    })
+  }
+}
+impl TryFrom<ApiPostTemplateFilter> for PostTemplateFilter {
+  type Error = ServiceError;
+
+  fn try_from(value: ApiPostTemplateFilter) -> Result<Self, Self::Error> {
+    let mut after = None;
+    if let Some(after_value) = value.after {
+      after = Some(base62_to_i64(&after_value)?);
+    }
+    let mut before = None;
+    if let Some(before_value) = value.before {
+      before = Some(base62_to_i64(&before_value)?);
+    }
+    Ok(Self {
+      after,
+      before,
+      featured: value.featured,
+    })
+  }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FullPostTemplate {
   #[serde(with = "string_i64")]
@@ -151,6 +305,8 @@ pub struct FullPostTemplate {
   pub created_at: NaiveDateTime,
   #[serde(with = "datetime_tz")]
   pub updated_at: NaiveDateTime,
+  #[serde(with = "base62_i64")]
+  pub cursor: i64,
 }
 jsonapi_model!(FullPostTemplate; "full-post-templates");
 #[derive(Debug, Clone)]
@@ -166,6 +322,7 @@ pub struct DbPostTemplate {
   pub featured_at: Option<NaiveDateTime>,
   pub created_at: NaiveDateTime,
   pub updated_at: NaiveDateTime,
+  pub time_cursor: i64,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePostTemplateParam {
@@ -196,6 +353,7 @@ pub struct UpdatePostTemplateParam {
   pub background_color: Option<String>,
   pub featured: Option<bool>,
   pub deleted: Option<bool>,
+  pub priority: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdatePostParam {

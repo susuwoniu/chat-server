@@ -107,6 +107,7 @@ pub struct Account {
   pub like_count: i64,
   pub show_age: bool,
   pub show_distance: bool,
+  pub show_viewed_action: bool,
   pub suspended: bool,
   #[serde(with = "option_datetime_tz")]
   pub suspended_at: Option<NaiveDateTime>,
@@ -185,6 +186,7 @@ pub struct FullAccount {
   pub like_count: i64,
   pub show_age: bool,
   pub show_distance: bool,
+  pub show_viewed_action: bool,
   pub age: Option<i32>,
   pub suspended: bool,
   #[serde(with = "option_datetime_tz")]
@@ -239,6 +241,7 @@ pub struct DbAccount {
   pub post_count: i64,
   pub like_count: i64,
   pub show_age: bool,
+  pub show_viewed_action: bool,
   pub show_distance: bool,
   pub suspended: bool,
   pub suspended_at: Option<NaiveDateTime>,
@@ -293,6 +296,7 @@ pub struct UpdateAccountParam {
   pub vip: Option<bool>,
   pub show_age: Option<bool>,
   pub show_distance: Option<bool>,
+  pub show_viewed_action: Option<bool>,
   pub suspended: Option<bool>,
   #[serde(default)]
   #[serde(with = "option_datetime_tz")]
@@ -342,12 +346,12 @@ impl From<FullAccount> for Account {
       location,
       avatar,
       age,
-      profile_images,
       avatar_updated_at,
       created_at,
       updated_at,
       approved,
       approved_at,
+      show_viewed_action,
       ..
     } = account;
 
@@ -373,6 +377,7 @@ impl From<FullAccount> for Account {
       updated_at,
       approved,
       approved_at,
+      show_viewed_action,
     }
   }
 }

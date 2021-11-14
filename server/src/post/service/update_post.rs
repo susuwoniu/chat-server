@@ -1,22 +1,18 @@
 use crate::{
-  account::{
-    model::UpdateAccountParam,
-    service::{get_account::get_account, update_account::update_account},
-  },
+  account::service::get_account::get_account,
   alias::Pool,
   error::{Error, ServiceError},
   middleware::{Auth, Locale},
   post::{
     model::{DbPost, Post, UpdatePostParam, Visibility},
     service::get_post::{format_post, get_post},
-    util,
   },
   types::{FieldAction, Gender, ServiceResult},
   util::id::next_id,
 };
 
 use chrono::Utc;
-use sqlx::query_as;
+use sqlx::{query, query_as};
 pub async fn update_post(
   locale: &Locale,
   pool: &Pool,
@@ -35,7 +31,7 @@ pub async fn update_post(
     replied_count_action,
   } = param;
   // get post
-  let current = get_post(locale, pool, id).await?;
+  let current = get_post(locale, pool, id, &Some(auth.clone())).await?;
 
   let now = Utc::now().naive_utc();
 
@@ -92,6 +88,27 @@ pub async fn update_post(
     match viewed_count_action {
       FieldAction::IncreaseOne => {
         viewed_count_value = Some(current.viewed_count + 1);
+        // add to view table
+        // check user settings
+        if current.author.show_viewed_action {
+          // add to view table
+          let view_id = next_id();
+          query!(
+            r#"INSERT INTO post_view 
+        (id,viewed_by,post_id,post_account_id,updated_at)
+        VALUES 
+        ($1,$2,$3,$4,$5)
+      "#,
+            view_id,
+            auth.account_id,
+            id,
+            current.account_id,
+            now
+          )
+          .execute(pool)
+          .await
+          .ok();
+        }
       }
       FieldAction::DecreaseOne => {
         // 暂时不支持减操作
@@ -105,6 +122,24 @@ pub async fn update_post(
     match skipped_count_action {
       FieldAction::IncreaseOne => {
         skipped_count_value = Some(current.skipped_count + 1);
+        // Add to post_skip table
+        // TODO 优化，这一步可以延迟写入
+        let next_id = next_id();
+        query!(
+          r#"INSERT INTO post_skip 
+        (id,skipped_by,post_id,post_account_id,updated_at)
+        VALUES 
+        ($1,$2,$3,$4,$5)
+      "#,
+          next_id,
+          auth.account_id,
+          id,
+          current.account_id,
+          now
+        )
+        .execute(pool)
+        .await
+        .ok();
       }
       FieldAction::DecreaseOne => {
         // 暂时不支持减操作
@@ -119,6 +154,22 @@ pub async fn update_post(
     match replied_count_action {
       FieldAction::IncreaseOne => {
         replied_count_value = Some(current.replied_count + 1);
+        let next_id = next_id();
+        query!(
+          r#"INSERT INTO post_reply 
+        (id,replied_by,post_id,post_account_id,updated_at)
+        VALUES 
+        ($1,$2,$3,$4,$5)
+      "#,
+          next_id,
+          auth.account_id,
+          id,
+          current.account_id,
+          now
+        )
+        .execute(pool)
+        .await
+        .ok();
       }
       FieldAction::DecreaseOne => {
         // 暂时不支持减操作

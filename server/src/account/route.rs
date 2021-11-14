@@ -18,7 +18,7 @@ use crate::{
     },
   },
   alias::{KvPool, Pool},
-  middleware::{Auth, ClientVersion, Ip, Locale, RefreshTokenAuth, Signature},
+  middleware::{Auth, Ip, Locale, RefreshTokenAuth, Signature},
   types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
 };
 
@@ -141,7 +141,6 @@ async fn phone_auth_handler(
   Signature { client_id }: Signature,
   Json(payload): Json<PhoneAuthBodyParam>,
   Ip(ip): Ip,
-  ClientVersion(version): ClientVersion,
 ) -> JsonApiResponse {
   let PhoneAuthPathParam {
     phone_country_code,

@@ -47,7 +47,6 @@ pub async fn login_with_phone(
             )
             .fetch_optional(pool)
             .await?;
-            // TODO check disabled
             if let Some(account_auth) = account_auth_row {
                 signin(
                     locale,

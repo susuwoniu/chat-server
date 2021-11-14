@@ -23,6 +23,12 @@ pub struct Config {
   pub account: Account,
   pub use_fixed_code: bool,
   pub page_size: i64,
+  pub post: Post,
+}
+#[derive(Debug, Deserialize, Clone)]
+pub struct Post {
+  pub default_listed_posts_duration_in_days: i64,
+  pub min_post_content_count: i64,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {

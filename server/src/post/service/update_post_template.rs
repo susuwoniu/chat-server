@@ -1,5 +1,4 @@
 use crate::{
-  account::{model::UpdateAccountParam, service::update_account::update_account},
   alias::Pool,
   error::{Error, ServiceError},
   middleware::{Auth, Locale},
@@ -8,7 +7,7 @@ use crate::{
     service::get_post_template::{format_post_template, get_post_template},
     util,
   },
-  types::{FieldAction, ServiceResult},
+  types::ServiceResult,
 };
 
 use chrono::Utc;
@@ -25,6 +24,7 @@ pub async fn update_post_template(
     featured,
     background_color,
     deleted,
+    priority,
   } = param;
 
   // get post template
@@ -34,12 +34,15 @@ pub async fn update_post_template(
   let mut featured_edit_value = None;
 
   if let Some(content) = content.clone() {
-    util::is_post_template_content_valid(locale, content)?;
+    util::is_post_template_content_valid(locale, &content)?;
   }
-
+  let mut priority_edit_value = None;
   if auth.admin || auth.moderator {
     if let Some(featured_value) = featured {
       featured_edit_value = Some(featured_value);
+    }
+    if let Some(priority_value) = priority {
+      priority_edit_value = Some(priority_value);
     }
   } else {
     // if self
@@ -80,9 +83,10 @@ background_color= COALESCE($5,background_color),
 featured_by = COALESCE($6,featured_by),
 deleted = COALESCE($7,deleted), 
 deleted_at = COALESCE($8,deleted_at), 
-deleted_by = COALESCE($9,deleted_by)
+deleted_by = COALESCE($9,deleted_by),
+priority = COALESCE($11,priority)
 WHERE id = $10 and deleted = false
-RETURNING id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at
+RETURNING id,content,used_count,skipped_count,background_color,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor
 "#,
     content,
     featured_edit_value,
@@ -93,7 +97,8 @@ RETURNING id,content,used_count,skipped_count,background_color,created_at,featur
     deleted_edit_value,
     deleted_at,
     deleted_by,
-    id
+    id,
+    priority_edit_value
   )
   .fetch_one(pool)
   .await?;
