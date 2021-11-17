@@ -3,6 +3,7 @@ use crate::{
   alias::Pool,
   error::{Error, ServiceError},
   global::{Config, I18n},
+  im::{model::ImSignupParam, service::signup::signup as im_signup},
   middleware::Locale,
   types::ServiceResult,
   util::{id::next_id, string::get_random_letter},
@@ -27,6 +28,8 @@ pub async fn signup(locale: &Locale, pool: &Pool, param: SignupParam) -> Service
     identifier,
     timezone_in_seconds,
     ip,
+    platform,
+    admin,
   } = param;
 
   if identity_type == IdentityType::Phone
@@ -47,8 +50,8 @@ pub async fn signup(locale: &Locale, pool: &Pool, param: SignupParam) -> Service
   // add acccount
   query!(
     r#"
-INSERT INTO accounts (id,name,phone_country_code,phone_number,updated_at,timezone_in_seconds,approved,approved_at)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+INSERT INTO accounts (id,name,phone_country_code,phone_number,updated_at,timezone_in_seconds,approved,approved_at,admin)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 "#,
     account_id,
     default_name,
@@ -58,6 +61,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     timezone_in_seconds,
     approved,
     approved_at,
+    admin
   )
   .execute(&mut tx)
   .await?;
@@ -79,6 +83,19 @@ VALUES ($1,'phone',$2,$3,$4,$5)
   .execute(&mut tx)
   .await?;
   tx.commit().await?;
+  // sign up im user
+
+  im_signup(
+    locale,
+    ImSignupParam {
+      account_id,
+      try_login: true,
+      platform: platform.into(),
+      name: default_name,
+      avatar: None,
+    },
+  )
+  .await?;
   Ok(SignupData {
     account_id,
     account_auth_id,

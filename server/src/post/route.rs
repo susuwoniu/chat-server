@@ -1,5 +1,5 @@
 use crate::{
-  alias::Pool,
+  alias::{KvPool, Pool},
   constant::POST_SERVICE_PATH,
   middleware::{Auth, Ip, Locale, Qs},
   post::{
@@ -57,22 +57,24 @@ pub fn service_route() -> Router {
 
 async fn create_post_template_handler(
   Extension(pool): Extension<Pool>,
+  Extension(kv): Extension<KvPool>,
   locale: Locale,
   Json(payload): Json<CreatePostTemplateParam>,
   auth: Auth,
   Ip(ip): Ip,
 ) -> JsonApiResponse {
-  let data = create_post_template(&locale, &pool, payload, auth, ip).await?;
+  let data = create_post_template(&locale, &pool, &kv, payload, auth, ip).await?;
   Ok(Json(data.to_jsonapi_document()))
 }
 async fn create_post_handler(
   Extension(pool): Extension<Pool>,
+  Extension(kv): Extension<KvPool>,
   locale: Locale,
   Json(payload): Json<CreatePostParam>,
   auth: Auth,
   Ip(ip): Ip,
 ) -> JsonApiResponse {
-  let data = create_post(&locale, &pool, payload, auth, ip).await?;
+  let data = create_post(&locale, &pool, &kv, payload, auth, ip).await?;
   Ok(Json(data.to_jsonapi_document()))
 }
 async fn get_posts_handler(

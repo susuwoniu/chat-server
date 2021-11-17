@@ -24,6 +24,13 @@ pub struct Config {
   pub use_fixed_code: bool,
   pub page_size: i64,
   pub post: Post,
+  pub im: Im,
+}
+#[derive(Debug, Deserialize, Clone)]
+pub struct Im {
+  pub api_url: String,
+  pub api_key: String,
+  pub admin_account_id: i64,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Post {

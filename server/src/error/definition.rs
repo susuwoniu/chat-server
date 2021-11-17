@@ -5,8 +5,8 @@ use chrono::NaiveDateTime;
 use derive_more::Display;
 use fluent_bundle::FluentArgs;
 use serde::Serialize;
-
-#[derive(Display, Debug, Serialize, Clone)]
+use thiserror::Error as ThisError;
+#[derive(Display, Debug, Serialize, Clone, ThisError)]
 #[display(
   fmt = "status: {}, code: {}, title: {}, detail: {}",
   status,

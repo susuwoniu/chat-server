@@ -6,7 +6,8 @@ use crate::{
   },
   alias::{KvPool, Pool},
   error::{Error, ServiceError},
-  middleware::Locale,
+  im::{model::ImCreateTokenParam, service::create_im_token::create_im_token},
+  middleware::{ClientPlatform, Locale},
   types::ServiceResult,
   util::id::next_id,
 };
@@ -28,6 +29,7 @@ pub async fn signin(
     signin_type,
     device_id,
     ip,
+    platform,
   } = param;
   // lookup account
   let account = get_full_account(locale, pool, *account_id).await?;
@@ -63,6 +65,7 @@ pub async fn signin(
     account.actions,
     account_cloned,
   );
+
   // add refresh token to kv
   // add to kv
   let temp_key = get_refresh_token_key(*account_id, &auth_data.device_id);
@@ -99,20 +102,37 @@ pub async fn signin(
     // add login activity
     query!(
       r#"
-INSERT INTO login_activities (id,account_auth_id,account_id,client_id,success,ip)
-VALUES ($1,$2,$3,$4,$5,$6)
+INSERT INTO login_activities (id,account_auth_id,account_id,client_id,success,ip,client_platform)
+VALUES ($1,$2,$3,$4,$5,$6,$7)
 "#,
       login_activity_id,
       account_auth_id,
       account_id,
       client_id,
       true,
-      ip
+      ip,
+      platform.clone() as ClientPlatform
     )
     .execute(&mut tx)
     .await?;
     tx.commit().await?;
+    // get im token
   }
+  let im_token = create_im_token(
+    locale,
+    ImCreateTokenParam {
+      account_id: *account_id,
+      try_signup: true,
+      platform: platform.clone().into(),
+      name: account.name,
+      avatar: account.avatar,
+    },
+  )
+  .await?;
+  let new_auth_data = auth_data.clone();
 
-  Ok(auth_data)
+  Ok(new_auth_data.set_im_token(
+    im_token.im_access_token,
+    im_token.im_access_token_expires_at,
+  ))
 }

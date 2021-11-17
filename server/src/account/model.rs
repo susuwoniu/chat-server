@@ -1,4 +1,5 @@
 use crate::{
+  middleware::ClientPlatform,
   types::{Action, FieldAction, Gender},
   util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
@@ -22,6 +23,7 @@ pub struct SigninParam {
   pub device_id: String,
   pub signin_type: SigninType,
   pub ip: IpNetwork,
+  pub platform: ClientPlatform,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -33,6 +35,7 @@ pub struct SigninWithPhoneParam {
   pub client_id: i64,
   pub device_id: String,
   pub ip: IpNetwork,
+  pub platform: ClientPlatform,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupParam {
@@ -42,6 +45,8 @@ pub struct SignupParam {
   pub phone_number: Option<String>,
   pub timezone_in_seconds: i32,
   pub ip: IpNetwork,
+  pub platform: ClientPlatform,
+  pub admin: bool,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupData {
@@ -85,6 +90,8 @@ pub struct AuthData {
   pub refresh_token_expires_at: NaiveDateTime,
   pub actions: Vec<Action>,
   pub account: FullAccount,
+  pub im_access_token: String,
+  pub im_access_token_expires_at: NaiveDateTime,
 }
 jsonapi_model!(AuthData; "tokens"; has one account);
 

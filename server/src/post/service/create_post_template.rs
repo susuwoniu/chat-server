@@ -1,6 +1,6 @@
 use crate::{
   account::{model::UpdateAccountParam, service::update_account::update_account},
-  alias::Pool,
+  alias::{KvPool, Pool},
   middleware::{Auth, Locale},
   post::{
     model::{CreatePostTemplateParam, PostTemplate},
@@ -16,6 +16,7 @@ use sqlx::query;
 pub async fn create_post_template(
   locale: &Locale,
   pool: &Pool,
+  kv: &KvPool,
   param: CreatePostTemplateParam,
   auth: Auth,
   ip: IpNetwork,
@@ -60,6 +61,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
   update_account(
     locale,
     pool,
+    kv,
     UpdateAccountParam {
       post_template_count_action: Some(FieldAction::IncreaseOne),
       ..Default::default()

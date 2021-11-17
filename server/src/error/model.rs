@@ -49,6 +49,10 @@ pub enum Error {
   SemverError(#[from] semver::Error),
   #[error("parse url query failed")]
   SerdeQsError(#[from] serde_qs::Error),
+  #[error("http request failed")]
+  ReqwestError(#[from] reqwest::Error),
+  #[error("service error")]
+  ServiceError(#[from] ServiceError),
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]
@@ -161,7 +165,13 @@ impl From<serde_json::Error> for ServiceError {
     ServiceError::bad_request(&Locale::default(), "parse_json_failed", error.into())
   }
 }
-
+impl From<reqwest::Error> for ServiceError {
+  fn from(error: reqwest::Error) -> ServiceError {
+    // Right now we just care about UniqueViolation from diesel
+    // But this would be helpful to easily map errors as our app grows
+    ServiceError::internal(&Locale::default(), "http_request_failed", error.into())
+  }
+}
 impl From<chrono::ParseError> for ServiceError {
   fn from(error: chrono::ParseError) -> ServiceError {
     // Right now we just care about UniqueViolation from diesel

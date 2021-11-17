@@ -24,3 +24,5 @@
 - [ ] account 支持分字段
 - [ ] post visibility
 - [ ] post approved 审核
+- [ ] phone number verify
+- [ ] account +1 的逻辑优化，利用数据库的原子相加性

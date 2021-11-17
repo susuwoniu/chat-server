@@ -4,6 +4,10 @@
 
 See [[SUMMARY]]
 
+## 参考
+
+- [Open IM 文档](https://doc.rentsoft.cn/server_doc/account.html)
+
 ## features
 
 ## 通用 feature

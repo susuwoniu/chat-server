@@ -141,6 +141,23 @@ impl AuthData {
       device_id: device_id,
       actions,
       account,
+      im_access_token: "".to_string(),
+      im_access_token_expires_at: NaiveDateTime::from_timestamp(0, 0),
     }
+  }
+  pub fn im_access_token_mut(&mut self) -> &mut String {
+    &mut self.im_access_token
+  }
+  pub fn im_access_token_expires_at_mut(&mut self) -> &mut NaiveDateTime {
+    &mut self.im_access_token_expires_at
+  }
+  pub fn set_im_token(
+    mut self,
+    im_access_token: String,
+    im_access_token_expires_at: NaiveDateTime,
+  ) -> Self {
+    *self.im_access_token_mut() = im_access_token;
+    *self.im_access_token_expires_at_mut() = im_access_token_expires_at;
+    self
   }
 }

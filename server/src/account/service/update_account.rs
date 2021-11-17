@@ -3,9 +3,10 @@ use crate::{
     model::{DbAccount, FullAccount, UpdateAccountParam},
     service::get_account::{format_account, get_full_account},
   },
-  alias::Pool,
+  alias::{KvPool, Pool},
   error::{Error, ServiceError},
   global::Config,
+  im::{model::ImUpdateAccountParam, service::update_im_account::update_im_account},
   middleware::{Auth, Locale},
   types::{FieldAction, Gender, ServiceResult},
 };
@@ -15,6 +16,7 @@ use sqlx::query_as;
 pub async fn update_account(
   locale: &Locale,
   pool: &Pool,
+  kv: &KvPool,
   param: UpdateAccountParam,
   auth: &Auth,
 ) -> ServiceResult<FullAccount> {
@@ -145,6 +147,17 @@ pub async fn update_account(
   if let Some(name) = name.clone() {
     if name != account.name {
       name_change_count = Some(account.name_change_count + 1);
+      // update im name
+
+      update_im_account(
+        kv,
+        ImUpdateAccountParam {
+          account_id,
+          name: Some(name),
+          ..Default::default()
+        },
+      )
+      .await?;
     }
   }
   let mut bio_change_count = None;

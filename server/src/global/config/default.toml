@@ -36,3 +36,8 @@ url = "redis://127.0.0.1:6379"
 [account]
 max_profile_images = 9
 min_age = 18
+
+[im]
+admin_account_id = 0
+api_key = ""
+api_url = "https://im-api.scuinfo.com"

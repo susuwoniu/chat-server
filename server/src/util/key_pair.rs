@@ -25,7 +25,7 @@ impl Pair {
   pub fn get_public_bytes(&self) -> [u8; 32] {
     return self.public.to_bytes();
   }
-  pub fn from_string(secret_encoded: String, public_encoded: String) -> Pair {
+  pub fn from_str(secret_encoded: &str, public_encoded: &str) -> Pair {
     let secret_bytes = hex::decode(secret_encoded).expect("decode key paire secret string failed");
     let secret = SecretKey::from_bytes(&secret_bytes).expect("parse secret failed");
 

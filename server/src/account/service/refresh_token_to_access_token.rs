@@ -6,7 +6,7 @@ use crate::{
   },
   alias::{KvPool, Pool},
   error::{Error, ServiceError},
-  middleware::{Locale, RefreshTokenAuth},
+  middleware::{ClientPlatform, Locale, RefreshTokenAuth},
   types::ServiceResult,
 };
 use deadpool_redis::redis::cmd;
@@ -17,6 +17,7 @@ pub async fn refresh_token_to_access_token(
   kv: &KvPool,
   param: &RefreshTokenAuth,
   ip: IpNetwork,
+  platform: ClientPlatform,
 ) -> ServiceResult<AuthData> {
   // if redis record exist
   let RefreshTokenAuth {
@@ -42,6 +43,7 @@ pub async fn refresh_token_to_access_token(
         device_id: device_id.clone(),
         signin_type: SigninType::RefreshToken,
         ip: ip,
+        platform,
       },
     )
     .await;

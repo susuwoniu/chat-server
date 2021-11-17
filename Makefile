@@ -2,19 +2,20 @@
 init:
 	sqlx database create
 	sqlx migrate run
-	cargo run -- init
 migrate:
 	sqlx migrate run
+create-admin:
+	cargo run -- admin create
 db:
 	sqlx migrate add $(name)
 start:
-	RUST_LOG=debug cargo watch -x "run -- server"
+	RUST_LOG=debug cargo watch -x "run -- server start"
 build:
 	sqlx migrate run && cargo build --release
 serve:
 	systemctl restart chat
 run:
-	RUST_LOG=info cargo run -- server
+	RUST_LOG=info cargo run -- server start
 stop:
 	systemctl stop caddy
 reload:

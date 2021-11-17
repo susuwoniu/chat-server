@@ -18,7 +18,7 @@ use crate::{
     },
   },
   alias::{KvPool, Pool},
-  middleware::{Auth, Ip, Locale, RefreshTokenAuth, Signature},
+  middleware::{Auth, ClientPlatform, Ip, Locale, RefreshTokenAuth, Signature},
   types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
 };
 
@@ -65,6 +65,8 @@ async fn delete_me_profile_image(
 async fn patch_me_image_handler(
   Path(sequence): Path<u32>,
   Extension(pool): Extension<Pool>,
+  Extension(kv): Extension<KvPool>,
+
   locale: Locale,
   auth: Auth,
   Json(payload): Json<AddImageParam>,
@@ -73,6 +75,7 @@ async fn patch_me_image_handler(
   let data = update_profile_image(
     &locale,
     &pool,
+    &kv,
     &auth.account_id,
     UpdateAccountImageParam {
       sequence: sequence as i32,
@@ -85,6 +88,7 @@ async fn patch_me_image_handler(
 async fn add_me_image_handler(
   Path(sequence): Path<u32>,
   Extension(pool): Extension<Pool>,
+  Extension(kv): Extension<KvPool>,
   locale: Locale,
   auth: Auth,
   Json(payload): Json<AddImageParam>,
@@ -93,6 +97,7 @@ async fn add_me_image_handler(
   let data = insert_profile_image(
     &locale,
     &pool,
+    &kv,
     &auth.account_id,
     UpdateAccountImageParam {
       sequence: sequence as i32,
@@ -110,11 +115,13 @@ async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> 
 }
 async fn patch_account_handler(
   Extension(pool): Extension<Pool>,
+  Extension(kv): Extension<KvPool>,
+
   locale: Locale,
   auth: Auth,
   Json(payload): Json<UpdateAccountParam>,
 ) -> JsonApiResponse {
-  let account = update_account(&locale, &pool, payload, &auth).await?;
+  let account = update_account(&locale, &pool, &kv, payload, &auth).await?;
   Ok(Json(account.to_jsonapi_document()))
 }
 async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {
@@ -127,9 +134,10 @@ async fn access_token_handler(
   Extension(kv): Extension<KvPool>,
   locale: Locale,
   auth: RefreshTokenAuth,
+  platform: ClientPlatform,
   Ip(ip): Ip,
 ) -> JsonApiResponse {
-  let data = refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip).await?;
+  let data = refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip, platform).await?;
   Ok(Json(data.to_jsonapi_document()))
 }
 
@@ -141,6 +149,7 @@ async fn phone_auth_handler(
   Signature { client_id }: Signature,
   Json(payload): Json<PhoneAuthBodyParam>,
   Ip(ip): Ip,
+  platform: ClientPlatform,
 ) -> JsonApiResponse {
   let PhoneAuthPathParam {
     phone_country_code,
@@ -159,6 +168,7 @@ async fn phone_auth_handler(
       device_id: payload.device_id,
       timezone_in_seconds: payload.timezone_in_seconds,
       ip,
+      platform,
     },
   )
   .await?;

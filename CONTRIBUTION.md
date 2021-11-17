@@ -121,6 +121,25 @@ name = "iPhone 客户端"
 
 ```
 
+## 创建 IM 的管理员账户
+
+```bash
+make create-admin
+```
+
+## 部署 IM 服务
+
+See <https://github.com/susuwoniu/chat-im-server>
+
+把刚生成的管理员 id 添加到 `chat-im-server`的配置文件里的`manager->appManagerUid`中,以及添加以下内容到`chat-server`的配置文件:
+
+```bash
+[im]
+admin_account_id = <admin_account_id>
+```
+
+> 参考 <https://github.com/OpenIMSDK/Open-IM-Server>
+
 ## 开发
 
 ```bash
@@ -156,7 +175,7 @@ UMask=0002
 Restart=on-failure
 RestartSec=5
 Type=simple
-ExecStart=/home/green/chat-server/target/release/chat server
+ExecStart=/home/green/chat-server/target/release/chat server start
 KillSignal=SIGINT
 TimeoutStopSec=20
 SyslogIdentifier=chat

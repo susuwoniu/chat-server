@@ -19,3 +19,6 @@ pub mod client_version;
 pub use client_version::ClientVersion;
 pub mod qs;
 pub use qs::Qs;
+pub mod client_platform;
+pub mod header_x_client_platform;
+pub use client_platform::ClientPlatform;

@@ -1,8 +1,9 @@
 use crate::{
   account::model::{ProfileImage, UpdateAccountImageParam},
-  alias::Pool,
+  alias::{KvPool, Pool},
   error::{Error, ServiceError},
   global::Config,
+  im::{model::ImUpdateAccountParam, service::update_im_account::update_im_account},
   middleware::Locale,
   types::ServiceResult,
   util::id::next_id,
@@ -20,11 +21,15 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
   )
   .fetch_all(pool)
   .await?;
-  //
 
   Ok(images)
 }
-async fn update_avatar(pool: &Pool, account_id: i64, image: ProfileImage) -> ServiceResult<()> {
+async fn update_avatar(
+  pool: &Pool,
+  kv: &KvPool,
+  account_id: i64,
+  image: ProfileImage,
+) -> ServiceResult<()> {
   let now = Utc::now();
   query!(
     r#"
@@ -42,12 +47,25 @@ async fn update_avatar(pool: &Pool, account_id: i64, image: ProfileImage) -> Ser
   )
   .execute(pool)
   .await?;
+  // update im avatar
+  //
+  update_im_account(
+    kv,
+    ImUpdateAccountParam {
+      account_id,
+      avatar: Some(image.url),
+      ..Default::default()
+    },
+  )
+  .await?;
+
   Ok(())
 }
 
 pub async fn insert_profile_image(
   locale: &Locale,
   pool: &Pool,
+  kv: &KvPool,
   account_id: &i64,
   param: UpdateAccountImageParam,
 ) -> ServiceResult<ProfileImage> {
@@ -86,7 +104,7 @@ pub async fn insert_profile_image(
     updated_at: now.naive_utc(),
   };
   if sequence == 0 {
-    update_avatar(pool, *account_id, image.clone()).await?;
+    update_avatar(pool, kv, *account_id, image.clone()).await?;
   }
 
   Ok(image)
@@ -95,6 +113,7 @@ pub async fn insert_profile_image(
 pub async fn update_profile_image(
   locale: &Locale,
   pool: &Pool,
+  kv: &KvPool,
   account_id: &i64,
   param: UpdateAccountImageParam,
 ) -> ServiceResult<ProfileImage> {
@@ -135,7 +154,7 @@ pub async fn update_profile_image(
     updated_at: now.naive_utc(),
   };
   if sequence == 0 {
-    update_avatar(pool, *account_id, image.clone()).await?;
+    update_avatar(pool, kv, *account_id, image.clone()).await?;
   }
   Ok(image)
 }

@@ -30,6 +30,7 @@ pub async fn login_with_phone(
         client_id,
         device_id,
         ip,
+        platform,
     } = param;
 
     let temp_key = get_phone_code_temp_key(&phone_country_code, phone_number, device_id);
@@ -59,6 +60,7 @@ pub async fn login_with_phone(
                         client_id: *client_id,
                         device_id: device_id.clone(),
                         ip: ip.clone(),
+                        platform: platform.clone(),
                     },
                 )
                 .await
@@ -74,6 +76,8 @@ pub async fn login_with_phone(
                         phone_number: Some(phone_number.clone()),
                         timezone_in_seconds: *timezone_in_seconds,
                         ip: ip.clone(),
+                        platform: platform.clone(),
+                        admin: false,
                     },
                 )
                 .await?;
@@ -93,6 +97,7 @@ pub async fn login_with_phone(
                         client_id: *client_id,
                         device_id: device_id.clone(),
                         ip: ip.clone(),
+                        platform: platform.clone(),
                     },
                 )
                 .await

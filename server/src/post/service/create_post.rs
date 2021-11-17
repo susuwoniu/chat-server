@@ -3,7 +3,7 @@ use crate::{
     model::UpdateAccountParam,
     service::{get_account::get_account, update_account::update_account},
   },
-  alias::Pool,
+  alias::{KvPool, Pool},
   middleware::{Auth, Locale},
   post::{
     model::{CreatePostParam, DbPost, Post, Visibility},
@@ -19,6 +19,7 @@ use sqlx::query_as;
 pub async fn create_post(
   locale: &Locale,
   pool: &Pool,
+  kv: &KvPool,
   param: CreatePostParam,
   auth: Auth,
   ip: IpNetwork,
@@ -76,6 +77,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
   let account = update_account(
     locale,
     pool,
+    kv,
     UpdateAccountParam {
       post_count_action: Some(FieldAction::IncreaseOne),
       ..Default::default()
