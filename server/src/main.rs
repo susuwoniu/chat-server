@@ -14,7 +14,7 @@ mod util;
 use crate::{
     cmd::{
         args::{AdminCommand, CliOpt, ClientCommand, ServerCommand},
-        create_admin,
+        create_admin, set_admin,
     },
     error::Error,
     global::{
@@ -84,6 +84,9 @@ async fn main() -> Result<(), Error> {
             match admin_command {
                 AdminCommand::Create => {
                     create_admin().await?;
+                }
+                AdminCommand::Set => {
+                    set_admin().await?;
                 }
             }
         }

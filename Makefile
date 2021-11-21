@@ -6,6 +6,8 @@ migrate:
 	sqlx migrate run
 create-admin:
 	cargo run -- admin create
+set-admin:
+	cargo run -- admin set
 db:
 	sqlx migrate add $(name)
 start:

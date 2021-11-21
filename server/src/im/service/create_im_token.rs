@@ -24,40 +24,45 @@ pub async fn create_im_token(
 ) -> ServiceResult<ImServerTokenData> {
   let cfg = Config::global();
 
-  let res: ServiceResult<ImServerSuccessResponse<ImServerTokenInternalData>> = ImClient::global()
-    .post(
-      "/auth/user_token",
-      json!(ImServerSigninParam {
-        secret: cfg.im.api_key.clone(),
-        uid: param.account_id,
-        platform: param.platform.clone().into(),
-      })
-      .to_string(),
-    )
-    .await;
+  return Ok(ImServerTokenData {
+    im_access_token: "fake".to_string(),
+    im_access_token_expires_at: (Utc::now() + chrono::Duration::days(30)).naive_utc(),
+  });
 
-  dbg!(&res);
-  match res {
-    Ok(res) => {
-      return Ok(res.data.into());
-    }
-    Err(e) => {
-      if param.try_signup && e.detail.contains("record not found") {
-        // try register
-        return signup(
-          locale,
-          ImSignupParam {
-            account_id: param.account_id,
-            try_login: false,
-            platform: param.platform,
-            name: param.name,
-            avatar: param.avatar,
-          },
-        )
-        .await;
-      } else {
-        return Err(e.into());
-      }
-    }
-  }
+  // let res: ServiceResult<ImServerSuccessResponse<ImServerTokenInternalData>> = ImClient::global()
+  //   .post(
+  //     "/auth/user_token",
+  //     json!(ImServerSigninParam {
+  //       secret: cfg.im.api_key.clone(),
+  //       uid: param.account_id,
+  //       platform: param.platform.clone().into(),
+  //     })
+  //     .to_string(),
+  //   )
+  //   .await;
+
+  // dbg!(&res);
+  // match res {
+  //   Ok(res) => {
+  //     return Ok(res.data.into());
+  //   }
+  //   Err(e) => {
+  //     if param.try_signup && e.detail.contains("record not found") {
+  //       // try register
+  //       return signup(
+  //         locale,
+  //         ImSignupParam {
+  //           account_id: param.account_id,
+  //           try_login: false,
+  //           platform: param.platform,
+  //           name: param.name,
+  //           avatar: param.avatar,
+  //         },
+  //       )
+  //       .await;
+  //     } else {
+  //       return Err(e.into());
+  //     }
+  //   }
+  // }
 }

@@ -24,4 +24,5 @@ pub enum ClientCommand {
 pub enum AdminCommand {
     // normal subcommand
     Create,
+    Set,
 }

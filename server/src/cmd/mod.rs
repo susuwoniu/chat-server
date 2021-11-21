@@ -1,3 +1,3 @@
-pub mod create_admin;
-pub use create_admin::create_admin;
+pub mod admin;
+pub use admin::{create_admin, set_admin};
 pub mod args;
