@@ -63,6 +63,7 @@ pub async fn create_im_admin_token(kv: &KvPool) -> ServiceResult<String> {
       platform: 8,
       name: "admin".to_string(),
       avatar: None,
+      now: Utc::now(),
     },
   )
   .await?;

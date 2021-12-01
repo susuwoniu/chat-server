@@ -42,6 +42,7 @@ pub struct ImCreateTokenParam {
   pub try_signup: bool,
   pub avatar: Option<String>,
   pub name: String,
+  pub now: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

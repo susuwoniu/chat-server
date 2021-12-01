@@ -41,3 +41,4 @@ min_age = 18
 admin_account_id = 0
 api_key = ""
 api_url = "https://im-api.scuinfo.com"
+domain = "xmpp.scuinfo.com"

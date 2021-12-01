@@ -28,6 +28,7 @@ pub struct Config {
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Im {
+  pub domain: String,
   pub api_url: String,
   pub api_key: String,
   pub admin_account_id: i64,

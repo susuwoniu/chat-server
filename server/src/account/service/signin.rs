@@ -64,6 +64,7 @@ pub async fn signin(
     roles,
     account.actions,
     account_cloned,
+    now,
   );
 
   // add refresh token to kv
@@ -126,6 +127,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7)
       platform: platform.clone().into(),
       name: account.name,
       avatar: account.avatar,
+      now: now,
     },
   )
   .await?;

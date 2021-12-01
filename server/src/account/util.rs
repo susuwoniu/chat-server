@@ -5,7 +5,7 @@ use crate::{
   types::Action,
   util::{id::next_id, key_pair::Pair},
 };
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use pasetors::claims::Claims;
 use pasetors::keys::{AsymmetricPublicKey, AsymmetricSecretKey, Version};
 use pasetors::public;
@@ -42,6 +42,7 @@ impl Token {
     client_id: &i64,
     roles: Vec<String>,
     device_id: String,
+    now: DateTime<Utc>,
   ) -> Token {
     let mut claims = Claims::new().expect("new claims failed");
     claims.issuer(&issuer).expect("get issuer failed");
@@ -49,7 +50,6 @@ impl Token {
       .subject(&account_id.to_string())
       .expect("subject failed");
     claims.audience(&audience).expect("get audience failed");
-    let now = Utc::now();
     let iat = now;
     let nbf = iat;
     let expires_at = now + Duration::minutes(expires_in_minutes);
@@ -102,6 +102,7 @@ impl AuthData {
     roles: Vec<String>,
     actions: Vec<Action>,
     account: FullAccount,
+    now: DateTime<Utc>,
   ) -> Self {
     let config = Config::global();
     let token = Token::new(
@@ -113,6 +114,7 @@ impl AuthData {
       client_id,
       roles.clone(),
       device_id.clone(),
+      now,
     );
     let access_token = token.get_token();
 
@@ -125,6 +127,7 @@ impl AuthData {
       client_id,
       roles.clone(),
       device_id.clone(),
+      now,
     );
     let refresh_token = refresh.get_token();
     let expires_at = token.get_expires_at();
@@ -141,6 +144,7 @@ impl AuthData {
       device_id: device_id,
       actions,
       account,
+      im_username: format!("im{}", account_id),
       im_access_token: "".to_string(),
       im_access_token_expires_at: NaiveDateTime::from_timestamp(0, 0),
     }

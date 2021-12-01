@@ -53,6 +53,8 @@ pub enum Error {
   ReqwestError(#[from] reqwest::Error),
   #[error("service error")]
   ServiceError(#[from] ServiceError),
+  #[error("jwt error")]
+  JWTError(#[from] jsonwebtoken::errors::Error),
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]
@@ -122,6 +124,13 @@ impl From<axum::extract::rejection::PathParamsRejection> for ServiceError {
     // Right now we just care about UniqueViolation from diesel
     // But this would be helpful to easily map errors as our app grows
     ServiceError::bad_request(&Locale::default(), "parse_path_params_error", error.into())
+  }
+}
+impl From<jsonwebtoken::errors::Error> for ServiceError {
+  fn from(error: jsonwebtoken::errors::Error) -> ServiceError {
+    // Right now we just care about UniqueViolation from diesel
+    // But this would be helpful to easily map errors as our app grows
+    ServiceError::internal(&Locale::default(), "encode_jwt_failed", error.into())
   }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
   middleware::ClientPlatform,
   types::{Action, FieldAction, Gender},
-  util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
+  util::{base62_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
 use ipnetwork17::IpNetwork;
@@ -90,7 +90,9 @@ pub struct AuthData {
   pub refresh_token_expires_at: NaiveDateTime,
   pub actions: Vec<Action>,
   pub account: FullAccount,
+  pub im_username: String,
   pub im_access_token: String,
+  #[serde(with = "datetime_tz")]
   pub im_access_token_expires_at: NaiveDateTime,
 }
 jsonapi_model!(AuthData; "tokens"; has one account);
