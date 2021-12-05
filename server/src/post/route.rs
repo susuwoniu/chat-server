@@ -46,6 +46,7 @@ pub fn service_route() -> Router {
       "/accounts/:account_id/posts",
       get(get_account_posts_handler),
     )
+    .route("/me/posts", get(get_me_posts_handler))
     .route(
       "/posts/:id",
       get(get_post_handler)
@@ -138,6 +139,31 @@ async fn get_account_posts_handler(
 ) -> JsonApiResponse {
   let mut posts_filter = PostFilter::try_from(filter)?;
   posts_filter.account_id = Some(account_id);
+  let data = get_posts(&locale, &pool, &posts_filter, &Some(auth)).await?;
+  let json_api_data = vec_to_jsonapi_resources(data.data).0;
+  let response = JsonApiDocument::Data(DocumentData {
+    meta: Some(format_page_meta(data.page_info.clone())),
+    data: Some(PrimaryData::Multiple(json_api_data)),
+    links: Some(format_page_links(
+      POST_SERVICE_PATH,
+      uri.path(),
+      query,
+      data.page_info,
+    )),
+    ..Default::default()
+  });
+  Ok(Json(response))
+}
+async fn get_me_posts_handler(
+  Extension(pool): Extension<Pool>,
+  locale: Locale,
+  Qs(filter): Qs<ApiPostFilter>,
+  Query(query): Query<HashMap<String, String>>,
+  uri: Uri,
+  auth: Auth,
+) -> JsonApiResponse {
+  let mut posts_filter = PostFilter::try_from(filter)?;
+  posts_filter.account_id = Some(auth.account_id);
   let data = get_posts(&locale, &pool, &posts_filter, &Some(auth)).await?;
   let json_api_data = vec_to_jsonapi_resources(data.data).0;
   let response = JsonApiDocument::Data(DocumentData {
