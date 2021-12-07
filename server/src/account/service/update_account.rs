@@ -112,7 +112,8 @@ pub async fn update_account(
   let mut birthday_change_count = None;
   if let Some(birthday) = birthday {
     // 修改次数限制
-    if account.birthday_change_count >= 1 {
+    // TODO
+    if account.birthday_change_count >= 100 {
       // 不能再改
       return Err(ServiceError::reach_max_change_limit(
         locale,
@@ -168,7 +169,7 @@ pub async fn update_account(
   }
   let mut gender_change_count = None;
   if let Some(gender) = gender.clone() {
-    if account.gender_change_count >= 1 {
+    if account.gender_change_count >= 100 {
       // 不能再改
       return Err(ServiceError::reach_max_change_limit(
         locale,
