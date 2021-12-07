@@ -48,11 +48,17 @@ pub async fn update_post(
   } else {
     // if self
     if auth.account_id != current.account_id {
-      return Err(ServiceError::permission_limit(
-        locale,
-        "only_admin_or_moderator_or_self_can_update_post_template",
-        Error::Default,
-      ));
+      // 非admin/moderator/self only can update view_count, skipped_count, replied_count
+      if !(viewed_count_action.is_some()
+        || skipped_count_action.is_some()
+        || replied_count_action.is_some())
+      {
+        return Err(ServiceError::permission_limit(
+          locale,
+          "only_admin_or_moderator_or_self_can_update_post",
+          Error::Default,
+        ));
+      }
     }
   }
 
@@ -87,13 +93,12 @@ pub async fn update_post(
   if let Some(viewed_count_action) = viewed_count_action {
     match viewed_count_action {
       FieldAction::IncreaseOne => {
-        viewed_count_value = Some(current.viewed_count + 1);
         // add to view table
         // check user settings
         if current.author.show_viewed_action {
           // add to view table
           let view_id = next_id();
-          query!(
+          let view_insert_result = query!(
             r#"INSERT INTO post_view 
         (id,viewed_by,post_id,post_account_id,updated_at)
         VALUES 
@@ -106,8 +111,11 @@ pub async fn update_post(
             now
           )
           .execute(pool)
-          .await
-          .ok();
+          .await;
+          if view_insert_result.is_ok() {
+            // update post view count
+            viewed_count_value = Some(current.viewed_count + 1);
+          }
         }
       }
       FieldAction::DecreaseOne => {
@@ -121,11 +129,10 @@ pub async fn update_post(
   if let Some(skipped_count_action) = skipped_count_action {
     match skipped_count_action {
       FieldAction::IncreaseOne => {
-        skipped_count_value = Some(current.skipped_count + 1);
         // Add to post_skip table
         // TODO 优化，这一步可以延迟写入
         let next_id = next_id();
-        query!(
+        let insert_result = query!(
           r#"INSERT INTO post_skip 
         (id,skipped_by,post_id,post_account_id,updated_at)
         VALUES 
@@ -138,8 +145,11 @@ pub async fn update_post(
           now
         )
         .execute(pool)
-        .await
-        .ok();
+        .await;
+        if insert_result.is_ok() {
+          // update post view count
+          skipped_count_value = Some(current.skipped_count + 1);
+        }
       }
       FieldAction::DecreaseOne => {
         // 暂时不支持减操作
@@ -153,9 +163,8 @@ pub async fn update_post(
   if let Some(replied_count_action) = replied_count_action {
     match replied_count_action {
       FieldAction::IncreaseOne => {
-        replied_count_value = Some(current.replied_count + 1);
         let next_id = next_id();
-        query!(
+        let insert_result = query!(
           r#"INSERT INTO post_reply 
         (id,replied_by,post_id,post_account_id,updated_at)
         VALUES 
@@ -168,8 +177,11 @@ pub async fn update_post(
           now
         )
         .execute(pool)
-        .await
-        .ok();
+        .await;
+        if insert_result.is_ok() {
+          // update post view count
+          replied_count_value = Some(current.replied_count + 1);
+        }
       }
       FieldAction::DecreaseOne => {
         // 暂时不支持减操作

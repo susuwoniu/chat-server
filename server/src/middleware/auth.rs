@@ -109,6 +109,12 @@ where
                     let device_id = device_id.as_str();
 
                     if let Some(device_id) = device_id {
+                      // test TODO
+                      // return Err(ServiceError::unauthorized(
+                      //   &locale,
+                      //   "token_invalid",
+                      //   Error::Other(format!("pasetors verify failed {:?}", Error::Default)),
+                      // ));
                       // verified
                       return Ok(Self {
                         account_id: sub,
