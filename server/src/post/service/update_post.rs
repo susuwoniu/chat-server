@@ -91,20 +91,57 @@ pub async fn update_post(
   // 修改view count // todo 修改view表
   let mut viewed_count_value = None;
   if let Some(viewed_count_action) = viewed_count_action {
-    match viewed_count_action {
-      FieldAction::IncreaseOne => {
-        // add to view table
-        // check user settings
-        if current.author.show_viewed_action {
+    if current.account_id != auth.account_id {
+      match viewed_count_action {
+        FieldAction::IncreaseOne => {
           // add to view table
-          let view_id = next_id();
-          let view_insert_result = query!(
-            r#"INSERT INTO post_view 
-        (id,viewed_by,post_id,post_account_id,updated_at)
+          // check user settings
+          if current.author.show_viewed_action {
+            // add to view table
+            let view_id = next_id();
+            let view_insert_result = query!(
+              r#"INSERT INTO post_view 
+          (id,viewed_by,post_id,post_account_id,updated_at)
+          VALUES 
+          ($1,$2,$3,$4,$5)
+        "#,
+              view_id,
+              auth.account_id,
+              id,
+              current.account_id,
+              now
+            )
+            .execute(pool)
+            .await;
+            if view_insert_result.is_ok() {
+              // update post view count
+              viewed_count_value = Some(current.viewed_count + 1);
+            }
+          }
+        }
+        FieldAction::DecreaseOne => {
+          // 暂时不支持减操作
+          viewed_count_value = None;
+        }
+      }
+    }
+  }
+  //  修改skip count
+  let mut skipped_count_value = None;
+  if let Some(skipped_count_action) = skipped_count_action {
+    if current.account_id != auth.account_id {
+      match skipped_count_action {
+        FieldAction::IncreaseOne => {
+          // Add to post_skip table
+          // TODO 优化，这一步可以延迟写入
+          let next_id = next_id();
+          let insert_result = query!(
+            r#"INSERT INTO post_skip 
+        (id,skipped_by,post_id,post_account_id,updated_at)
         VALUES 
         ($1,$2,$3,$4,$5)
       "#,
-            view_id,
+            next_id,
             auth.account_id,
             id,
             current.account_id,
@@ -112,48 +149,15 @@ pub async fn update_post(
           )
           .execute(pool)
           .await;
-          if view_insert_result.is_ok() {
+          if insert_result.is_ok() {
             // update post view count
-            viewed_count_value = Some(current.viewed_count + 1);
+            skipped_count_value = Some(current.skipped_count + 1);
           }
         }
-      }
-      FieldAction::DecreaseOne => {
-        // 暂时不支持减操作
-        viewed_count_value = None;
-      }
-    }
-  }
-  //  修改skip count
-  let mut skipped_count_value = None;
-  if let Some(skipped_count_action) = skipped_count_action {
-    match skipped_count_action {
-      FieldAction::IncreaseOne => {
-        // Add to post_skip table
-        // TODO 优化，这一步可以延迟写入
-        let next_id = next_id();
-        let insert_result = query!(
-          r#"INSERT INTO post_skip 
-        (id,skipped_by,post_id,post_account_id,updated_at)
-        VALUES 
-        ($1,$2,$3,$4,$5)
-      "#,
-          next_id,
-          auth.account_id,
-          id,
-          current.account_id,
-          now
-        )
-        .execute(pool)
-        .await;
-        if insert_result.is_ok() {
-          // update post view count
-          skipped_count_value = Some(current.skipped_count + 1);
+        FieldAction::DecreaseOne => {
+          // 暂时不支持减操作
+          skipped_count_value = None;
         }
-      }
-      FieldAction::DecreaseOne => {
-        // 暂时不支持减操作
-        skipped_count_value = None;
       }
     }
   }
@@ -161,31 +165,33 @@ pub async fn update_post(
   //  修改reply count
   let mut replied_count_value = None;
   if let Some(replied_count_action) = replied_count_action {
-    match replied_count_action {
-      FieldAction::IncreaseOne => {
-        let next_id = next_id();
-        let insert_result = query!(
-          r#"INSERT INTO post_reply 
+    if current.account_id != auth.account_id {
+      match replied_count_action {
+        FieldAction::IncreaseOne => {
+          let next_id = next_id();
+          let insert_result = query!(
+            r#"INSERT INTO post_reply 
         (id,replied_by,post_id,post_account_id,updated_at)
         VALUES 
         ($1,$2,$3,$4,$5)
       "#,
-          next_id,
-          auth.account_id,
-          id,
-          current.account_id,
-          now
-        )
-        .execute(pool)
-        .await;
-        if insert_result.is_ok() {
-          // update post view count
-          replied_count_value = Some(current.replied_count + 1);
+            next_id,
+            auth.account_id,
+            id,
+            current.account_id,
+            now
+          )
+          .execute(pool)
+          .await;
+          if insert_result.is_ok() {
+            // update post view count
+            replied_count_value = Some(current.replied_count + 1);
+          }
         }
-      }
-      FieldAction::DecreaseOne => {
-        // 暂时不支持减操作
-        replied_count_value = None;
+        FieldAction::DecreaseOne => {
+          // 暂时不支持减操作
+          replied_count_value = None;
+        }
       }
     }
   }
