@@ -1,24 +1,5 @@
-use crate::{
-  account::model::{IdentityType, SignupData, SignupParam},
-  alias::Pool,
-  error::{Error, ServiceError},
-  global::{Config, I18n, ImClient},
-  im::{
-    model::{
-      ImCreateTokenParam, ImServerSignupParam, ImServerSignupResponse, ImServerSuccessResponse,
-      ImServerTokenData, ImServerTokenInternalData, ImSignupParam,
-    },
-    service::create_im_token::create_im_token,
-  },
-  middleware::Locale,
-  types::ServiceResult,
-  util::{id::next_id, string::get_random_letter},
-};
+use crate::{im::model::ImSignupParam, middleware::Locale, types::ServiceResult};
 
-use chrono::Utc;
-use fluent_bundle::FluentArgs;
-use serde_json::json;
-use sqlx::query;
 pub async fn signup(locale: &Locale, param: ImSignupParam) -> ServiceResult<()> {
   // let cfg = Config::global();
   return Ok(());

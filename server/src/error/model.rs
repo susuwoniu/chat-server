@@ -1,6 +1,5 @@
 use crate::{error::ServiceError, middleware::Locale};
 use axum::{
-  body::{Bytes, Full},
   http::StatusCode,
   response::{IntoResponse, Response},
   Json,
@@ -13,7 +12,6 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use sqlx::Error as SqlxError;
 use std::convert::From;
-use std::convert::Infallible;
 use std::{collections::HashMap, io};
 use thiserror::Error as ThisError;
 

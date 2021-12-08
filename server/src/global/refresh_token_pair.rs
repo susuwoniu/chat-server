@@ -1,4 +1,4 @@
-use crate::{global::Config, util::key_pair::Pair};
+use crate::util::key_pair::Pair;
 use once_cell::sync::OnceCell;
 pub static REFRESH_TOKEN_PAIR: OnceCell<RefreshTokenPair> = OnceCell::new();
 #[derive(Debug)]

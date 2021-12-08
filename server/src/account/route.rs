@@ -1,8 +1,8 @@
 use crate::{
   account::{
     model::{
-      AddImageParam, DeviceParam, GetAccountPathParam, PhoneAuthBodyParam, PhoneAuthPathParam,
-      PhoneCodeMeta, SendPhoneCodePathParam, SigninWithPhoneParam, UpdateAccountImageParam,
+      DeviceParam, GetAccountPathParam, PhoneAuthBodyParam, PhoneAuthPathParam, PhoneCodeMeta,
+      PutImageParam, SendPhoneCodePathParam, SigninWithPhoneParam, UpdateAccountImageParam,
       UpdateAccountParam,
     },
     service::{
@@ -13,7 +13,7 @@ use crate::{
       signout::signout,
       update_account::update_account,
       update_account_image::{
-        delete_profile_image, get_profile_images, insert_profile_image, update_profile_image,
+        delete_profile_image, get_profile_images, insert_or_update_profile_image,
       },
     },
   },
@@ -28,7 +28,7 @@ use crate::{
 
 use axum::{
   extract::{Extension, Path},
-  routing::{delete, get, post},
+  routing::{delete, get, post, put},
   Json, Router,
 };
 use jsonapi::model::*;
@@ -48,9 +48,7 @@ pub fn service_route() -> Router {
     .route("/me", get(get_me_handler).patch(patch_account_handler))
     .route(
       "/me/profile-images/:order",
-      post(add_me_image_handler)
-        .patch(patch_me_image_handler)
-        .delete(delete_me_profile_image),
+      put(put_me_image_handler).delete(delete_me_profile_image),
     )
     .route(
       "/me/profile-images/slot",
@@ -70,17 +68,17 @@ async fn delete_me_profile_image(
   delete_profile_image(&pool, &account_id, sequence as i32).await?;
   QuickResponse::default()
 }
-async fn patch_me_image_handler(
+async fn put_me_image_handler(
   Path(sequence): Path<u32>,
   Extension(pool): Extension<Pool>,
   Extension(kv): Extension<KvPool>,
 
   locale: Locale,
   auth: Auth,
-  Json(payload): Json<AddImageParam>,
+  Json(payload): Json<PutImageParam>,
   _: Signature,
 ) -> JsonApiResponse {
-  let data = update_profile_image(
+  let data = insert_or_update_profile_image(
     &locale,
     &pool,
     &kv,
@@ -88,28 +86,10 @@ async fn patch_me_image_handler(
     UpdateAccountImageParam {
       sequence: sequence as i32,
       url: payload.url,
-    },
-  )
-  .await?;
-  Ok(Json(data.to_jsonapi_document()))
-}
-async fn add_me_image_handler(
-  Path(sequence): Path<u32>,
-  Extension(pool): Extension<Pool>,
-  Extension(kv): Extension<KvPool>,
-  locale: Locale,
-  auth: Auth,
-  Json(payload): Json<AddImageParam>,
-  _: Signature,
-) -> JsonApiResponse {
-  let data = insert_profile_image(
-    &locale,
-    &pool,
-    &kv,
-    &auth.account_id,
-    UpdateAccountImageParam {
-      sequence: sequence as i32,
-      url: payload.url,
+      width: payload.width,
+      height: payload.height,
+      size: payload.size,
+      mime_type: payload.mime_type,
     },
   )
   .await?;

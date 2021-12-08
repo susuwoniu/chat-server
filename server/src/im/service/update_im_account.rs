@@ -1,25 +1,4 @@
-use crate::{
-  account::model::{IdentityType, SignupData, SignupParam},
-  alias::{KvPool, Pool},
-  error::{Error, ServiceError},
-  global::{Config, I18n, ImClient},
-  im::{
-    model::{
-      ImCreateTokenParam, ImServerSigninParam, ImServerSignupResponse, ImServerSuccessResponse,
-      ImServerTokenData, ImServerTokenInternalData, ImServerUpdateAccountParam, ImSignupParam,
-      ImUpdateAccountParam,
-    },
-    service::{get_im_admin_token::get_or_create_admin_im_token, signup::signup},
-  },
-  middleware::Locale,
-  types::ServiceResult,
-  util::{id::next_id, string::get_random_letter},
-};
-
-use chrono::Utc;
-use fluent_bundle::FluentArgs;
-use serde_json::json;
-use sqlx::query;
+use crate::{alias::KvPool, global::Config, im::model::ImUpdateAccountParam, types::ServiceResult};
 
 pub async fn update_im_account(kv: &KvPool, param: ImUpdateAccountParam) -> ServiceResult<()> {
   let cfg = Config::global();

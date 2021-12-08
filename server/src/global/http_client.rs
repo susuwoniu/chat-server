@@ -1,5 +1,5 @@
 use once_cell::sync::OnceCell;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 pub static HTTP_CLIENT: OnceCell<HttpClient> = OnceCell::new();
 #[derive(Debug)]
 pub struct HttpClient(pub reqwest::ClientBuilder);

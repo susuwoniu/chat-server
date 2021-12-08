@@ -1,26 +1,14 @@
 use crate::{
-  account::model::{IdentityType, SignupData, SignupParam},
-  alias::{KvPool, Pool},
+  alias::KvPool,
   constant::IM_SERVER_ADMIN_TOKEN_TEMP_KEY,
-  error::{Error, ServiceError},
-  global::{Config, I18n, ImClient},
-  im::{
-    model::{
-      ImCreateTokenParam, ImServerSigninParam, ImServerSignupResponse, ImServerSuccessResponse,
-      ImServerTokenData, ImServerTokenInternalData, ImSignupParam,
-    },
-    service::{create_im_token::create_im_token, signup::signup},
-  },
+  global::Config,
+  im::{model::ImCreateTokenParam, service::create_im_token::create_im_token},
   middleware::Locale,
   types::ServiceResult,
-  util::{id::next_id, string::get_random_letter},
 };
 
 use chrono::Utc;
 use deadpool_redis::redis::cmd;
-use fluent_bundle::FluentArgs;
-use serde_json::json;
-use sqlx::query;
 use std::sync::atomic::{AtomicBool, Ordering};
 static IS_GETTING_ADMIN_TOKEN: AtomicBool = AtomicBool::new(false);
 pub async fn get_or_create_admin_im_token(kv: &KvPool) -> ServiceResult<String> {

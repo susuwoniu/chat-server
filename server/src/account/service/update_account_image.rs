@@ -14,7 +14,7 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
   let images = query_as!(
     ProfileImage,
     r#"
-      select id,account_id,sequence,url,updated_at from account_images
+      select id,account_id,sequence,url,size,height,width,mime_type,updated_at from account_images
       where account_id = $1
   "#,
     account_id,
@@ -31,6 +31,8 @@ async fn update_avatar(
   image: ProfileImage,
 ) -> ServiceResult<()> {
   let now = Utc::now();
+  let avatar_url = format!("{}/{}", image.url, "thumbnail");
+
   query!(
     r#"
     UPDATE accounts
@@ -43,17 +45,18 @@ async fn update_avatar(
 "#,
     account_id,
     now.naive_utc(),
-    image.url,
+    &avatar_url,
   )
   .execute(pool)
   .await?;
   // update im avatar
-  //
+  // TODO
+  dbg!("avatar_url", &avatar_url);
   update_im_account(
     kv,
     ImUpdateAccountParam {
       account_id,
-      avatar: Some(image.url),
+      avatar: Some(avatar_url),
       ..Default::default()
     },
   )
@@ -62,7 +65,7 @@ async fn update_avatar(
   Ok(())
 }
 
-pub async fn insert_profile_image(
+pub async fn insert_or_update_profile_image(
   locale: &Locale,
   pool: &Pool,
   kv: &KvPool,
@@ -71,7 +74,14 @@ pub async fn insert_profile_image(
 ) -> ServiceResult<ProfileImage> {
   let now = Utc::now();
   let id = next_id();
-  let UpdateAccountImageParam { sequence, url } = param;
+  let UpdateAccountImageParam {
+    sequence,
+    url,
+    width,
+    height,
+    size,
+    mime_type,
+  } = param;
   let cfg = Config::global();
   if sequence >= cfg.account.max_profile_images {
     return Err(ServiceError::bad_request(
@@ -83,14 +93,25 @@ pub async fn insert_profile_image(
   query!(
     r#"
     INSERT into account_images 
-    (id, updated_at, account_id, sequence, url)
-    VALUES ($1,$2,$3,$4,$5)
+    (id, updated_at, account_id, sequence, url, width, height, size, mime_type)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) 
+    ON CONFLICT (account_id, sequence)  DO UPDATE SET 
+    updated_at=$2,
+    url=$5,
+    width =$6,
+    height= $7,
+    size=$8,
+    mime_type=$9
 "#,
     id,
     now.naive_utc(),
     account_id,
     sequence,
     url,
+    width,
+    height,
+    size,
+    mime_type,
   )
   .execute(pool)
   .await?;
@@ -102,6 +123,10 @@ pub async fn insert_profile_image(
     sequence,
     url,
     updated_at: now.naive_utc(),
+    width,
+    height,
+    size,
+    mime_type,
   };
   if sequence == 0 {
     update_avatar(pool, kv, *account_id, image.clone()).await?;
@@ -119,7 +144,14 @@ pub async fn update_profile_image(
 ) -> ServiceResult<ProfileImage> {
   let now = Utc::now();
   let cfg = Config::global();
-  let UpdateAccountImageParam { sequence, url } = param;
+  let UpdateAccountImageParam {
+    sequence,
+    url,
+    width,
+    height,
+    size,
+    mime_type,
+  } = param;
   if sequence >= cfg.account.max_profile_images {
     return Err(ServiceError::bad_request(
       locale,
@@ -147,6 +179,10 @@ pub async fn update_profile_image(
   .await?;
   //
   let image = ProfileImage {
+    width,
+    height,
+    size,
+    mime_type,
     id: updated_row.id,
     account_id: *account_id,
     sequence,

@@ -1,25 +1,13 @@
 use crate::{
-  account::model::{IdentityType, SignupData, SignupParam},
-  alias::Pool,
-  error::{Error, ServiceError},
-  global::{Config, I18n, ImClient},
-  im::{
-    model::{
-      ImCreateTokenParam, ImServerSigninParam, ImServerSignupResponse, ImServerSuccessResponse,
-      ImServerTokenData, ImServerTokenInternalData, ImSignupParam,
-    },
-    service::signup::signup,
-  },
+  global::Config,
+  im::model::{ImCreateTokenParam, ImServerTokenData},
   middleware::Locale,
   types::ServiceResult,
-  util::{base62_to_i64, id::next_id, string::get_random_letter},
 };
-use chrono::{Duration, NaiveDateTime, Utc};
-use fluent_bundle::FluentArgs;
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use chrono::Duration;
+use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use sqlx::query;
+
 /// Our claims struct, it needs to derive `Serialize` and/or `Deserialize`
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {

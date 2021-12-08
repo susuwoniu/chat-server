@@ -5,7 +5,7 @@ use crate::{
   types::ServiceResult,
 };
 use once_cell::sync::OnceCell;
-use reqwest::{Body, Client, IntoUrl, Method, RequestBuilder, Response};
+use reqwest::{Body, IntoUrl, Method, RequestBuilder, Response};
 use std::{collections::HashMap, time::Duration};
 pub static HTTP_CLIENT: OnceCell<ImClient> = OnceCell::new();
 use serde::{Deserialize, Serialize};

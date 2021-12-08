@@ -1,7 +1,7 @@
 use crate::{
   middleware::ClientPlatform,
   types::{Action, FieldAction, Gender},
-  util::{base62_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64},
+  util::{datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::{NaiveDate, NaiveDateTime};
 use ipnetwork17::IpNetwork;
@@ -169,8 +169,12 @@ pub struct DeviceParam {
   pub device_id: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AddImageParam {
+pub struct PutImageParam {
   pub url: String,
+  pub width: f64,
+  pub height: f64,
+  pub size: i64,
+  pub mime_type: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PhoneCodeResponseData {
@@ -288,6 +292,10 @@ pub struct ProfileImage {
   #[serde(with = "string_i64")]
   pub account_id: i64,
   pub url: String,
+  pub width: f64,
+  pub height: f64,
+  pub size: i64,
+  pub mime_type: String,
   #[serde(rename = "order")]
   pub sequence: i32,
   #[serde(with = "datetime_tz")]
@@ -335,6 +343,10 @@ pub struct UpdateAccountImageParam {
   #[serde(rename = "order")]
   pub sequence: i32,
   pub url: String,
+  pub width: f64,
+  pub height: f64,
+  pub size: i64,
+  pub mime_type: String,
 }
 impl From<FullAccount> for Account {
   fn from(account: FullAccount) -> Self {
