@@ -4,6 +4,7 @@ mod alias;
 mod cmd;
 mod constant;
 mod error;
+mod file;
 mod global;
 mod im;
 mod middleware;

@@ -25,6 +25,14 @@ pub struct Config {
   pub page_size: i64,
   pub post: Post,
   pub im: Im,
+  pub profile_image_file_server: FileServer,
+}
+#[derive(Debug, Deserialize, Clone)]
+pub struct FileServer {
+  pub bucket_url: Url,
+  pub region: String,
+  pub access_key_id: String,
+  pub access_key_secret: String,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Im {

@@ -18,6 +18,10 @@ use crate::{
     },
   },
   alias::{KvPool, Pool},
+  file::{
+    model::{CreateUploadSlot, UploadSlot},
+    service::upload::create_profile_image_upload_slot,
+  },
   middleware::{Auth, ClientPlatform, Ip, Locale, RefreshTokenAuth, Signature},
   types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
 };
@@ -47,6 +51,10 @@ pub fn service_route() -> Router {
       post(add_me_image_handler)
         .patch(patch_me_image_handler)
         .delete(delete_me_profile_image),
+    )
+    .route(
+      "/me/profile-images/slot",
+      post(create_profile_image_upload_slot_handler),
     )
     .route(
       "/me/profile-images",
@@ -201,5 +209,14 @@ async fn send_phone_code_handler(
   _: Signature,
 ) -> SimpleMetaResponse<PhoneCodeMeta> {
   let data = send_phone_code(&locale, &kv, path_param, payload).await?;
+  QuickResponse::meta(data)
+}
+
+async fn create_profile_image_upload_slot_handler(
+  locale: Locale,
+  Json(payload): Json<CreateUploadSlot>,
+  auth: Auth,
+) -> SimpleMetaResponse<UploadSlot> {
+  let data = create_profile_image_upload_slot(&locale, payload, auth).await?;
   QuickResponse::meta(data)
 }

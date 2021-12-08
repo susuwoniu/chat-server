@@ -5,6 +5,11 @@ env = "development"
 invite_only = false
 page_size = 30
 use_fixed_code = false
+[profile_image_file_server]
+access_key_id = ""
+access_key_secret = ""
+bucket_url = ""
+region = "ap-shanghai"
 [post]
 default_listed_posts_duration_in_days = 30
 min_post_content_count = 6
