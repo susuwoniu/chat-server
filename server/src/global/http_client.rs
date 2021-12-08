@@ -3,6 +3,7 @@ use std::time::Duration;
 pub static HTTP_CLIENT: OnceCell<HttpClient> = OnceCell::new();
 #[derive(Debug)]
 pub struct HttpClient(pub reqwest::ClientBuilder);
+#[allow(dead_code)]
 impl HttpClient {
   pub fn global() -> &'static Self {
     HTTP_CLIENT.get().expect("read client failed")

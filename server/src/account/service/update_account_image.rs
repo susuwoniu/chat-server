@@ -1,5 +1,5 @@
 use crate::{
-  account::model::{ProfileImage, UpdateAccountImageParam},
+  account::model::{DbProfileImage, ProfileImage, Thumbtail, UpdateAccountImageParam},
   alias::{KvPool, Pool},
   error::{Error, ServiceError},
   global::Config,
@@ -10,9 +10,32 @@ use crate::{
 };
 use chrono::Utc;
 use sqlx::{query, query_as};
+fn format_image(image: DbProfileImage) -> ProfileImage {
+  let thumbnail_default_width = 300;
+  let thumbnail_mime_type = "image/webp";
+  let thumbnail_default_height = image.height * thumbnail_default_width as f64 / image.width;
+  let thumbtail_url = format!("{}/{}", image.url, "/thumbtail");
+  return ProfileImage {
+    id: image.id,
+    account_id: image.account_id,
+    url: image.url,
+    width: image.width,
+    height: image.height,
+    sequence: image.sequence,
+    size: image.size,
+    mime_type: image.mime_type,
+    updated_at: image.updated_at,
+    thumbtail: Thumbtail {
+      url: thumbtail_url,
+      width: thumbnail_default_width as f64,
+      height: thumbnail_default_height,
+      mime_type: thumbnail_mime_type.to_string(),
+    },
+  };
+}
 pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<Vec<ProfileImage>> {
   let images = query_as!(
-    ProfileImage,
+    DbProfileImage,
     r#"
       select id,account_id,sequence,url,size,height,width,mime_type,updated_at from account_images
       where account_id = $1
@@ -22,7 +45,7 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
   .fetch_all(pool)
   .await?;
 
-  Ok(images)
+  Ok(images.into_iter().map(format_image).collect())
 }
 async fn update_avatar(
   pool: &Pool,
@@ -31,7 +54,7 @@ async fn update_avatar(
   image: ProfileImage,
 ) -> ServiceResult<()> {
   let now = Utc::now();
-  let avatar_url = format!("{}/{}", image.url, "thumbnail");
+  let avatar_url = format!("{}/{}", image.url, "avatar");
 
   query!(
     r#"
@@ -117,7 +140,7 @@ pub async fn insert_or_update_profile_image(
   .await?;
 
   // update avatar
-  let image = ProfileImage {
+  let image = format_image(DbProfileImage {
     id,
     account_id: *account_id,
     sequence,
@@ -127,7 +150,7 @@ pub async fn insert_or_update_profile_image(
     height,
     size,
     mime_type,
-  };
+  });
   if sequence == 0 {
     update_avatar(pool, kv, *account_id, image.clone()).await?;
   }
@@ -165,7 +188,11 @@ pub async fn update_profile_image(
     SET 
     updated_at=$3,
     url=COALESCE($4,url),
-    sequence =$5
+    sequence =$2,
+    width = COALESCE($5,width),
+    height= COALESCE($6,height),
+    size= COALESCE($7,size),
+    mime_type = COALESCE($8,mime_type)
     where account_id = $1 and sequence = $2
     RETURNING id
 "#,
@@ -173,22 +200,25 @@ pub async fn update_profile_image(
     sequence,
     now.naive_utc(),
     url,
-    sequence
-  )
-  .fetch_one(pool)
-  .await?;
-  //
-  let image = ProfileImage {
     width,
     height,
     size,
     mime_type,
+  )
+  .fetch_one(pool)
+  .await?;
+  //
+  let image = format_image(DbProfileImage {
     id: updated_row.id,
     account_id: *account_id,
     sequence,
     url,
     updated_at: now.naive_utc(),
-  };
+    width,
+    height,
+    size,
+    mime_type,
+  });
   if sequence == 0 {
     update_avatar(pool, kv, *account_id, image.clone()).await?;
   }

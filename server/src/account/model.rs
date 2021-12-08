@@ -291,6 +291,29 @@ pub struct DbAccount {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Thumbtail {
+  pub url: String,
+  pub width: f64,
+  pub height: f64,
+  pub mime_type: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DbProfileImage {
+  #[serde(with = "string_i64")]
+  pub id: i64,
+  #[serde(with = "string_i64")]
+  pub account_id: i64,
+  pub url: String,
+  pub width: f64,
+  pub height: f64,
+  pub size: i64,
+  pub mime_type: String,
+  #[serde(rename = "order")]
+  pub sequence: i32,
+  #[serde(with = "datetime_tz")]
+  pub updated_at: NaiveDateTime,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProfileImage {
   #[serde(with = "string_i64")]
   pub id: i64,
@@ -305,6 +328,7 @@ pub struct ProfileImage {
   pub sequence: i32,
   #[serde(with = "datetime_tz")]
   pub updated_at: NaiveDateTime,
+  pub thumbtail: Thumbtail,
 }
 jsonapi_model!(ProfileImage; "profile-images");
 

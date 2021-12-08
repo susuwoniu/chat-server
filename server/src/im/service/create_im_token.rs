@@ -19,7 +19,7 @@ struct Claims {
   sub: String,
 }
 pub async fn create_im_token(
-  locale: &Locale,
+  _: &Locale,
   param: ImCreateTokenParam,
 ) -> ServiceResult<ImServerTokenData> {
   let cfg = Config::global();

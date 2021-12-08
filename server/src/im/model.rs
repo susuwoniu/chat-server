@@ -105,7 +105,7 @@ pub struct ImServerUpdateAccountParam {
   pub name: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub icon: Option<String>,
-  pub operationID: String,
+  pub operation_id: String,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImServerSigninParam {

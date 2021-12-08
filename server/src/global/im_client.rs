@@ -19,6 +19,7 @@ pub struct ImServerErrorResponse {
 }
 #[derive(Debug)]
 pub struct ImClient(pub reqwest::Client);
+#[allow(dead_code)]
 impl ImClient {
   pub fn global() -> &'static Self {
     HTTP_CLIENT.get().expect("read client failed")

@@ -14,6 +14,7 @@ use crate::{
       update_account::update_account,
       update_account_image::{
         delete_profile_image, get_profile_images, insert_or_update_profile_image,
+        update_profile_image,
       },
     },
   },
@@ -49,7 +50,9 @@ pub fn service_route() -> Router {
     .route("/me", get(get_me_handler).patch(patch_account_handler))
     .route(
       "/me/profile-images/:order",
-      put(put_me_image_handler).delete(delete_me_profile_image),
+      put(put_me_image_handler)
+        .delete(delete_me_profile_image)
+        .patch(patch_me_image_handler),
     )
     .route(
       "/me/profile-images/slot",
@@ -200,7 +203,33 @@ async fn send_phone_code_handler(
   let data = send_phone_code(&locale, &kv, path_param, payload).await?;
   QuickResponse::meta(data)
 }
+async fn patch_me_image_handler(
+  Path(sequence): Path<u32>,
+  Extension(pool): Extension<Pool>,
+  Extension(kv): Extension<KvPool>,
 
+  locale: Locale,
+  auth: Auth,
+  Json(payload): Json<PutImageParam>,
+  _: Signature,
+) -> JsonApiResponse {
+  let data = update_profile_image(
+    &locale,
+    &pool,
+    &kv,
+    &auth.account_id,
+    UpdateAccountImageParam {
+      sequence: sequence as i32,
+      url: payload.url,
+      width: payload.width,
+      height: payload.height,
+      size: payload.size,
+      mime_type: payload.mime_type,
+    },
+  )
+  .await?;
+  Ok(Json(data.to_jsonapi_document()))
+}
 async fn create_profile_image_upload_slot_handler(
   locale: Locale,
   Json(payload): Json<CreateUploadSlot>,

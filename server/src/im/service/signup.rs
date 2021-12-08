@@ -1,6 +1,6 @@
 use crate::{im::model::ImSignupParam, middleware::Locale, types::ServiceResult};
 
-pub async fn signup(locale: &Locale, param: ImSignupParam) -> ServiceResult<()> {
+pub async fn signup(_: &Locale, _: ImSignupParam) -> ServiceResult<()> {
   // let cfg = Config::global();
   return Ok(());
   // return Ok(ImServerTokenData {
