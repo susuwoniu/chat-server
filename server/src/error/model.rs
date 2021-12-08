@@ -1,8 +1,8 @@
 use crate::{error::ServiceError, middleware::Locale};
 use axum::{
   body::{Bytes, Full},
-  http::{Response, StatusCode},
-  response::IntoResponse,
+  http::StatusCode,
+  response::{IntoResponse, Response},
   Json,
 };
 use config::ConfigError;
@@ -36,7 +36,7 @@ pub enum Error {
   #[error("redis error")]
   RedisError(#[from] RedisError),
   #[error("parse path params error")]
-  ParsePathParamsError(#[from] axum::extract::rejection::PathParamsRejection),
+  ParsePathParamsError(#[from] axum::extract::rejection::PathRejection),
   #[error("parse query params error")]
   ParseQueryParamsError(#[from] axum::extract::rejection::QueryRejection),
   #[error("Infallible error")]
@@ -82,10 +82,7 @@ pub struct RootError {
 // }
 
 impl IntoResponse for ServiceError {
-  type Body = Full<Bytes>;
-  type BodyError = Infallible;
-
-  fn into_response(self) -> Response<Self::Body> {
+  fn into_response(self) -> Response {
     let status = self.status;
     let body = Json(json!(RootError {
       errors: vec![self.clone()],
@@ -96,10 +93,7 @@ impl IntoResponse for ServiceError {
 }
 
 impl IntoResponse for RootError {
-  type Body = Full<Bytes>;
-  type BodyError = Infallible;
-
-  fn into_response(self) -> Response<Self::Body> {
+  fn into_response(self) -> Response {
     if self.errors.len() > 0 {
       return (self.errors[0].status, Json(json!(self))).into_response();
     } else {
@@ -119,8 +113,8 @@ impl IntoResponse for RootError {
   }
 }
 
-impl From<axum::extract::rejection::PathParamsRejection> for ServiceError {
-  fn from(error: axum::extract::rejection::PathParamsRejection) -> ServiceError {
+impl From<axum::extract::rejection::PathRejection> for ServiceError {
+  fn from(error: axum::extract::rejection::PathRejection) -> ServiceError {
     // Right now we just care about UniqueViolation from diesel
     // But this would be helpful to easily map errors as our app grows
     ServiceError::bad_request(&Locale::default(), "parse_path_params_error", error.into())
