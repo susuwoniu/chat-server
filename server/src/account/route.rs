@@ -1,12 +1,12 @@
 use crate::{
   account::{
     model::{
-      DeviceParam, GetAccountPathParam, PhoneAuthBodyParam, PhoneAuthPathParam, PhoneCodeMeta,
-      PutImageParam, SendPhoneCodePathParam, SigninWithPhoneParam, UpdateAccountImageParam,
-      UpdateAccountParam,
+      DeviceParam, GetAccountPathParam, GetAccountsParam, PhoneAuthBodyParam, PhoneAuthPathParam,
+      PhoneCodeMeta, PutImageParam, SendPhoneCodePathParam, SigninWithPhoneParam,
+      UpdateAccountImageParam, UpdateAccountParam,
     },
     service::{
-      get_account::{get_account, get_full_account},
+      get_account::{get_account, get_accounts, get_full_account},
       login_with_phone::login_with_phone,
       refresh_token_to_access_token::refresh_token_to_access_token,
       send_phone_code::send_phone_code,
@@ -22,7 +22,7 @@ use crate::{
     model::{CreateUploadSlot, UploadSlot},
     service::upload::create_profile_image_upload_slot,
   },
-  middleware::{Auth, ClientPlatform, Ip, Locale, RefreshTokenAuth, Signature},
+  middleware::{Auth, ClientPlatform, Ip, Locale, Qs, RefreshTokenAuth, Signature},
   types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
 };
 
@@ -45,6 +45,7 @@ pub fn service_route() -> Router {
     )
     .route("/sessions", delete(signout_handler))
     .route("/accounts/:account_id", get(get_account_handler))
+    .route("/accounts", get(get_accounts_by_ids_handler))
     .route("/me", get(get_me_handler).patch(patch_account_handler))
     .route(
       "/me/profile-images/:order",
@@ -171,6 +172,14 @@ async fn get_account_handler(
 ) -> JsonApiResponse {
   let account = get_account(&locale, &pool, path_param.account_id).await?;
   Ok(Json(account.to_jsonapi_document()))
+}
+async fn get_accounts_by_ids_handler(
+  Extension(pool): Extension<Pool>,
+  Qs(query): Qs<GetAccountsParam>,
+  locale: Locale,
+) -> JsonApiResponse {
+  let data = get_accounts(&locale, &pool, &query.ids).await?;
+  Ok(Json(vec_to_jsonapi_document(data)))
 }
 async fn get_me_handler(
   Extension(pool): Extension<Pool>,

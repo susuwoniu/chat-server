@@ -143,6 +143,11 @@ jsonapi_model!(Account; "accounts");
 pub struct GetAccountPathParam {
   pub account_id: i64,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct GetAccountsParam {
+  pub ids: Vec<i64>,
+}
 #[derive(Debug, Deserialize)]
 pub struct SendPhoneCodePathParam {
   pub phone_country_code: i32,
