@@ -90,7 +90,7 @@ filter.account_id
   let accounts = get_accounts(
     locale,
     pool,
-    &rows.clone().into_iter().map(|row| row.account_id).collect(),
+    rows.clone().into_iter().map(|row| row.account_id).collect(),
   )
   .await?;
 
@@ -161,7 +161,7 @@ pub async fn get_post_views(
   let accounts = get_accounts(
     locale,
     pool,
-    &rows.clone().into_iter().map(|row| row.viewed_by).collect(),
+    rows.clone().into_iter().map(|row| row.viewed_by).collect(),
   )
   .await?;
 

@@ -31,6 +31,7 @@ include_dir = "0.6"
 intl-memoizer = {version = "0.5"}
 ipnetwork = "0.18"
 ipnetwork17 = {version = "0.17", package = "ipnetwork"}
+itertools = "0.10"
 jsonapi = "0.7"
 jsonwebtoken = "7"
 mime = "0.3"

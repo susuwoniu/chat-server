@@ -89,7 +89,10 @@ async fn get_posts_handler(
   let posts_filter = PostFilter::try_from(filter)?;
 
   let data = get_posts(&locale, &pool, &posts_filter, &option_auth).await?;
-  let json_api_data = vec_to_jsonapi_resources(data.data).0;
+  let resources = vec_to_jsonapi_resources(data.data);
+  let json_api_data = resources.0;
+  let other = resources.1;
+  // dbg!(other);
   let response = JsonApiDocument::Data(DocumentData {
     meta: Some(format_page_meta(data.page_info.clone())),
     data: Some(PrimaryData::Multiple(json_api_data)),
@@ -99,6 +102,7 @@ async fn get_posts_handler(
       query,
       data.page_info,
     )),
+    included: other,
     ..Default::default()
   });
   Ok(Json(response))
@@ -114,7 +118,9 @@ async fn get_post_views_handler(
 ) -> JsonApiResponse {
   let posts_filter = PostViewFilter::try_from(filter)?;
   let data = get_post_views(&locale, &pool, &posts_filter, post_id).await?;
-  let json_api_data = vec_to_jsonapi_resources(data.data).0;
+  let resources = vec_to_jsonapi_resources(data.data);
+  let json_api_data = resources.0;
+  let other = resources.1;
   let response = JsonApiDocument::Data(DocumentData {
     meta: Some(format_page_meta(data.page_info.clone())),
     data: Some(PrimaryData::Multiple(json_api_data)),
@@ -124,6 +130,7 @@ async fn get_post_views_handler(
       query,
       data.page_info,
     )),
+    included: other,
     ..Default::default()
   });
   Ok(Json(response))
@@ -140,7 +147,9 @@ async fn get_account_posts_handler(
   let mut posts_filter = PostFilter::try_from(filter)?;
   posts_filter.account_id = Some(account_id);
   let data = get_posts(&locale, &pool, &posts_filter, &Some(auth)).await?;
-  let json_api_data = vec_to_jsonapi_resources(data.data).0;
+  let resources = vec_to_jsonapi_resources(data.data);
+  let json_api_data = resources.0;
+  let other = resources.1;
   let response = JsonApiDocument::Data(DocumentData {
     meta: Some(format_page_meta(data.page_info.clone())),
     data: Some(PrimaryData::Multiple(json_api_data)),
@@ -150,6 +159,7 @@ async fn get_account_posts_handler(
       query,
       data.page_info,
     )),
+    included: other,
     ..Default::default()
   });
   Ok(Json(response))
@@ -165,7 +175,10 @@ async fn get_me_posts_handler(
   let mut posts_filter = PostFilter::try_from(filter)?;
   posts_filter.account_id = Some(auth.account_id);
   let data = get_posts(&locale, &pool, &posts_filter, &Some(auth)).await?;
-  let json_api_data = vec_to_jsonapi_resources(data.data).0;
+  let resources = vec_to_jsonapi_resources(data.data);
+  let json_api_data = resources.0;
+  let other = resources.1;
+  // TODO no account info
   let response = JsonApiDocument::Data(DocumentData {
     meta: Some(format_page_meta(data.page_info.clone())),
     data: Some(PrimaryData::Multiple(json_api_data)),
@@ -175,6 +188,7 @@ async fn get_me_posts_handler(
       query,
       data.page_info,
     )),
+    included: other,
     ..Default::default()
   });
   Ok(Json(response))

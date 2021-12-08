@@ -178,7 +178,7 @@ async fn get_accounts_by_ids_handler(
   Qs(query): Qs<GetAccountsParam>,
   locale: Locale,
 ) -> JsonApiResponse {
-  let data = get_accounts(&locale, &pool, &query.ids).await?;
+  let data = get_accounts(&locale, &pool, query.ids).await?;
   Ok(Json(vec_to_jsonapi_document(data)))
 }
 async fn get_me_handler(
