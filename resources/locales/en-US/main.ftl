@@ -1,6 +1,6 @@
 -brand-name = Communication
 hello = Hello
-default-name = Default-{$random}!
+default-name = {$random} Default
 phone-verify-code-template = [{-brand-name}]Your Code is {$code}. Don't share it with anyone.
 phone-code-expired-title = Code is expired, please try again.
 phone-code-expired-detail = Please verify in time.

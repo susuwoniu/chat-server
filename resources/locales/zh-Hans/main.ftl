@@ -1,6 +1,6 @@
 -brand-name = 友人
 hello = 你好
-default-name = 用户{$random}
+default-name = {$random}用户
 phone-verify-code-template = [{-brand-name}]你的验证码是: {$code} 请勿转发给他人。如非本人操作请忽略本短信。
 phone-code-expired-title = 验证码已过期，请再试一次。
 phone-code-expired-detail = 请及时验证。
