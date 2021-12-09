@@ -46,13 +46,13 @@ pub enum Error {
   #[error("parse semver failed")]
   SemverError(#[from] semver::Error),
   #[error("parse url query failed")]
-  SerdeQsError(#[from] serde_qs::Error),
-  #[error("http request failed")]
   ReqwestError(#[from] reqwest::Error),
   #[error("service error")]
   ServiceError(#[from] ServiceError),
   #[error("jwt error")]
   JWTError(#[from] jsonwebtoken::errors::Error),
+  #[error("urldecode error")]
+  UrlDecodeError(#[from] serde_urlencoded::de::Error),
   #[error("{0}")]
   Other(String),
   #[error("Default Error")]
