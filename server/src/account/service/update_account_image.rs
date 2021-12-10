@@ -51,15 +51,15 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
 }
 async fn update_avatar(
   pool: &Pool,
-  kv: &KvPool,
   account_id: i64,
-  image: ProfileImage,
+  image: Option<ProfileImage>,
 ) -> ServiceResult<()> {
   let now = Utc::now();
-  let avatar_url = format!("{}/{}", image.url, "avatar");
+  if let Some(image) = image {
+    let avatar_url = format!("{}/{}", image.url, "avatar");
 
-  query!(
-    r#"
+    query!(
+      r#"
     UPDATE accounts
     SET 
     updated_at=$2,
@@ -68,24 +68,29 @@ async fn update_avatar(
     profile_image_change_count=profile_image_change_count+1
     where id = $1
 "#,
-    account_id,
-    now.naive_utc(),
-    &avatar_url,
-  )
-  .execute(pool)
-  .await?;
-  // update im avatar
-  // TODO
-  dbg!("avatar_url", &avatar_url);
-  update_im_account(
-    kv,
-    ImUpdateAccountParam {
       account_id,
-      avatar: Some(avatar_url),
-      ..Default::default()
-    },
-  )
-  .await?;
+      now.naive_utc(),
+      &avatar_url,
+    )
+    .execute(pool)
+    .await?;
+  } else {
+    // remove avatar
+    query!(
+      r#"
+    UPDATE accounts
+    SET 
+    updated_at=$2,
+    avatar_updated_at=$2,
+    avatar = null
+    where id = $1
+"#,
+      account_id,
+      now.naive_utc(),
+    )
+    .execute(pool)
+    .await?;
+  }
 
   Ok(())
 }
@@ -109,6 +114,7 @@ pub async fn put_profile_images(
   .execute(&mut tx)
   .await;
   let images = param.images;
+  // todo avatar
   let mut db_images: Vec<ProfileImage> = Vec::new();
   // insert all
   let mut v1: Vec<i64> = Vec::new();
@@ -155,30 +161,21 @@ pub async fn put_profile_images(
   ).bind(&v1).bind(&v2).bind(&v3).bind(&v4).bind(&v5).bind(&v6).bind(&v7).bind(&v8).bind(&v9)
   .execute(&mut tx)
   .await?;
-
-  // update avatar
-  // let image = format_image(DbProfileImage {
-  //   id,
-  //   account_id: *account_id,
-  //   sequence,
-  //   url,
-  //   updated_at: now.naive_utc(),
-  //   width,
-  //   height,
-  //   size,
-  //   mime_type,
-  // });
-  // if sequence == 0 {
-  //   update_avatar(pool, kv, *account_id, image.clone()).await?;
-  // }
   tx.commit().await?;
+  if db_images.len() > 0 {
+    let image = db_images[0].clone();
+    update_avatar(pool, *account_id, Some(image)).await?;
+  } else {
+    // remove avatar
+    update_avatar(pool, *account_id, None).await?;
+  }
   return Ok(db_images);
 }
 
 pub async fn insert_or_update_profile_image(
   locale: &Locale,
   pool: &Pool,
-  kv: &KvPool,
+  _: &KvPool,
   account_id: &i64,
   param: UpdateAccountImageParam,
 ) -> ServiceResult<ProfileImage> {
@@ -239,7 +236,7 @@ pub async fn insert_or_update_profile_image(
     mime_type,
   });
   if sequence == 0 {
-    update_avatar(pool, kv, *account_id, image.clone()).await?;
+    update_avatar(pool, *account_id, Some(image.clone())).await?;
   }
 
   Ok(image)
@@ -307,7 +304,7 @@ pub async fn update_profile_image(
     mime_type,
   });
   if sequence == 0 {
-    update_avatar(pool, kv, *account_id, image.clone()).await?;
+    update_avatar(pool, *account_id, Some(image.clone())).await?;
   }
   Ok(image)
 }
@@ -327,5 +324,9 @@ pub async fn delete_profile_image(
   )
   .execute(pool)
   .await;
+  if sequence == 0 {
+    update_avatar(pool, *account_id, None).await?;
+  }
+
   Ok(())
 }
