@@ -368,6 +368,11 @@ pub struct UpdateAccountParam {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateAccountImagesParam {
+  pub images: Vec<UpdateAccountImageParam>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateAccountImageParam {
   #[serde(rename = "order")]
   pub sequence: i32,

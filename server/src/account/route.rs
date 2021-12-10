@@ -3,7 +3,7 @@ use crate::{
     model::{
       DeviceParam, GetAccountPathParam, GetAccountsParam, PhoneAuthBodyParam, PhoneAuthPathParam,
       PhoneCodeMeta, PutImageParam, SendPhoneCodePathParam, SigninWithPhoneParam,
-      UpdateAccountImageParam, UpdateAccountParam,
+      UpdateAccountImageParam, UpdateAccountImagesParam, UpdateAccountParam,
     },
     service::{
       get_account::{get_account, get_accounts, get_full_account},
@@ -14,7 +14,7 @@ use crate::{
       update_account::update_account,
       update_account_image::{
         delete_profile_image, get_profile_images, insert_or_update_profile_image,
-        update_profile_image,
+        put_profile_images, update_profile_image,
       },
     },
   },
@@ -54,6 +54,7 @@ pub fn service_route() -> Router {
         .delete(delete_me_profile_image)
         .patch(patch_me_image_handler),
     )
+    .route("/me/profile-images", put(put_me_images_handler))
     .route(
       "/me/profile-images/slot",
       post(create_profile_image_upload_slot_handler),
@@ -98,6 +99,16 @@ async fn put_me_image_handler(
   )
   .await?;
   Ok(Json(data.to_jsonapi_document()))
+}
+async fn put_me_images_handler(
+  Extension(pool): Extension<Pool>,
+  locale: Locale,
+  auth: Auth,
+  Json(payload): Json<UpdateAccountImagesParam>,
+  _: Signature,
+) -> JsonApiResponse {
+  let data = put_profile_images(&locale, &pool, &auth.account_id, payload).await?;
+  Ok(Json(vec_to_jsonapi_document(data)))
 }
 
 async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {

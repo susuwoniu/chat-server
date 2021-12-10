@@ -1,5 +1,7 @@
 use crate::{
-  account::model::{DbProfileImage, ProfileImage, Thumbtail, UpdateAccountImageParam},
+  account::model::{
+    DbProfileImage, ProfileImage, Thumbtail, UpdateAccountImageParam, UpdateAccountImagesParam,
+  },
   alias::{KvPool, Pool},
   error::{Error, ServiceError},
   global::Config,
@@ -8,7 +10,7 @@ use crate::{
   types::ServiceResult,
   util::id::next_id,
 };
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
 use sqlx::{query, query_as};
 fn format_image(image: DbProfileImage) -> ProfileImage {
   let thumbnail_default_width = 300;
@@ -86,6 +88,91 @@ async fn update_avatar(
   .await?;
 
   Ok(())
+}
+pub async fn put_profile_images(
+  _: &Locale,
+  pool: &Pool,
+  account_id: &i64,
+  param: UpdateAccountImagesParam,
+) -> ServiceResult<Vec<ProfileImage>> {
+  let now = Utc::now();
+
+  // 事务
+  let mut tx = pool.begin().await?;
+  let _ = query!(
+    r#"
+      DELETE from account_images
+      where account_id = $1
+  "#,
+    account_id,
+  )
+  .execute(&mut tx)
+  .await;
+  let images = param.images;
+  let mut db_images: Vec<ProfileImage> = Vec::new();
+  // insert all
+  let mut v1: Vec<i64> = Vec::new();
+  let mut v2: Vec<NaiveDateTime> = Vec::new();
+  let mut v3: Vec<i64> = Vec::new();
+  let mut v4: Vec<i32> = Vec::new();
+  let mut v5: Vec<String> = Vec::new();
+  let mut v6: Vec<f64> = Vec::new();
+  let mut v7: Vec<f64> = Vec::new();
+  let mut v8: Vec<i64> = Vec::new();
+  let mut v9: Vec<String> = Vec::new();
+  let id = next_id();
+  let mut index = 0;
+  images.into_iter().for_each(|row| {
+    let final_id = id + index;
+    v1.push(final_id);
+    index = index + 1;
+    v2.push(now.naive_utc());
+    v3.push(*account_id);
+    v4.push(row.sequence);
+    v5.push(row.url.clone());
+    v6.push(row.width);
+    v7.push(row.height);
+    v8.push(row.size);
+    v9.push(row.mime_type.clone());
+    db_images.push(format_image(DbProfileImage {
+      id: final_id,
+      account_id: *account_id,
+      sequence: row.sequence,
+      url: row.url,
+      width: row.width,
+      height: row.height,
+      size: row.size,
+      mime_type: row.mime_type,
+      updated_at: now.naive_utc(),
+    }))
+  });
+
+  sqlx::query(
+    r#"
+    INSERT into account_images 
+    (id, updated_at, account_id, sequence, url, width, height, size, mime_type) SELECT * FROM UNNEST ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+"#
+  ).bind(&v1).bind(&v2).bind(&v3).bind(&v4).bind(&v5).bind(&v6).bind(&v7).bind(&v8).bind(&v9)
+  .execute(&mut tx)
+  .await?;
+
+  // update avatar
+  // let image = format_image(DbProfileImage {
+  //   id,
+  //   account_id: *account_id,
+  //   sequence,
+  //   url,
+  //   updated_at: now.naive_utc(),
+  //   width,
+  //   height,
+  //   size,
+  //   mime_type,
+  // });
+  // if sequence == 0 {
+  //   update_avatar(pool, kv, *account_id, image.clone()).await?;
+  // }
+  tx.commit().await?;
+  return Ok(db_images);
 }
 
 pub async fn insert_or_update_profile_image(
