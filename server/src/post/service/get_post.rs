@@ -30,6 +30,21 @@ pub async fn get_posts(
       }
     }
   }
+  let mut limit = cfg.page_size;
+  if let Some(filter_limit) = filter.limit {
+    if filter_limit > cfg.max_page_size {
+      return Err(ServiceError::bad_request(
+        locale,
+        "limit_is_too_large",
+        Error::Other(format!(
+          "limit {} is too large to max limit {}",
+          filter_limit, cfg.max_page_size
+        )),
+      ));
+    } else {
+      limit = filter_limit;
+    }
+  }
   let rows = query_as!(DbPost,
     r#"
       select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count from posts where 
@@ -54,7 +69,7 @@ pub async fn get_posts(
       order by time_cursor desc 
       limit $1
 "#,
-&cfg.page_size,
+&limit,
 filter.before,
 filter.after,
 default_visibility as Option<Visibility>,
@@ -132,6 +147,21 @@ pub async fn get_post_views(
   post_id: i64,
 ) -> ServiceResult<DataWithPageInfo<PostView>> {
   let cfg = Config::global();
+  let mut limit = cfg.page_size;
+  if let Some(filter_limit) = filter.limit {
+    if filter_limit > cfg.max_page_size {
+      return Err(ServiceError::bad_request(
+        locale,
+        "limit_is_too_large",
+        Error::Other(format!(
+          "limit {} is too large to max limit {}",
+          filter_limit, cfg.max_page_size
+        )),
+      ));
+    } else {
+      limit = filter_limit;
+    }
+  }
   let rows = query_as!(
     DbPostView,
     r#"
@@ -145,7 +175,7 @@ pub async fn get_post_views(
       order by id desc 
       limit $1
 "#,
-    &cfg.page_size,
+    &limit,
     post_id,
     filter.before,
     filter.after,

@@ -169,12 +169,14 @@ pub struct ApiPostTemplateFilter {
   pub after: Option<String>,
   pub before: Option<String>,
   pub featured: Option<bool>,
+  pub limit: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PostTemplateFilter {
   pub after: Option<i64>,
   pub before: Option<i64>,
   pub featured: Option<bool>,
+  pub limit: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostFilter {
@@ -184,6 +186,7 @@ pub struct ApiPostFilter {
   pub start_time: Option<NaiveDateTime>,
   pub end_time: Option<NaiveDateTime>,
   pub account_id: Option<i64>,
+  pub limit: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
@@ -193,6 +196,7 @@ pub struct PostFilter {
   pub start_time: Option<NaiveDateTime>,
   pub end_time: Option<NaiveDateTime>,
   pub account_id: Option<i64>,
+  pub limit: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -201,6 +205,7 @@ pub struct ApiPostViewFilter {
   pub start_time: Option<NaiveDateTime>,
   pub end_time: Option<NaiveDateTime>,
   pub post_account_id: Option<i64>,
+  pub limit: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostViewFilter {
@@ -209,6 +214,7 @@ pub struct PostViewFilter {
   pub start_time: Option<NaiveDateTime>,
   pub end_time: Option<NaiveDateTime>,
   pub post_account_id: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl TryFrom<ApiPostFilter> for PostFilter {
@@ -237,6 +243,7 @@ impl TryFrom<ApiPostFilter> for PostFilter {
       start_time = Some(now - duration);
     }
     Ok(PostFilter {
+      limit: value.limit,
       after,
       before,
       skip,
@@ -259,6 +266,7 @@ impl TryFrom<ApiPostViewFilter> for PostViewFilter {
       before = Some(base62_to_i64(&before_value)?);
     }
     Ok(Self {
+      limit: value.limit,
       after,
       before,
       start_time: value.start_time,
@@ -280,6 +288,7 @@ impl TryFrom<ApiPostTemplateFilter> for PostTemplateFilter {
       before = Some(base62_to_i64(&before_value)?);
     }
     Ok(Self {
+      limit: value.limit,
       after,
       before,
       featured: value.featured,

@@ -92,7 +92,6 @@ async fn get_posts_handler(
   let resources = vec_to_jsonapi_resources(data.data);
   let json_api_data = resources.0;
   let other = resources.1;
-  // dbg!(other);
   let response = JsonApiDocument::Data(DocumentData {
     meta: Some(format_page_meta(data.page_info.clone())),
     data: Some(PrimaryData::Multiple(json_api_data)),
@@ -213,11 +212,28 @@ async fn get_post_template_handler(
 async fn get_post_templates_handler(
   Extension(pool): Extension<Pool>,
   locale: Locale,
+  uri: Uri,
+  Query(query): Query<HashMap<String, String>>,
   Query(filter): Query<ApiPostTemplateFilter>,
 ) -> JsonApiResponse {
   let final_filter = PostTemplateFilter::try_from(filter)?;
   let data = get_post_templates(&locale, &pool, &final_filter).await?;
-  Ok(Json(vec_to_jsonapi_document(data)))
+  let resources = vec_to_jsonapi_resources(data.data);
+  let json_api_data = resources.0;
+  let other = resources.1;
+  let response = JsonApiDocument::Data(DocumentData {
+    meta: Some(format_page_meta(data.page_info.clone())),
+    data: Some(PrimaryData::Multiple(json_api_data)),
+    links: Some(format_page_links(
+      POST_SERVICE_PATH,
+      uri.path(),
+      query,
+      data.page_info,
+    )),
+    included: other,
+    ..Default::default()
+  });
+  Ok(Json(response))
 }
 async fn patch_post_template_handler(
   Extension(pool): Extension<Pool>,

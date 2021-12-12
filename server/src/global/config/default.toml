@@ -3,6 +3,8 @@ clients = []
 default_timezone_offset_in_seconds = 28800
 env = "development"
 invite_only = false
+max_accounts = 1000
+max_page_size = 50
 page_size = 30
 use_fixed_code = false
 [profile_image_file_server]

@@ -23,6 +23,8 @@ pub struct Config {
   pub account: Account,
   pub use_fixed_code: bool,
   pub page_size: i64,
+  pub max_page_size: i64,
+  pub max_accounts: usize,
   pub post: Post,
   pub im: Im,
   pub profile_image_file_server: FileServer,
