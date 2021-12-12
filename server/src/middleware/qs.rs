@@ -20,6 +20,7 @@ where
   async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
     let locale = Locale::from_request(req).await?;
     let query = req.uri().query().unwrap_or_default();
+    dbg!(&query);
     let value = urlencoded::from_str(query)
       .map_err(|err| ServiceError::param_invalid(&locale, "parse_query_failed", err.into()))?;
     Ok(Qs(value))

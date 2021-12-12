@@ -182,7 +182,7 @@ pub struct PostTemplateFilter {
 pub struct ApiPostFilter {
   pub after: Option<String>,
   pub before: Option<String>,
-  pub skip: Option<Vec<String>>,
+  pub skip: Option<String>,
   pub start_time: Option<NaiveDateTime>,
   pub end_time: Option<NaiveDateTime>,
   pub account_id: Option<i64>,
@@ -231,8 +231,12 @@ impl TryFrom<ApiPostFilter> for PostFilter {
     }
     let mut skip = Vec::new();
     if let Some(skip_value) = value.skip {
-      skip = parse_skip_range(&skip_value)?;
+      // skip value to vec
+      let skips: Vec<&str> = skip_value.split(",").collect();
+      skip = parse_skip_range(&skips)?;
     }
+    dbg!(&skip);
+
     let mut start_time = value.start_time;
     if value.start_time.is_none() {
       let cfg = Config::global();

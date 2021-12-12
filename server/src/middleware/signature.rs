@@ -1,6 +1,6 @@
 use crate::{
   error::{Error, ServiceError},
-  global::Client,
+  global::{Client, Config, ENV},
   middleware::{
     header_x_client_date::XClientDate, header_x_client_id::XClientId,
     header_x_client_signature::XClientSignature, Locale,
@@ -24,10 +24,19 @@ where
   async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
     // get locale
     // check is signature exists
-    let TypedHeader(XClientSignature(x_client_signature)) =
-      TypedHeader::<XClientSignature>::from_request(req).await?;
+
     // check client id is exists
     let TypedHeader(XClientId(x_client_id)) = TypedHeader::<XClientId>::from_request(req).await?;
+
+    // if dev
+    let cfg = Config::global();
+    if cfg.env == ENV::Dev {
+      return Ok(Signature {
+        client_id: x_client_id,
+      });
+    }
+    let TypedHeader(XClientSignature(x_client_signature)) =
+      TypedHeader::<XClientSignature>::from_request(req).await?;
     // check is client date exists
     let TypedHeader(XClientDate(x_client_date)) =
       TypedHeader::<XClientDate>::from_request(req).await?;

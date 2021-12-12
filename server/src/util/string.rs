@@ -18,7 +18,7 @@ pub fn to_first_letter_uppertcase(s: &str) -> String {
   )
 }
 
-pub fn parse_skip_range(arr: &Vec<String>) -> ServiceResult<Vec<[i64; 2]>> {
+pub fn parse_skip_range(arr: &Vec<&str>) -> ServiceResult<Vec<[i64; 2]>> {
   Ok(
     arr
       .iter()
@@ -26,6 +26,7 @@ pub fn parse_skip_range(arr: &Vec<String>) -> ServiceResult<Vec<[i64; 2]>> {
         let mut parts = s.split('-');
         let start = base62_to_i64(parts.next()?).ok()?;
         let end = base62_to_i64(parts.next()?).ok()?;
+        dbg!(&start);
         Some([start, end])
       })
       .collect(),
