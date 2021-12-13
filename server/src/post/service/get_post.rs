@@ -56,16 +56,16 @@ pub async fn get_posts(
       and ($4::visibility is null or visibility=$4) 
       and approved=true 
       and deleted=false 
-      and ($5::bigint is null or time_cursor < $5 or time_cursor > $6)
-      and ($7::bigint is null or time_cursor < $7 or time_cursor > $8)
-      and ($9::bigint is null or time_cursor < $9 or time_cursor > $10)
-      and ($11::bigint is null or time_cursor < $11 or time_cursor > $12)
-      and ($13::bigint is null or time_cursor < $13 or time_cursor > $14)
-      and ($17::bigint is null or time_cursor < $17 or time_cursor > $18)
-      and ($19::bigint is null or time_cursor < $19 or time_cursor > $20)
-      and ($21::bigint is null or time_cursor < $21 or time_cursor > $22)
-      and ($23::bigint is null or time_cursor < $23 or time_cursor > $24)
-      and ($25::bigint is null or time_cursor < $25 or time_cursor > $26)
+      and ($5::bigint is null or time_cursor > $5 or time_cursor < $6)
+      and ($7::bigint is null or time_cursor > $7 or time_cursor < $8)
+      and ($9::bigint is null or time_cursor > $9 or time_cursor < $10)
+      and ($11::bigint is null or time_cursor > $11 or time_cursor < $12)
+      and ($13::bigint is null or time_cursor > $13 or time_cursor < $14)
+      and ($17::bigint is null or time_cursor > $17 or time_cursor < $18)
+      and ($19::bigint is null or time_cursor > $19 or time_cursor < $20)
+      and ($21::bigint is null or time_cursor > $21 or time_cursor < $22)
+      and ($23::bigint is null or time_cursor > $23 or time_cursor < $24)
+      and ($25::bigint is null or time_cursor > $25 or time_cursor < $26)
       order by time_cursor desc 
       limit $1
 "#,
