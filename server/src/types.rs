@@ -91,3 +91,9 @@ pub enum Gender {
   Other,
   Intersex,
 }
+
+impl Default for Gender {
+  fn default() -> Self {
+    return Gender::Unknown;
+  }
+}

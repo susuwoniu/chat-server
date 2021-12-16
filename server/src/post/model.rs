@@ -187,6 +187,7 @@ pub struct ApiPostFilter {
   pub end_time: Option<NaiveDateTime>,
   pub account_id: Option<i64>,
   pub limit: Option<i64>,
+  pub gender: Option<Gender>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
@@ -197,6 +198,7 @@ pub struct PostFilter {
   pub end_time: Option<NaiveDateTime>,
   pub account_id: Option<i64>,
   pub limit: Option<i64>,
+  pub gender: Option<Gender>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -235,7 +237,6 @@ impl TryFrom<ApiPostFilter> for PostFilter {
       let skips: Vec<&str> = skip_value.split(",").collect();
       skip = parse_skip_range(&skips)?;
     }
-    dbg!(&skip);
 
     let mut start_time = value.start_time;
     if value.start_time.is_none() {
@@ -254,6 +255,7 @@ impl TryFrom<ApiPostFilter> for PostFilter {
       start_time: start_time,
       end_time: value.end_time,
       account_id: value.account_id,
+      gender: value.gender,
     })
   }
 }

@@ -66,6 +66,7 @@ pub async fn get_posts(
       and ($21::bigint is null or time_cursor > $21 or time_cursor < $22)
       and ($23::bigint is null or time_cursor > $23 or time_cursor < $24)
       and ($25::bigint is null or time_cursor > $25 or time_cursor < $26)
+      and ($28::gender is null or gender =$28)
       order by time_cursor desc 
       limit $1
 "#,
@@ -95,7 +96,8 @@ get_range_value_or_none(&skip.get(8),0),
 get_range_value_or_none(&skip.get(8),1),
 get_range_value_or_none(&skip.get(9),0),
 get_range_value_or_none(&skip.get(9),1),
-filter.account_id
+filter.account_id,
+filter.gender.clone() as Option<Gender>
   )
   .fetch_all(pool)
   .await?;

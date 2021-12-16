@@ -1,7 +1,7 @@
 use crate::{
   account::{
-    model::{DbAccount, FullAccount, UpdateAccountParam},
-    service::get_account::{format_account, get_full_account},
+    model::{DbAccount, FullAccount, UpdateAccountParam, UpdateOtherAccountParam},
+    service::get_account::{format_account, get_db_account_view, get_full_account},
   },
   alias::{KvPool, Pool},
   error::{Error, ServiceError},
@@ -13,6 +13,44 @@ use crate::{
 
 use chrono::Utc;
 use sqlx::query_as;
+// 修改他人的账户
+pub async fn update_other_account(
+  locale: &Locale,
+  pool: &Pool,
+  kv: &KvPool,
+  param: UpdateOtherAccountParam,
+  auth: &Auth,
+) {
+  let account_id = auth.account_id;
+  let is_admin = auth.admin;
+  let is_vip = auth.vip;
+  let is_moderator = auth.moderator;
+  let now = Utc::now();
+  let cfg = Config::global();
+  let trace_info = format!("param:{:?}", &param);
+  let UpdateOtherAccountParam {
+    viewed_count_action,
+    target_account_id,
+  } = param;
+  // 是否本人
+  if target_account_id == account_id {
+    return;
+  }
+  // 修改count
+  // let mut viewed_count_action_value = None;
+
+  if let Some(viewed_count_action) = viewed_count_action {
+    match viewed_count_action {
+      FieldAction::IncreaseOne => {
+        // TODO
+        // viewed_count_action_value = Some(current_view_count + 1);
+      }
+      FieldAction::DecreaseOne => {
+        // viewed_count_action_value = None;
+      }
+    }
+  }
+}
 pub async fn update_account(
   locale: &Locale,
   pool: &Pool,

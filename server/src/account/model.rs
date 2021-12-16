@@ -245,7 +245,16 @@ pub struct FullAccount {
   pub post_template_count: i64,
 }
 jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
+#[derive(Debug, Clone)]
 
+pub struct DbAccountView {
+  pub id: i64,
+  pub viewed_count: i32,
+  pub account_id: i64,
+  pub target_account_id: i64,
+  pub updated_at: NaiveDateTime,
+  pub created_at: NaiveDateTime,
+}
 #[derive(Debug, Clone)]
 
 pub struct DbAccount {
@@ -331,7 +340,11 @@ pub struct ProfileImage {
   pub thumbtail: Thumbtail,
 }
 jsonapi_model!(ProfileImage; "profile-images");
-
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct UpdateOtherAccountParam {
+  pub viewed_count_action: Option<FieldAction>,
+  pub target_account_id: i64,
+}
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct UpdateAccountParam {
   pub name: Option<String>,

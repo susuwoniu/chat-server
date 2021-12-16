@@ -1,6 +1,6 @@
 use crate::{
   account::{
-    model::{Account, DbAccount, FullAccount, ProfileImage},
+    model::{Account, DbAccount, DbAccountView, FullAccount, ProfileImage},
     service::update_account_image::get_profile_images,
   },
   alias::Pool,
@@ -33,7 +33,38 @@ account_id
     ));
   }
 }
-
+pub async fn get_db_account_views(
+  locale: &Locale,
+  pool: &Pool,
+  target_account_id: i64,
+) -> ServiceResult<Vec<DbAccountView>> {
+  let rows=  query_as!(DbAccountView,
+    r#"
+      select id,account_id,viewed_count,updated_at,created_at,target_account_id from account_views where target_account_id = $1
+"#,
+target_account_id
+  )
+  .fetch_all(pool)
+  .await?;
+  return Ok(rows);
+}
+pub async fn get_db_account_view(
+  locale: &Locale,
+  pool: &Pool,
+  target_account_id: i64,
+  account_id: i64,
+) -> ServiceResult<Option<DbAccountView>> {
+  let row=  query_as!(DbAccountView,
+    r#"
+      select id,account_id,viewed_count,updated_at,created_at,target_account_id from account_views where target_account_id = $1 and account_id = $2
+"#,
+target_account_id,
+account_id
+  )
+  .fetch_optional(pool)
+  .await?;
+  return Ok(row);
+}
 async fn get_db_accounts(
   locale: &Locale,
   pool: &Pool,
