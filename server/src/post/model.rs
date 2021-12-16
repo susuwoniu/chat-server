@@ -8,9 +8,10 @@ use crate::{
     string::parse_skip_range, string_i64,
   },
 };
+use chrono::Datelike;
 use chrono::{
   prelude::{NaiveDateTime, Utc},
-  Duration,
+  Duration, NaiveDate,
 };
 use derivative::Derivative;
 use ipnetwork17::IpNetwork;
@@ -188,6 +189,8 @@ pub struct ApiPostFilter {
   pub account_id: Option<i64>,
   pub limit: Option<i64>,
   pub gender: Option<Gender>,
+  pub start_age: Option<i64>,
+  pub end_age: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
@@ -199,6 +202,8 @@ pub struct PostFilter {
   pub account_id: Option<i64>,
   pub limit: Option<i64>,
   pub gender: Option<Gender>,
+  pub start_birthday: Option<NaiveDate>,
+  pub end_birthday: Option<NaiveDate>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -237,15 +242,36 @@ impl TryFrom<ApiPostFilter> for PostFilter {
       let skips: Vec<&str> = skip_value.split(",").collect();
       skip = parse_skip_range(&skips)?;
     }
+    let now = Utc::now().naive_utc();
 
     let mut start_time = value.start_time;
     if value.start_time.is_none() {
       let cfg = Config::global();
       let days = cfg.post.default_listed_posts_duration_in_days;
       let duration = Duration::days(days);
-      let now = Utc::now().naive_utc();
       //start_time 默认一个月内的帖子，减少服务器消耗
       start_time = Some(now - duration);
+    }
+    let mut start_birthday_value = None;
+    let mut end_birthday_value = None;
+    if let Some(start_age) = value.start_age {
+      let start_birthday = now.date().pred().and_hms(0, 0, 0);
+      let start_birthday = NaiveDate::from_ymd(
+        start_birthday.year() - start_age as i32,
+        start_birthday.month(),
+        start_birthday.day(),
+      );
+      // age 和birthday 刚好相反
+      end_birthday_value = Some(start_birthday);
+    }
+    if let Some(end_age) = value.end_age {
+      let end_birthday = now.date().succ().and_hms(0, 0, 0);
+      let end_birthday = NaiveDate::from_ymd(
+        end_birthday.year() - end_age as i32,
+        end_birthday.month(),
+        end_birthday.day(),
+      );
+      start_birthday_value = Some(end_birthday);
     }
     Ok(PostFilter {
       limit: value.limit,
@@ -256,6 +282,8 @@ impl TryFrom<ApiPostFilter> for PostFilter {
       end_time: value.end_time,
       account_id: value.account_id,
       gender: value.gender,
+      start_birthday: start_birthday_value,
+      end_birthday: end_birthday_value,
     })
   }
 }

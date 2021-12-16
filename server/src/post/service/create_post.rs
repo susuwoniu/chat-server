@@ -1,7 +1,7 @@
 use crate::{
   account::{
     model::UpdateAccountParam,
-    service::{get_account::get_account, update_account::update_account},
+    service::{get_account::get_db_account, update_account::update_account},
   },
   alias::{KvPool, Pool},
   middleware::{Auth, Locale},
@@ -42,7 +42,7 @@ pub async fn create_post(
   let post_template = get_post_template(locale, pool, post_template_id).await?;
   // get account
 
-  let author = get_account(locale, pool, auth.account_id).await?;
+  let author = get_db_account(locale, pool, auth.account_id).await?;
 
   let mut final_background_color = post_template.background_color;
   if let Some(background_color) = background_color {
@@ -50,8 +50,8 @@ pub async fn create_post(
   }
   let post = query_as!(DbPost,
     r#"
-INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count
 "#,
     id,
@@ -69,7 +69,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     true,
     now,
     auth.account_id,
-
+    author.birthday
   )
   .fetch_one(pool)
   .await?;
