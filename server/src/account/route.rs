@@ -54,6 +54,10 @@ pub fn service_route() -> Router {
             "/accounts/:account_id",
             get(get_account_handler).patch(patch_other_account_handler),
         )
+        .route(
+            "/accounts/:account_id/profile-images",
+            get(get_account_images_handler),
+        )
         .route("/accounts", get(get_accounts_by_ids_handler))
         .route("/me", get(get_me_handler).patch(patch_account_handler))
         .route(
@@ -120,7 +124,14 @@ async fn put_me_images_handler(
     let data = put_profile_images(&locale, &pool, &auth.account_id, payload).await?;
     Ok(Json(vec_to_jsonapi_document(data)))
 }
+async fn get_account_images_handler(
+    Extension(pool): Extension<Pool>,
+    Path(account_id): Path<i64>,
+) -> JsonApiResponse {
+    let data = get_profile_images(&pool, account_id).await?;
 
+    Ok(Json(vec_to_jsonapi_document(data)))
+}
 async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
     let data = get_profile_images(&pool, auth.account_id).await?;
 
