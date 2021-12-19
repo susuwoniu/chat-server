@@ -8,6 +8,12 @@ use crate::{
     global::Config,
     im::{model::ImUpdateAccountParam, service::update_im_account::update_im_account},
     middleware::{Auth, Locale},
+    notification::{
+        model::{
+            CreateNotificationParam, NotificationAction, NotificationActionData, NotificationType,
+        },
+        service::create_notification::create_notification,
+    },
     types::{FieldAction, Gender, ServiceResult},
     util::id::next_id,
 };
@@ -20,7 +26,7 @@ pub async fn update_other_account(
     pool: &Pool,
     kv: &KvPool,
     param: UpdateOtherAccountParam,
-    auth: &Auth,
+    auth: Auth,
 ) -> ServiceResult<()> {
     let account_id = auth.account_id;
     let is_admin = auth.admin;
@@ -85,6 +91,16 @@ pub async fn update_other_account(
             }
         }
     }
+    let notification = CreateNotificationParam {
+        content: "".to_string(),
+        _type: NotificationType::ProfileViewed,
+        action: NotificationAction::ProfileViewed,
+        from_account_id: auth.account_id,
+        is_primary: false,
+        action_data: NotificationActionData::ProfileViewed,
+    };
+    // create notification
+    create_notification(locale, pool, kv, notification, auth.clone()).await?;
     return Ok(());
 }
 pub async fn update_account(

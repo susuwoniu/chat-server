@@ -58,8 +58,8 @@ pub struct SignupData {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq)]
-#[sqlx(type_name = "identity_type", rename_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "identity_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum IdentityType {
     Phone,
     Email,

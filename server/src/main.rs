@@ -8,6 +8,7 @@ mod file;
 mod global;
 mod im;
 mod middleware;
+mod notification;
 mod post;
 mod route;
 mod types;

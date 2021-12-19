@@ -49,3 +49,6 @@ admin_account_id = 0
 api_key = ""
 api_url = "https://im-api.scuinfo.com"
 domain = "xmpp.scuinfo.com"
+
+[notification]
+default_listed_notifications_duration_in_days = 30

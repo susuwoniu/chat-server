@@ -180,7 +180,7 @@ async fn patch_other_account_handler(
             viewed_count_action: payload.viewed_count_action,
             target_account_id: target_accoutn_id,
         },
-        &auth,
+        auth,
     )
     .await?;
     QuickResponse::default()
