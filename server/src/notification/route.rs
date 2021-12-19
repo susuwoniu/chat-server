@@ -26,7 +26,7 @@ use jsonapi::{api::*, model::*};
 pub fn service_route() -> Router {
     Router::new().route(
         "/me/notification-inbox",
-        get(patch_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
+        get(get_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
     )
 }
 
