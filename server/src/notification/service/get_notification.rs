@@ -11,7 +11,7 @@ use crate::{
 use chrono::Utc;
 use sqlx::query_as;
 use std::collections::HashMap;
-pub async fn get_notification_inboxes(
+pub async fn get_notification_inbox(
     locale: &Locale,
     pool: &Pool,
     auth: Auth,

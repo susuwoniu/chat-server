@@ -15,8 +15,7 @@ use chrono::{
 };
 use jsonapi::{api::*, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use sqlx::types::Json;
+
 use std::convert::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Hash, std::cmp::Eq)]
 #[serde(rename_all = "snake_case")]

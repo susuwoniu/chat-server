@@ -7,7 +7,7 @@ use crate::{
             NotificationInboxItem, NotificationType, UpdateNotificationInboxParam,
         },
         service::{
-            get_notification::get_notification_inboxes,
+            get_notification::get_notification_inbox,
             update_notification::update_notification_inbox,
         },
     },
@@ -25,8 +25,8 @@ use jsonapi::{api::*, model::*};
 
 pub fn service_route() -> Router {
     Router::new().route(
-        "/me/notification_inboxes",
-        get(get_me_notification_inboxes_handler).patch(patch_me_notification_inboxes_handler),
+        "/me/notification-inbox",
+        get(patch_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
     )
 }
 
@@ -42,13 +42,13 @@ pub fn service_route() -> Router {
 //     Ok(Json(data.to_jsonapi_document()))
 // }
 
-async fn get_me_notification_inboxes_handler(
+async fn get_me_notification_inbox_handler(
     locale: Locale,
     _: Signature,
     Extension(pool): Extension<Pool>,
     auth: Auth,
 ) -> SimpleMetaResponse<NotificationInbox> {
-    let data = get_notification_inboxes(
+    let data = get_notification_inbox(
         &locale,
         &pool,
         auth,
@@ -60,7 +60,7 @@ async fn get_me_notification_inboxes_handler(
     QuickResponse::meta(data)
 }
 
-async fn patch_me_notification_inboxes_handler(
+async fn patch_me_notification_inbox_handler(
     locale: Locale,
     _: Signature,
     Extension(pool): Extension<Pool>,
