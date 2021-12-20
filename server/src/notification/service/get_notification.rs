@@ -22,7 +22,7 @@ pub async fn get_notification_inbox(
     let rows = query_as!(
         DbNotificationInbox,
         r#"
-      select created_at,updated_at,account_id,_type,is_primary,unread_count,last_notification_id,last_notification_updated_at from notification_inboxes where 
+      select created_at,updated_at,account_id,_type,is_primary,unread_count,last_notification_id,last_notification_updated_at,total_count from notification_inboxes where 
       account_id = $1
 "#,
         auth.account_id
@@ -46,6 +46,7 @@ pub async fn get_notification_inbox(
         _type: NotificationType::ProfileViewed,
         is_primary: false,
         unread_count: 0,
+        total_count: 0,
         last_notification: None,
     };
     if let Some(profile_viewed_notification) = profile_viewed_notification_option {
@@ -76,6 +77,7 @@ fn format_notification_inbox_item(item: DbNotificationInbox) -> NotificationInbo
         unread_count,
         last_notification_id: _,
         last_notification_updated_at: _,
+        total_count,
     } = item;
     return NotificationInboxItem {
         account_id: account_id,
@@ -85,5 +87,6 @@ fn format_notification_inbox_item(item: DbNotificationInbox) -> NotificationInbo
         is_primary,
         unread_count,
         last_notification: None,
+        total_count,
     };
 }

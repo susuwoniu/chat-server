@@ -98,6 +98,7 @@ pub struct NotificationInboxItem {
     pub unread_count: i64,
     pub is_primary: bool,
     pub last_notification: Option<Notification>,
+    pub total_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,6 +115,7 @@ pub struct DbNotificationInbox {
     pub is_primary: bool,
     pub unread_count: i64,
     pub last_notification_id: i64,
+    pub total_count: i64,
     pub last_notification_updated_at: NaiveDateTime,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

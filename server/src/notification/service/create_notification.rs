@@ -50,14 +50,15 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     query!(
         r#"
 INSERT into notification_inboxes 
-(id, updated_at,created_at,account_id, _type,unread_count,last_notification_id,last_notification_updated_at,last_notification_from)
-VALUES ($1,$2,$3,$4,$5,1,$6,$7,$8) 
+(id, updated_at,created_at,account_id, _type,unread_count,last_notification_id,last_notification_updated_at,last_notification_from,total_count)
+VALUES ($1,$2,$3,$4,$5,1,$6,$7,$8,1) 
 ON CONFLICT (account_id,_type)  DO UPDATE SET 
 updated_at=$2,
 unread_count=excluded.unread_count+1,
 last_notification_id=$6,
 last_notification_updated_at=$7,
-last_notification_from=$8
+last_notification_from=$8,
+total_count = excluded.total_count+1
 "#,
         inbox_id,
         now,
