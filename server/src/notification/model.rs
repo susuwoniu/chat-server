@@ -2,16 +2,11 @@ use crate::{
     account::model::Account,
     error::ServiceError,
     global::Config,
-    types::{FieldAction, Gender},
-    util::{
-        base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64,
-        string::parse_skip_range, string_i64,
-    },
+    util::{base62_i64, base62_to_i64, datetime_tz, string_i64},
 };
-use chrono::Datelike;
 use chrono::{
     prelude::{NaiveDateTime, Utc},
-    Duration, NaiveDate,
+    Duration,
 };
 use jsonapi::{api::*, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
@@ -199,7 +194,7 @@ impl TryFrom<ApiNotificationFilter> for NotificationFilter {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct CreateNotificationParam {
     pub content: String,
-    pub from_account_id: i64,
+    pub target_account_id: i64,
     #[serde(rename = "type")]
     pub _type: NotificationType,
     #[sqlx(rename = "_action")]

@@ -1,5 +1,5 @@
 use crate::{
-    alias::{KvPool, Pool},
+    alias::Pool,
     middleware::{Auth, Locale},
     notification::model::UpdateNotificationInboxParam,
     types::ServiceResult,

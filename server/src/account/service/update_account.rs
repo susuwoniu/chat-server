@@ -1,7 +1,7 @@
 use crate::{
     account::{
         model::{DbAccount, FullAccount, UpdateAccountParam, UpdateOtherAccountParam},
-        service::get_account::{format_account, get_db_account_view, get_full_account},
+        service::get_account::{format_account, get_full_account},
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
@@ -29,12 +29,8 @@ pub async fn update_other_account(
     auth: Auth,
 ) -> ServiceResult<()> {
     let account_id = auth.account_id;
-    let is_admin = auth.admin;
-    let is_vip = auth.vip;
-    let is_moderator = auth.moderator;
+
     let now = Utc::now();
-    let cfg = Config::global();
-    let trace_info = format!("param:{:?}", &param);
     let UpdateOtherAccountParam {
         viewed_count_action,
         target_account_id,
@@ -50,7 +46,6 @@ pub async fn update_other_account(
         match viewed_count_action {
             FieldAction::IncreaseOne => {
                 // TODO
-                // viewed_count_action_value = Some(current_view_count + 1);
                 let mut tx = pool.begin().await?;
                 let id = next_id();
                 query!(
@@ -95,7 +90,7 @@ pub async fn update_other_account(
         content: "".to_string(),
         _type: NotificationType::ProfileViewed,
         action: NotificationAction::ProfileViewed,
-        from_account_id: auth.account_id,
+        target_account_id,
         is_primary: false,
         action_data: NotificationActionData::ProfileViewed,
     };

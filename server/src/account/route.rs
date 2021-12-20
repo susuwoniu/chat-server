@@ -172,7 +172,7 @@ async fn patch_other_account_handler(
     auth: Auth,
     Json(payload): Json<ApiUpdateOtherAccountParam>,
 ) -> JsonApiResponse {
-    let account = update_other_account(
+    update_other_account(
         &locale,
         &pool,
         &kv,

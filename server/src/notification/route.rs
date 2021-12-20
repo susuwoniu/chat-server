@@ -1,27 +1,17 @@
 use crate::{
-    alias::{KvPool, Pool},
-    middleware::{Auth, Ip, Locale, Qs, Signature},
+    alias::Pool,
+    middleware::{Auth, Locale, Signature},
     notification::{
-        model::{
-            DbNotification, DbNotificationInbox, NotificationInbox, NotificationInboxFilter,
-            NotificationInboxItem, NotificationType, UpdateNotificationInboxParam,
-        },
+        model::{NotificationInbox, NotificationInboxFilter, UpdateNotificationInboxParam},
         service::{
             get_notification::get_notification_inbox,
             update_notification::update_notification_inbox,
         },
     },
     types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
-    util::page::{format_page_links, format_page_meta},
 };
 
-use axum::{
-    extract::{Extension, Path, Query},
-    http::Uri,
-    routing::get,
-    Json, Router,
-};
-use jsonapi::{api::*, model::*};
+use axum::{extract::Extension, routing::get, Json, Router};
 
 pub fn service_route() -> Router {
     Router::new().route(

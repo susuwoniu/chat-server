@@ -17,7 +17,7 @@ pub async fn create_notification(
 ) -> ServiceResult<()> {
     let CreateNotificationParam {
         content,
-        from_account_id,
+        target_account_id,
         _type,
         action,
         action_data,
@@ -35,13 +35,13 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 "#,
         id,
         content,
-        auth.account_id,
+        target_account_id,
         now,
         json!(_type).to_string(),
         json!(action).to_string(),
         json!(action_data),
         is_primary,
-        from_account_id
+        auth.account_id
     )
     .execute(&mut tx)
     .await?;
@@ -49,25 +49,26 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 
     query!(
         r#"
-INSERT into notification_inboxes 
+INSERT into notification_inboxes as t
 (id, updated_at,created_at,account_id, _type,unread_count,last_notification_id,last_notification_updated_at,last_notification_from,total_count)
 VALUES ($1,$2,$3,$4,$5,1,$6,$7,$8,1) 
-ON CONFLICT (account_id,_type)  DO UPDATE SET 
+ON CONFLICT (account_id,_type)  
+DO UPDATE SET 
 updated_at=$2,
-unread_count=excluded.unread_count+1,
+unread_count=t.unread_count + 1,
 last_notification_id=$6,
 last_notification_updated_at=$7,
 last_notification_from=$8,
-total_count = excluded.total_count+1
+total_count = t.total_count + 1
 "#,
         inbox_id,
         now,
         now,
-        auth.account_id,
+        target_account_id,
         json!(_type).to_string(),
         id,
         now,
-        from_account_id
+        auth.account_id
     )
     .execute(&mut tx)
     .await?;

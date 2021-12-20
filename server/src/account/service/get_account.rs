@@ -129,8 +129,9 @@ pub async fn get_account_views(
     };
     return Ok(collection);
 }
+#[allow(dead_code)]
 pub async fn get_db_account_view(
-    locale: &Locale,
+    _: &Locale,
     pool: &Pool,
     target_account_id: i64,
     viewed_by: i64,

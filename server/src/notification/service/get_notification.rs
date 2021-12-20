@@ -1,6 +1,5 @@
 use crate::{
     alias::Pool,
-    global::Config,
     middleware::{Auth, Locale},
     notification::model::{
         DbNotificationInbox, NotificationInbox, NotificationInboxFilter, NotificationInboxItem,
@@ -12,12 +11,11 @@ use chrono::Utc;
 use sqlx::query_as;
 use std::collections::HashMap;
 pub async fn get_notification_inbox(
-    locale: &Locale,
+    _: &Locale,
     pool: &Pool,
     auth: Auth,
-    filter: NotificationInboxFilter,
+    _: NotificationInboxFilter,
 ) -> ServiceResult<NotificationInbox> {
-    let cfg = Config::global();
     let now = Utc::now().naive_utc();
     let rows = query_as!(
         DbNotificationInbox,
