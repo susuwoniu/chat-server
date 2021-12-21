@@ -55,7 +55,7 @@ pub struct Action {
     pub required: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum FieldAction {
     IncreaseOne,

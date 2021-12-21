@@ -1,11 +1,11 @@
 use crate::{
     alias::Pool,
     middleware::{Auth, Locale},
-    notification::model::UpdateNotificationInboxParam,
+    notification::{model::UpdateNotificationInboxParam, util::notification_type_to_string},
     types::ServiceResult,
 };
 use chrono::Utc;
-use serde_json::json;
+
 use sqlx::query;
 pub async fn update_notification_inbox(
     _: &Locale,
@@ -33,7 +33,7 @@ where
 account_id = $1 and _type = $2
 "#,
         auth.account_id,
-        json!(_type).to_string(),
+        notification_type_to_string(&_type),
         now,
         unread_count
     )

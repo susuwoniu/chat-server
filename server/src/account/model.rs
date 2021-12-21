@@ -399,14 +399,17 @@ jsonapi_model!(ProfileImage; "profile-images");
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct ApiUpdateOtherAccountParam {
     pub viewed_count_action: Option<FieldAction>,
+    pub like_count_action: Option<FieldAction>,
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct UpdateOtherAccountParam {
     pub viewed_count_action: Option<FieldAction>,
+    pub like_count_action: Option<FieldAction>,
     pub target_account_id: i64,
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct UpdateAccountParam {
+    pub account_id: Option<i64>,
     pub name: Option<String>,
     pub bio: Option<String>,
     pub gender: Option<Gender>,

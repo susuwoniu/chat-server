@@ -29,18 +29,30 @@ pub async fn update_other_account(
     auth: Auth,
 ) -> ServiceResult<()> {
     let account_id = auth.account_id;
-
+    let mut field_action = None;
     let now = Utc::now();
+    let mut is_primary = false;
+    let mut _type = NotificationType::ProfileViewed;
+    let mut action = NotificationAction::ProfileViewed;
+    let mut action_data = NotificationActionData::ProfileViewed;
     let UpdateOtherAccountParam {
         viewed_count_action,
         target_account_id,
+        like_count_action,
     } = param;
     // 是否本人
     if target_account_id == account_id {
         return Ok(());
     }
+    // 互斥，only one once.
+    if viewed_count_action.is_some() && like_count_action.is_some() {
+        return Err(ServiceError::bad_request(
+            locale,
+            "only_one_action_can_edited_once",
+            Error::Default,
+        ));
+    }
     // 修改count
-    // let mut viewed_count_action_value = None;
     let default_viewed_count = 1;
     if let Some(viewed_count_action) = viewed_count_action {
         match viewed_count_action {
@@ -63,12 +75,12 @@ pub async fn update_other_account(
                 .await?;
                 query!(
                     r#"
-          INSERT into account_views 
+          INSERT into account_views as t 
           (id, updated_at,created_at,viewed_by, target_account_id,viewed_count)
           VALUES ($1,$2,$3,$4,$5,$6) 
           ON CONFLICT (viewed_by, target_account_id)  DO UPDATE SET 
           updated_at=$2,
-          viewed_count=excluded.viewed_count+1
+          viewed_count=t.viewed_count+1
       "#,
                     id,
                     now.naive_utc(),
@@ -80,22 +92,122 @@ pub async fn update_other_account(
                 .execute(&mut tx)
                 .await?;
                 tx.commit().await?;
+                field_action = Some(FieldAction::IncreaseOne);
             }
             FieldAction::DecreaseOne => {
                 // viewed_count_action_value = None;
             }
         }
     }
-    let notification = CreateNotificationParam {
-        content: "".to_string(),
-        _type: NotificationType::ProfileViewed,
-        action: NotificationAction::ProfileViewed,
-        target_account_id,
-        is_primary: false,
-        action_data: NotificationActionData::ProfileViewed,
-    };
-    // create notification
-    create_notification(locale, pool, kv, notification, auth.clone()).await?;
+
+    // if like_count_action exist
+    let mut is_increase_likes_count_success = false;
+    let mut is_delete_likes_success = false;
+    if let Some(like_count_action) = like_count_action {
+        _type = NotificationType::ProfileLiked;
+        action = NotificationAction::ProfileLiked;
+        action_data = NotificationActionData::ProfileLiked;
+        match like_count_action {
+            FieldAction::IncreaseOne => {
+                // TODO
+                let id = next_id();
+
+                let query_result = query!(
+                    r#"
+      INSERT INTO likes (id,account_id,target_account_id,updated_at,created_at)
+      VALUES ($1,$2,$3,$4,$5)
+      "#,
+                    id,
+                    account_id,
+                    target_account_id,
+                    now.naive_utc(),
+                    now.naive_utc()
+                )
+                .execute(pool)
+                .await;
+                if query_result.is_err() {
+                    tracing::warn!(
+                        "Duduplicate like from {} to account {}",
+                        account_id,
+                        target_account_id
+                    );
+                } else {
+                    is_primary = true;
+                    is_increase_likes_count_success = true;
+                    field_action = Some(FieldAction::IncreaseOne);
+                }
+            }
+            FieldAction::DecreaseOne => {
+                let query_result = query!(
+                    r#"
+      DELETE from likes where account_id=$1 and target_account_id=$2
+      "#,
+                    account_id,
+                    target_account_id,
+                )
+                .execute(pool)
+                .await;
+                if query_result.is_err() {
+                    tracing::warn!(
+                        "Duduplicate like from {} to account {}",
+                        account_id,
+                        target_account_id
+                    );
+                } else {
+                    field_action = Some(FieldAction::DecreaseOne);
+                    is_delete_likes_success = true;
+                }
+            }
+        }
+    }
+
+    // update account
+    if is_increase_likes_count_success {
+        //
+        update_account(
+            locale,
+            pool,
+            kv,
+            UpdateAccountParam {
+                account_id: Some(target_account_id),
+                like_count_action: Some(FieldAction::IncreaseOne),
+                ..Default::default()
+            },
+            &auth,
+            true,
+        )
+        .await?;
+    } else if is_delete_likes_success {
+        // 删除点赞
+        update_account(
+            locale,
+            pool,
+            kv,
+            UpdateAccountParam {
+                account_id: Some(target_account_id),
+                like_count_action: Some(FieldAction::DecreaseOne),
+                ..Default::default()
+            },
+            &auth,
+            true,
+        )
+        .await?;
+    }
+    if field_action.is_some() {
+        // 创建通知
+        let notification = CreateNotificationParam {
+            content: "".to_string(),
+            _type: _type,
+            action: action,
+            target_account_id,
+            is_primary: is_primary,
+            field_action: field_action.unwrap(),
+            action_data: action_data,
+        };
+        // create notification
+        create_notification(locale, pool, kv, notification, auth.clone()).await?;
+    }
+
     return Ok(());
 }
 pub async fn update_account(
@@ -104,9 +216,10 @@ pub async fn update_account(
     kv: &KvPool,
     param: UpdateAccountParam,
     auth: &Auth,
+    is_internal: bool,
 ) -> ServiceResult<FullAccount> {
     // first get account
-    let account_id = auth.account_id;
+    let auth_account_id = auth.account_id;
     let is_admin = auth.admin;
     let is_vip = auth.vip;
     let is_moderator = auth.moderator;
@@ -141,7 +254,10 @@ pub async fn update_account(
         post_count_action,
         like_count_action,
         show_viewed_action,
+        account_id: account_id_value,
     } = param;
+    let account_id = account_id_value.unwrap_or(auth_account_id);
+
     // check permiss
 
     // only admin fields
@@ -154,10 +270,11 @@ pub async fn update_account(
         ));
     }
     // only admin or moderator
-    if (!is_admin || !is_moderator) && suspended.is_some()
-        || suspended_at.is_some()
-        || suspended_until.is_some()
-        || suspended_reason.is_some()
+    if (!is_admin || !is_moderator)
+        && (suspended.is_some()
+            || suspended_at.is_some()
+            || suspended_until.is_some()
+            || suspended_reason.is_some())
     {
         return Err(ServiceError::permission_limit(
             locale,
@@ -165,16 +282,68 @@ pub async fn update_account(
             Error::Other(trace_info),
         ));
     }
+    // only internal
+    if !is_internal
+        && (post_count_action.is_some()
+            || post_template_count_action.is_some()
+            || like_count_action.is_some())
+    {
+        return Err(ServiceError::permission_limit(
+            locale,
+            "no_permission_to_modify_internal_only",
+            Error::Other(trace_info),
+        ));
+    }
 
     // only vip
 
-    if (!is_vip || !is_admin) && show_age.is_some()
-        || show_distance.is_some()
-        || show_viewed_action.is_some()
+    if (!is_vip || !is_admin)
+        && (show_age.is_some() || show_distance.is_some() || show_viewed_action.is_some())
     {
         return Err(ServiceError::permission_limit(
             locale,
             "no_permission_to_modify_vip_only_properties",
+            Error::Other(trace_info),
+        ));
+    }
+    // only these fields than others can change
+    if auth_account_id != account_id
+        && (name.is_some()
+            || bio.is_some()
+            || gender.is_some()
+            || admin.is_some()
+            || moderator.is_some()
+            || vip.is_some()
+            || show_age.is_some()
+            || show_distance.is_some()
+            || suspended.is_some()
+            || suspended_at.is_some()
+            || suspended_until.is_some()
+            || suspended_reason.is_some()
+            || birthday.is_some()
+            || timezone_in_seconds.is_some()
+            || phone_country_code.is_some()
+            || phone_number.is_some()
+            || location.is_some()
+            || country_id.is_some()
+            || state_id.is_some()
+            || city_id.is_some()
+            || approved.is_some()
+            || invite_id.is_some()
+            || skip_optional_info.is_some()
+            || show_viewed_action.is_some())
+    {
+        return Err(ServiceError::permission_limit(
+            locale,
+            "no_permission_to_modify_self_only_properties",
+            Error::Other(trace_info),
+        ));
+    }
+
+    if account_id == auth_account_id && like_count_action.is_some() {
+        return Err(ServiceError::permission_limit(
+            locale,
+            "no_permission_to_modify_other_only_properties",
             Error::Other(trace_info),
         ));
     }
@@ -297,15 +466,15 @@ pub async fn update_account(
         }
     }
 
-    let mut like_count_value = None;
+    let mut like_count_changed_value: Option<i32> = None;
 
     if let Some(like_count_action) = like_count_action {
         match like_count_action {
             FieldAction::IncreaseOne => {
-                like_count_value = Some(account.like_count + 1);
+                like_count_changed_value = Some(1);
             }
             FieldAction::DecreaseOne => {
-                like_count_value = Some(account.like_count - 1);
+                like_count_changed_value = Some(-1);
             }
         }
     }
@@ -343,8 +512,8 @@ pub async fn update_account(
     gender_change_count=COALESCE($29,gender_change_count),
     skip_optional_info=COALESCE($30,skip_optional_info),
     post_template_count=COALESCE($31,post_template_count),
-    post_count=COALESCE($32,post_count),
-    like_count=COALESCE($33,like_count),
+    post_count=COALESCE($32,post_count), 
+    like_count=CASE WHEN $33::bigint is null THEN like_count ELSE like_count+$33::bigint END,
     show_viewed_action=COALESCE($34,show_viewed_action)
     where id = $1
     RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count
@@ -381,7 +550,7 @@ pub async fn update_account(
     skip_optional_info,
     post_template_count_value,
     post_count_value,
-    like_count_value,
+    like_count_changed_value as Option<i32>,
     show_viewed_action
   )
   .fetch_one(pool)

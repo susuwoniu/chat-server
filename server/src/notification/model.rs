@@ -2,6 +2,7 @@ use crate::{
     account::model::Account,
     error::ServiceError,
     global::Config,
+    types::FieldAction,
     util::{base62_i64, base62_to_i64, datetime_tz, string_i64},
 };
 use chrono::{
@@ -19,6 +20,7 @@ use std::convert::TryFrom;
 pub enum NotificationType {
     ProfileViewed,
     ProfileLiked,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
@@ -34,6 +36,7 @@ pub enum NotificationAction {
 #[serde(rename_all = "snake_case")]
 pub enum NotificationActionData {
     ProfileViewed,
+    ProfileLiked,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -99,6 +102,7 @@ pub struct NotificationInboxItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationInbox {
     pub profile_viewed: NotificationInboxItem,
+    pub profile_liked: NotificationInboxItem,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -197,6 +201,7 @@ pub struct CreateNotificationParam {
     pub target_account_id: i64,
     #[serde(rename = "type")]
     pub _type: NotificationType,
+    pub field_action: FieldAction,
     #[sqlx(rename = "_action")]
     pub action: NotificationAction,
     pub action_data: NotificationActionData,

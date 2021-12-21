@@ -179,6 +179,7 @@ async fn patch_other_account_handler(
         UpdateOtherAccountParam {
             viewed_count_action: payload.viewed_count_action,
             target_account_id: target_accoutn_id,
+            like_count_action: payload.like_count_action,
         },
         auth,
     )
@@ -191,9 +192,10 @@ async fn patch_account_handler(
 
     locale: Locale,
     auth: Auth,
-    Json(payload): Json<UpdateAccountParam>,
+    Json(mut payload): Json<UpdateAccountParam>,
 ) -> JsonApiResponse {
-    let account = update_account(&locale, &pool, &kv, payload, &auth).await?;
+    payload.account_id = Some(auth.account_id);
+    let account = update_account(&locale, &pool, &kv, payload, &auth, false).await?;
     Ok(Json(account.to_jsonapi_document()))
 }
 async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {
