@@ -13,6 +13,16 @@ access_key_secret = ""
 bucket_url = ""
 region = "ap-shanghai"
 [post]
+default_background_colors = [
+  "#264653",
+  "#2a9d8f",
+  "#6b705c",
+  "#457b9d",
+  "#b5179e",
+  "#fca311",
+  "#ef476f",
+  "#90be6d",
+]
 default_listed_posts_duration_in_days = 30
 min_post_content_count = 6
 [auth]

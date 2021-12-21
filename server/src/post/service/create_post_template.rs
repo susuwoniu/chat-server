@@ -41,22 +41,21 @@ pub async fn create_post_template(
     util::is_post_template_content_valid(locale, &param.content)?;
 
     query!(
-    r#"
-INSERT INTO post_templates (id,content,background_color,account_id,updated_at,featured,featured_at,ip,time_cursor)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        r#"
+INSERT INTO post_templates (id,content,account_id,updated_at,featured,featured_at,ip,time_cursor)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 "#,
-    id,
-    param.content,
-    param.background_color,
-    auth.account_id,
-    now,
-    featured,
-    featured_at,
-    ip,
-    id
-  )
-  .execute(pool)
-  .await?;
+        id,
+        param.content,
+        auth.account_id,
+        now,
+        featured,
+        featured_at,
+        ip,
+        id
+    )
+    .execute(pool)
+    .await?;
     // update account post template count
     update_account(
         locale,
@@ -74,7 +73,6 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
     return Ok(PostTemplate {
         id,
         content: param.content,
-        background_color: param.background_color,
         account_id: auth.account_id,
         updated_at: now,
         created_at: now,

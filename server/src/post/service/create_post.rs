@@ -4,6 +4,7 @@ use crate::{
         service::{get_account::get_db_account, update_account::update_account},
     },
     alias::{KvPool, Pool},
+    global::config::get_random_background_color,
     middleware::{Auth, Locale},
     post::{
         model::{CreatePostParam, DbPost, Post, Visibility},
@@ -27,6 +28,7 @@ pub async fn create_post(
     let CreatePostParam {
         content,
         background_color,
+        color,
         post_template_id,
         visibility,
         target_gender,
@@ -44,15 +46,20 @@ pub async fn create_post(
 
     let author = get_db_account(locale, pool, auth.account_id).await?;
 
-    let mut final_background_color = post_template.background_color;
+    let mut final_background_color = get_random_background_color();
     if let Some(background_color) = background_color {
         final_background_color = background_color;
     }
+
+    let mut final_color: i64 = 4294967295;
+    if let Some(color) = color {
+        final_color = color;
+    }
     let post = query_as!(DbPost,
     r#"
-INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count
+INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday,color)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color
 "#,
     id,
     content,
@@ -69,7 +76,8 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     true,
     now,
     auth.account_id,
-    author.birthday
+    author.birthday,
+    final_color
   )
   .fetch_one(pool)
   .await?;

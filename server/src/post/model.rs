@@ -24,7 +24,6 @@ pub struct PostTemplate {
     pub content: String,
     pub used_count: i64,
     pub skipped_count: i64,
-    pub background_color: String,
     #[serde(with = "string_i64")]
     pub account_id: i64,
     pub featured: bool,
@@ -128,7 +127,8 @@ pub struct Post {
     pub viewed_count: i64,
     pub skipped_count: i64,
     pub replied_count: i64,
-    pub background_color: String,
+    pub background_color: i64,
+    pub color: i64,
     #[serde(with = "string_i64")]
     pub account_id: i64,
     #[serde(with = "datetime_tz")]
@@ -152,7 +152,8 @@ pub struct DbPost {
     pub viewed_count: i64,
     pub skipped_count: i64,
     pub replied_count: i64,
-    pub background_color: String,
+    pub background_color: i64,
+    pub color: i64,
     pub account_id: i64,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -335,7 +336,6 @@ pub struct FullPostTemplate {
     pub content: String,
     pub used_count: i64,
     pub skipped_count: i64,
-    pub background_color: String,
     #[serde(with = "string_i64")]
     pub account_id: i64,
     pub featured: bool,
@@ -357,7 +357,6 @@ pub struct DbPostTemplate {
     pub content: String,
     pub used_count: i64,
     pub skipped_count: i64,
-    pub background_color: String,
     pub account_id: i64,
     pub featured: bool,
     pub featured_by: Option<i64>,
@@ -369,7 +368,6 @@ pub struct DbPostTemplate {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePostTemplateParam {
     pub content: String,
-    pub background_color: String,
     pub featured: Option<bool>,
 }
 
@@ -379,7 +377,8 @@ pub struct CreatePostParam {
     pub content: String,
     #[serde(with = "string_i64")]
     pub post_template_id: i64,
-    pub background_color: Option<String>,
+    pub background_color: Option<i64>,
+    pub color: Option<i64>,
     pub target_gender: Option<Gender>,
     #[serde(default = "default_visibility")]
     #[derivative(Default(value = "Visibility::Public"))]
@@ -392,7 +391,6 @@ fn default_visibility() -> Visibility {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdatePostTemplateParam {
     pub content: Option<String>,
-    pub background_color: Option<String>,
     pub featured: Option<bool>,
     pub deleted: Option<bool>,
     pub priority: Option<i64>,
@@ -412,7 +410,6 @@ pub struct UpdatePostParam {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiCreatePostTemplateParam {
     pub content: String,
-    pub background_color: String,
     pub featured: Option<bool>,
 }
 impl From<FullPostTemplate> for PostTemplate {
@@ -422,7 +419,6 @@ impl From<FullPostTemplate> for PostTemplate {
             content,
             used_count,
             skipped_count,
-            background_color,
             account_id,
             featured,
             featured_at,
@@ -436,7 +432,6 @@ impl From<FullPostTemplate> for PostTemplate {
             content,
             used_count,
             skipped_count,
-            background_color,
             account_id,
             featured,
             featured_at,

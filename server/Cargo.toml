@@ -25,6 +25,7 @@ fluent-bundle = {version = "0.15"}
 futures = "0.3"
 futures-util = {version = "0.3.7", default-features = false}
 headers = "0.3"
+hex_color = "1.0"
 hmac = "0.11"
 http-serde = "1.0.3"
 include_dir = "0.6"

@@ -5,6 +5,8 @@ use serde::Deserialize;
 use std::fmt;
 use url::Url;
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
+use hex_color::HexColor;
+use rand::seq::SliceRandom;
 use std::net::SocketAddr;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -52,6 +54,7 @@ pub struct Im {
 pub struct Post {
     pub default_listed_posts_duration_in_days: i64,
     pub min_post_content_count: i64,
+    pub default_background_colors: Vec<String>,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {
@@ -153,4 +156,19 @@ impl Config {
     pub fn global() -> &'static Self {
         CONFIG.get().expect("read config failed")
     }
+}
+
+pub fn get_random_background_color() -> i64 {
+    let cfg = Config::global();
+    let colors = cfg.post.default_background_colors.clone();
+    let mut rng = rand::thread_rng();
+    // get a random color from colors
+    let color = colors.choose(&mut rng).unwrap();
+    let hex_color: HexColor = color.parse().unwrap_or(HexColor::new(239, 71, 111));
+
+    let raw_bytes = [0xff, hex_color.r, hex_color.g, hex_color.b];
+
+    // use `u32::from_ne_bytes` instead
+    let num = u32::from_ne_bytes(raw_bytes);
+    return num as i64;
 }
