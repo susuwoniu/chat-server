@@ -16,7 +16,7 @@ mod util;
 use crate::{
     cmd::{
         args::{AdminCommand, CliOpt, ClientCommand, ServerCommand},
-        create_admin, set_admin,
+        create_admin, init_post_templates, set_admin,
     },
     error::Error,
     global::{
@@ -88,6 +88,9 @@ async fn main() -> Result<(), Error> {
                 }
                 AdminCommand::Set => {
                     set_admin().await?;
+                }
+                AdminCommand::InitTemplates(opts) => {
+                    init_post_templates(opts).await?;
                 }
             }
         }

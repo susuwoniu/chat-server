@@ -1,3 +1,4 @@
+use super::args::{InitTemplateOpts, PostTemplateItem};
 use crate::{
     account::{
         model::{IdentityType, SignupParam, UpdateAccountParam},
@@ -6,6 +7,7 @@ use crate::{
     error::Error,
     global::Config,
     middleware::{Auth, ClientPlatform, Locale},
+    post::{model::CreatePostTemplateParam, service::create_post_template::create_post_template},
 };
 use deadpool_redis::Config as RedisConfig;
 use dialoguer::Input;
@@ -84,5 +86,68 @@ pub async fn set_admin() -> Result<(), Error> {
     )
     .await?;
     println!("account: {:?}", data);
+    Ok(())
+}
+
+pub async fn init_post_templates(opts: InitTemplateOpts) -> Result<(), Error> {
+    println!("start to init post templates");
+
+    let cfg = Config::global();
+    let account_id_value = cfg.admin.default_account_id.clone();
+    if account_id_value.is_none() {
+        println!("please set admin account id in config, admin -> default_account_id");
+        return Ok(());
+    }
+    // read file
+    let file_content = std::fs::read_to_string(&opts.file)?;
+    let post_templates: Vec<PostTemplateItem> = serde_yaml::from_str(&file_content)?;
+    let account_id = account_id_value.unwrap();
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env not set");
+
+    // Database
+    let pool = PgPoolOptions::new()
+        .max_connections(cfg.db.max_connections)
+        .connect(&database_url)
+        .await?;
+    let redis_config = RedisConfig::from_url(&cfg.kv.url);
+    let redis_pool = redis_config.create_pool().unwrap();
+    // get init temlates
+
+    for post_template in post_templates {
+        let mut title = "".to_string();
+        let mut content: Option<String> = None;
+        match post_template {
+            PostTemplateItem::TitleWithContent(the_title) => {
+                // title and content
+                title = the_title.clone();
+                content = Some(the_title);
+            }
+            PostTemplateItem::OnlyTitle(the_arr) => {
+                title = the_arr[0].clone();
+            }
+        }
+        create_post_template(
+            &Locale::default(),
+            &pool,
+            &redis_pool,
+            CreatePostTemplateParam {
+                title: title,
+                content: content,
+                featured: Some(true),
+            },
+            Auth {
+                account_id: account_id.parse::<i64>().unwrap(),
+                client_id: 377844742802649603,
+                token_id: 377844742802649603,
+                device_id: "admin_cmd".to_string(),
+                admin: true,
+                moderator: false,
+                vip: false,
+            },
+            IpNetwork::V4(std::net::Ipv4Addr::new(127, 0, 0, 1).into()),
+        )
+        .await?;
+    }
+
     Ok(())
 }

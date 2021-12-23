@@ -47,7 +47,7 @@ pub async fn get_posts(
     }
     let rows = query_as!(DbPost,
     r#"
-      select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where 
+      select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where 
       ($27::bigint is null or account_id=$27)
       and ($15::timestamp is null or created_at > $15)
       and ($16::timestamp is null or created_at < $16)
@@ -242,7 +242,7 @@ pub async fn get_post(
 
     let row = query_as!(DbPost,
     r#"
-      select id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where id=$1 and deleted=false
+      select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where id=$1 and deleted=false
 "#,
 id
   )
@@ -308,6 +308,7 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
         skipped_count,
         replied_count,
         viewed_count,
+        post_template_title,
         post_template_id,
         time_cursor,
         target_gender,
@@ -323,6 +324,7 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
         background_color,
         account_id,
         updated_at,
+        post_template_title,
         created_at,
         skipped_count,
         replied_count,

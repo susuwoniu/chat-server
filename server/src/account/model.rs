@@ -10,7 +10,7 @@ use chrono::prelude::{NaiveDate, NaiveDateTime};
 use ipnetwork17::IpNetwork;
 use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
-
+use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SigninType {
     PhoneCode,
@@ -138,6 +138,7 @@ pub struct Account {
     pub approved: bool,
     #[serde(with = "option_datetime_tz")]
     pub approved_at: Option<NaiveDateTime>,
+    pub profile_images: Vec<ProfileImage>,
 }
 
 jsonapi_model!(Account; "accounts");
@@ -316,6 +317,7 @@ pub struct DbAccount {
     pub post_template_count: i64,
     pub skip_optional_info: bool,
     pub profile_image_change_count: i32,
+    pub profile_images: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -483,6 +485,7 @@ impl From<FullAccount> for Account {
             approved,
             approved_at,
             show_viewed_action,
+            profile_images,
             ..
         } = account;
 
@@ -509,6 +512,7 @@ impl From<FullAccount> for Account {
             approved,
             approved_at,
             show_viewed_action,
+            profile_images,
         }
     }
 }

@@ -1,10 +1,7 @@
 use crate::{
-    account::{
-        model::{
-            Account, AccountView, AccountViewFilter, DbAccount, DbAccountView, FullAccount,
-            ProfileImage,
-        },
-        service::update_account_image::get_profile_images,
+    account::model::{
+        Account, AccountView, AccountViewFilter, DbAccount, DbAccountView, FullAccount,
+        ProfileImage,
     },
     alias::Pool,
     error::{Error, ServiceError},
@@ -17,7 +14,7 @@ use chrono::Datelike;
 use chrono::{Date, Utc};
 use itertools::Itertools;
 use sqlx::query_as;
-
+use std::iter::Iterator;
 pub async fn get_db_account(
     locale: &Locale,
     pool: &Pool,
@@ -25,7 +22,7 @@ pub async fn get_db_account(
 ) -> ServiceResult<DbAccount> {
     let row=  query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count from accounts where id = $1 and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images from accounts where id = $1 and deleted=false
 "#,
 account_id
   )
@@ -162,7 +159,7 @@ async fn get_db_accounts(
     }
     let rows = query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count from accounts where id = ANY ($1::bigint[]) and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images from accounts where id = ANY ($1::bigint[]) and deleted=false
 "#,
 &account_ids
   )
@@ -180,13 +177,13 @@ pub async fn get_accounts(
     return Ok(db_accounts
         .into_iter()
         .map(|db_account: DbAccount| {
-            return format_account(db_account, Vec::new()).into();
+            return format_account(db_account).into();
         })
         .collect());
 }
 pub async fn get_account(locale: &Locale, pool: &Pool, account_id: i64) -> ServiceResult<Account> {
     let db_account = get_db_account(locale, pool, account_id).await?;
-    return Ok(Account::from(format_account(db_account, Vec::new())));
+    return Ok(Account::from(format_account(db_account)));
 }
 pub async fn get_full_account(
     locale: &Locale,
@@ -194,11 +191,10 @@ pub async fn get_full_account(
     account_id: i64,
 ) -> ServiceResult<FullAccount> {
     let db_account = get_db_account(locale, pool, account_id).await?;
-    let profile_images = get_profile_images(pool, account_id).await?;
-    return Ok(format_account(db_account, profile_images));
+    return Ok(format_account(db_account));
 }
 
-pub fn format_account(account: DbAccount, profile_images: Vec<ProfileImage>) -> FullAccount {
+pub fn format_account(account: DbAccount) -> FullAccount {
     let cfg = Config::global();
     // todo add auths table
     // get age
@@ -257,7 +253,10 @@ pub fn format_account(account: DbAccount, profile_images: Vec<ProfileImage>) -> 
             });
         }
     }
-
+    let mut profile_images: Vec<ProfileImage> = Vec::new();
+    if let Some(profile_images_value) = account.profile_images {
+        profile_images = serde_json::from_value(profile_images_value).unwrap_or(Vec::new());
+    }
     FullAccount {
         id: account.id,
         name: account.name,
@@ -282,7 +281,7 @@ pub fn format_account(account: DbAccount, profile_images: Vec<ProfileImage>) -> 
         location: account.location,
         country_id: account.country_id,
         state_id: account.state_id,
-        profile_images: profile_images,
+        profile_images,
         city_id: account.city_id,
         avatar: account.avatar,
         avatar_updated_at: account.avatar_updated_at,

@@ -21,7 +21,8 @@ use std::convert::TryFrom;
 pub struct PostTemplate {
     #[serde(with = "string_i64")]
     pub id: i64,
-    pub content: String,
+    pub title: String,
+    pub content: Option<String>,
     pub used_count: i64,
     pub skipped_count: i64,
     #[serde(with = "string_i64")]
@@ -140,6 +141,7 @@ pub struct Post {
     pub author: Account,
     #[serde(with = "string_i64")]
     pub post_template_id: i64,
+    pub post_template_title: String,
     #[serde(with = "base62_i64")]
     pub cursor: i64,
     pub gender: Gender,
@@ -163,6 +165,7 @@ pub struct DbPost {
     pub time_cursor: i64,
     pub gender: Gender,
     pub client_id: i64,
+    pub post_template_title: String,
     pub ip: Option<IpNetwork>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -333,7 +336,8 @@ impl TryFrom<ApiPostTemplateFilter> for PostTemplateFilter {
 pub struct FullPostTemplate {
     #[serde(with = "string_i64")]
     pub id: i64,
-    pub content: String,
+    pub title: String,
+    pub content: Option<String>,
     pub used_count: i64,
     pub skipped_count: i64,
     #[serde(with = "string_i64")]
@@ -354,7 +358,8 @@ jsonapi_model!(FullPostTemplate; "full-post-templates");
 #[derive(Debug, Clone)]
 pub struct DbPostTemplate {
     pub id: i64,
-    pub content: String,
+    pub title: String,
+    pub content: Option<String>,
     pub used_count: i64,
     pub skipped_count: i64,
     pub account_id: i64,
@@ -367,7 +372,8 @@ pub struct DbPostTemplate {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePostTemplateParam {
-    pub content: String,
+    pub title: String,
+    pub content: Option<String>,
     pub featured: Option<bool>,
 }
 
@@ -390,6 +396,7 @@ fn default_visibility() -> Visibility {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdatePostTemplateParam {
+    pub title: Option<String>,
     pub content: Option<String>,
     pub featured: Option<bool>,
     pub deleted: Option<bool>,
@@ -416,6 +423,7 @@ impl From<FullPostTemplate> for PostTemplate {
     fn from(full: FullPostTemplate) -> Self {
         let FullPostTemplate {
             id,
+            title,
             content,
             used_count,
             skipped_count,
@@ -429,6 +437,7 @@ impl From<FullPostTemplate> for PostTemplate {
 
         Self {
             id,
+            title,
             content,
             used_count,
             skipped_count,

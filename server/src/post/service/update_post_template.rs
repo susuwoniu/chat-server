@@ -20,6 +20,7 @@ pub async fn update_post_template(
     auth: Auth,
 ) -> ServiceResult<PostTemplate> {
     let UpdatePostTemplateParam {
+        title,
         content,
         featured,
         deleted,
@@ -74,6 +75,7 @@ pub async fn update_post_template(
     let row =  query_as!(DbPostTemplate,
     r#"
 UPDATE post_templates set 
+title = COALESCE($11,title),
 content = COALESCE($1,content), 
 featured = COALESCE($2,featured),
 featured_at = COALESCE($3,featured_at), 
@@ -84,7 +86,7 @@ deleted_at = COALESCE($7,deleted_at),
 deleted_by = COALESCE($8,deleted_by),
 priority = COALESCE($10,priority)
 WHERE id = $9 and deleted = false
-RETURNING id,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor
+RETURNING id,title,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor
 "#,
     content,
     featured_edit_value,
@@ -95,7 +97,8 @@ RETURNING id,content,used_count,skipped_count,created_at,featured_by,updated_at,
     deleted_at,
     deleted_by,
     id,
-    priority_edit_value
+    priority_edit_value,
+    title
   )
   .fetch_one(pool)
   .await?;

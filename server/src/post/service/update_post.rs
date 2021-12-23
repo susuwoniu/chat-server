@@ -231,7 +231,7 @@ deleted_at = COALESCE($14,deleted_at),
 deleted_by = COALESCE($15,deleted_by),
 replied_count=COALESCE($16,replied_count)
 WHERE id = $1 and deleted = false
-RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color
+RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color
 "#,    id,
     featured_edit_value,
     featured_at,

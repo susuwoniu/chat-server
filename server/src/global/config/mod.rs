@@ -31,6 +31,11 @@ pub struct Config {
     pub im: Im,
     pub profile_image_file_server: FileServer,
     pub notification: Notification,
+    pub admin: Admin,
+}
+#[derive(Debug, Deserialize, Clone)]
+pub struct Admin {
+    pub default_account_id: Option<String>,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Notification {

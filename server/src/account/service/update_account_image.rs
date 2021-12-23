@@ -10,6 +10,7 @@ use crate::{
     util::id::next_id,
 };
 use chrono::{NaiveDateTime, Utc};
+use serde_json::json;
 use sqlx::{query, query_as};
 fn format_image(image: DbProfileImage) -> ProfileImage {
     let thumbnail_default_width = 300;
@@ -48,48 +49,39 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
 
     Ok(images.into_iter().map(format_image).collect())
 }
-async fn update_avatar(
+async fn update_account_image(
     pool: &Pool,
     account_id: i64,
-    image: Option<ProfileImage>,
+    is_update_avatar: bool,
+    avatar: Option<ProfileImage>,
 ) -> ServiceResult<()> {
     let now = Utc::now();
-    if let Some(image) = image {
-        let avatar_url = format!("{}/{}", image.url, "avatar");
-
-        query!(
-            r#"
-    UPDATE accounts
-    SET 
-    updated_at=$2,
-    avatar_updated_at=$2,
-    avatar = $3,
-    profile_image_change_count=profile_image_change_count+1
-    where id = $1
-"#,
-            account_id,
-            now.naive_utc(),
-            &avatar_url,
-        )
-        .execute(pool)
-        .await?;
-    } else {
-        // remove avatar
-        query!(
-            r#"
-    UPDATE accounts
-    SET 
-    updated_at=$2,
-    avatar_updated_at=$2,
-    avatar = null
-    where id = $1
-"#,
-            account_id,
-            now.naive_utc(),
-        )
-        .execute(pool)
-        .await?;
+    // first get all images
+    let images = get_profile_images(pool, account_id).await?;
+    let mut avatar_url: Option<String> = None;
+    if let Some(image) = avatar {
+        avatar_url = Some(format!("{}/{}", image.url, "avatar"));
     }
+
+    query!(
+        r#"
+UPDATE accounts
+SET 
+updated_at=$2,
+avatar_updated_at= case when $3=true then $2 else avatar_updated_at end,
+avatar = case when $3=true then $4 else avatar end,
+profile_image_change_count=profile_image_change_count+1,
+profile_images = $5
+where id = $1
+"#,
+        account_id,
+        now.naive_utc(),
+        is_update_avatar,
+        avatar_url,
+        json!(images)
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
 }
@@ -163,10 +155,10 @@ pub async fn put_profile_images(
     tx.commit().await?;
     if db_images.len() > 0 {
         let image = db_images[0].clone();
-        update_avatar(pool, *account_id, Some(image)).await?;
+        update_account_image(pool, *account_id, true, Some(image)).await?;
     } else {
         // remove avatar
-        update_avatar(pool, *account_id, None).await?;
+        update_account_image(pool, *account_id, true, None).await?;
     }
     return Ok(db_images);
 }
@@ -235,7 +227,9 @@ pub async fn insert_or_update_profile_image(
         mime_type,
     });
     if sequence == 0 {
-        update_avatar(pool, *account_id, Some(image.clone())).await?;
+        update_account_image(pool, *account_id, true, Some(image.clone())).await?;
+    } else {
+        update_account_image(pool, *account_id, false, None).await?;
     }
 
     Ok(image)
@@ -303,7 +297,9 @@ pub async fn update_profile_image(
         mime_type,
     });
     if sequence == 0 {
-        update_avatar(pool, *account_id, Some(image.clone())).await?;
+        update_account_image(pool, *account_id, true, Some(image.clone())).await?;
+    } else {
+        update_account_image(pool, *account_id, false, None).await?;
     }
     Ok(image)
 }
@@ -324,7 +320,9 @@ pub async fn delete_profile_image(
     .execute(pool)
     .await;
     if sequence == 0 {
-        update_avatar(pool, *account_id, None).await?;
+        update_account_image(pool, *account_id, true, None).await?;
+    } else {
+        update_account_image(pool, *account_id, false, None).await?;
     }
 
     Ok(())

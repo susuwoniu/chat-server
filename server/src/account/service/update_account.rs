@@ -478,6 +478,7 @@ pub async fn update_account(
             }
         }
     }
+
     let account_row = query_as!(DbAccount,
     r#"
     UPDATE accounts 
@@ -516,7 +517,7 @@ pub async fn update_account(
     like_count=CASE WHEN $33::bigint is null THEN like_count ELSE like_count+$33::bigint END,
     show_viewed_action=COALESCE($34,show_viewed_action)
     where id = $1
-    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count
+    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images
 "#,
     account_id,
     now.naive_utc(),
@@ -557,5 +558,5 @@ pub async fn update_account(
   .await?;
     //
 
-    return Ok(format_account(account_row, account.profile_images));
+    return Ok(format_account(account_row));
 }

@@ -39,7 +39,7 @@ pub async fn get_full_post_templates(
     }
     let rows = query_as!(DbPostTemplate,
       r#"
-        select id,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,time_cursor,featured_at from post_templates where  ($2::bigint is null or time_cursor < $2) and ($3::bigint is null or time_cursor > $3) and ($4::bool is null or featured = $4) and deleted=false  order by priority,time_cursor desc limit $1
+        select id,title,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,time_cursor,featured_at from post_templates where  ($2::bigint is null or time_cursor < $2) and ($3::bigint is null or time_cursor > $3) and ($4::bool is null or featured = $4) and deleted=false  order by priority,time_cursor desc limit $1
   "#,
   limit ,
   filter.after,
@@ -91,7 +91,7 @@ pub async fn get_full_post_template(
 ) -> ServiceResult<FullPostTemplate> {
     let row = query_as!(DbPostTemplate,
     r#"
-      select id,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor from post_templates where id=$1 and deleted=false
+      select id,title,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor from post_templates where id=$1 and deleted=false
 "#,
 id
   )
@@ -119,6 +119,7 @@ pub async fn get_post_template(
 pub fn format_post_template(row: DbPostTemplate) -> FullPostTemplate {
     return FullPostTemplate {
         id: row.id,
+        title: row.title,
         content: row.content,
         used_count: row.used_count,
         skipped_count: row.skipped_count,

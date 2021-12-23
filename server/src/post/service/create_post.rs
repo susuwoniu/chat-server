@@ -57,9 +57,9 @@ pub async fn create_post(
     }
     let post = query_as!(DbPost,
     r#"
-INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday,color)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color
+INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday,color,post_template_title)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+RETURNING id,content,background_color,account_id,updated_at,post_template_title,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color
 "#,
     id,
     content,
@@ -77,7 +77,8 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     now,
     auth.account_id,
     author.birthday,
-    final_color
+    final_color,
+    post_template.title
   )
   .fetch_one(pool)
   .await?;

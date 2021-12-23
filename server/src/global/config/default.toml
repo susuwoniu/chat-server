@@ -62,3 +62,6 @@ domain = "xmpp.scuinfo.com"
 
 [notification]
 default_listed_notifications_duration_in_days = 30
+
+[admin]
+# default_account_id = 0
