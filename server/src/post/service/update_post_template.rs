@@ -50,11 +50,13 @@ pub async fn update_post_template(
     } else {
         // if self
         if auth.account_id != current.account_id {
-            return Err(ServiceError::permission_limit(
-                locale,
-                "only_admin_or_moderator_or_self_can_update_post_template",
-                Error::Default,
-            ));
+            if title.is_some() || content.is_some() || featured.is_some() || priority.is_some() {
+                return Err(ServiceError::permission_limit(
+                    locale,
+                    "only_admin_or_moderator_or_self_can_update_post_template",
+                    Error::Default,
+                ));
+            }
         }
     }
     // only internal
