@@ -114,7 +114,7 @@ pub async fn init_post_templates(opts: InitTemplateOpts) -> Result<(), Error> {
     // get init temlates
 
     for post_template in post_templates {
-        let mut title = "".to_string();
+        let title;
         let mut content: Option<String> = None;
         match post_template {
             PostTemplateItem::TitleWithContent(the_title) => {

@@ -11,10 +11,11 @@ use crate::{
     notification::{
         model::{
             CreateNotificationParam, NotificationAction, NotificationActionData, NotificationType,
+            ProfileLikeedActionData, ProfileViewedActionData,
         },
         service::create_notification::create_notification,
     },
-    types::{FieldAction, Gender, ServiceResult},
+    types::{FieldAction, Gender, JsonVersion, ServiceResult},
     util::id::next_id,
 };
 
@@ -34,7 +35,9 @@ pub async fn update_other_account(
     let mut is_primary = false;
     let mut _type = NotificationType::ProfileViewed;
     let mut action = NotificationAction::ProfileViewed;
-    let mut action_data = NotificationActionData::ProfileViewed;
+    let mut action_data = NotificationActionData::ProfileViewed(ProfileViewedActionData {
+        version: JsonVersion::V1,
+    });
     let UpdateOtherAccountParam {
         viewed_count_action,
         target_account_id,
@@ -106,7 +109,9 @@ pub async fn update_other_account(
     if let Some(like_count_action) = like_count_action {
         _type = NotificationType::ProfileLiked;
         action = NotificationAction::ProfileLiked;
-        action_data = NotificationActionData::ProfileLiked;
+        action_data = NotificationActionData::ProfileLiked(ProfileLikeedActionData {
+            version: JsonVersion::V1,
+        });
         match like_count_action {
             FieldAction::IncreaseOne => {
                 // TODO

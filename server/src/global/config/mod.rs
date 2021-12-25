@@ -80,7 +80,7 @@ pub struct Log {
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Account {
-    pub max_profile_images: i32,
+    pub max_profile_images: i16,
     pub min_age: i32,
 }
 #[derive(Debug, Deserialize, Clone)]

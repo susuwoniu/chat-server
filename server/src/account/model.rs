@@ -1,7 +1,7 @@
 use crate::{
     error::ServiceError,
     middleware::ClientPlatform,
-    types::{Action, FieldAction, Gender},
+    types::{Action, FieldAction, Gender, JsonVersion},
     util::{
         base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64,
     },
@@ -58,17 +58,17 @@ pub struct SignupData {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq)]
-#[sqlx(type_name = "identity_type", rename_all = "snake_case")]
+#[repr(i16)]
 #[serde(rename_all = "snake_case")]
 pub enum IdentityType {
-    Phone,
-    Email,
-    Wechat,
-    Weibo,
-    Apple,
-    Google,
-    Facebook,
-    Twitter,
+    Phone = 1,
+    Email = 2,
+    Wechat = 3,
+    Weibo = 4,
+    Apple = 5,
+    Google = 6,
+    Facebook = 7,
+    Twitter = 8,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TokenType {
@@ -253,7 +253,7 @@ jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
 
 pub struct DbAccountView {
     pub id: i64,
-    pub viewed_count: i32,
+    pub viewed_count: i64,
     pub viewed_by: i64,
     pub target_account_id: i64,
     pub updated_at: NaiveDateTime,
@@ -274,7 +274,7 @@ pub struct AccountView {
     pub viewed_by_account: Account,
     #[serde(with = "base62_i64")]
     pub cursor: i64,
-    pub viewed_count: i32,
+    pub viewed_count: i64,
 }
 jsonapi_model!(AccountView; "account-views"; has one viewed_by_account);
 pub struct DbAccount {
@@ -376,7 +376,7 @@ pub struct DbProfileImage {
     pub size: i64,
     pub mime_type: String,
     #[serde(rename = "order")]
-    pub sequence: i32,
+    pub _order: i16,
     #[serde(with = "datetime_tz")]
     pub updated_at: NaiveDateTime,
 }
@@ -391,13 +391,19 @@ pub struct ProfileImage {
     pub height: f64,
     pub size: i64,
     pub mime_type: String,
-    #[serde(rename = "order")]
-    pub sequence: i32,
+    pub order: i16,
     #[serde(with = "datetime_tz")]
     pub updated_at: NaiveDateTime,
     pub thumbtail: Thumbtail,
 }
 jsonapi_model!(ProfileImage; "profile-images");
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DbProfileImagesJson {
+    pub version: JsonVersion,
+    pub images: Vec<ProfileImage>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct ApiUpdateOtherAccountParam {
     pub viewed_count_action: Option<FieldAction>,
@@ -452,8 +458,7 @@ pub struct UpdateAccountImagesParam {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateAccountImageParam {
-    #[serde(rename = "order")]
-    pub sequence: i32,
+    pub order: i16,
     pub url: String,
     pub width: f64,
     pub height: f64,

@@ -39,12 +39,13 @@ jsonapi_model!(PostTemplate; "post-templates");
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "visibility", rename_all = "snake_case")]
+#[repr(i16)]
 pub enum Visibility {
-    Public,
-    Unlisted,
-    Related,
-    Private,
+    Public = 1,
+    Private = 2,
+    Unlisted = 3,
+    Related = 4,
+    Direct = 5,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PostView {
@@ -194,6 +195,7 @@ pub struct ApiPostFilter {
     pub gender: Option<Gender>,
     pub start_age: Option<i64>,
     pub end_age: Option<i64>,
+    pub post_template_id: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
@@ -207,6 +209,7 @@ pub struct PostFilter {
     pub gender: Option<Gender>,
     pub start_birthday: Option<NaiveDate>,
     pub end_birthday: Option<NaiveDate>,
+    pub post_template_id: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -287,6 +290,7 @@ impl TryFrom<ApiPostFilter> for PostFilter {
             gender: value.gender,
             start_birthday: start_birthday_value,
             end_birthday: end_birthday_value,
+            post_template_id: value.post_template_id,
         })
     }
 }

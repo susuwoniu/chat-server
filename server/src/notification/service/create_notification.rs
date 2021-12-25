@@ -1,10 +1,7 @@
 use crate::{
     alias::{KvPool, Pool},
     middleware::{Auth, Locale},
-    notification::{
-        model::CreateNotificationParam,
-        util::{notification_action_to_string, notification_type_to_string},
-    },
+    notification::model::CreateNotificationParam,
     types::{FieldAction, ServiceResult},
     util::id::next_id,
 };
@@ -41,8 +38,8 @@ pub async fn create_notification(
             content,
             target_account_id,
             now,
-            notification_type_to_string(&_type),
-            notification_action_to_string(&action),
+            _type as _,
+            action as _,
             json!(action_data),
             is_primary,
             auth.account_id
@@ -76,7 +73,7 @@ total_count = t.total_count + $9
         now,
         now,
         target_account_id,
-        notification_type_to_string(&_type),
+        _type as _,
         id,
         now,
         auth.account_id,

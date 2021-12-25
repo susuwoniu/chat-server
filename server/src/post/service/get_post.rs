@@ -49,11 +49,12 @@ pub async fn get_posts(
     r#"
       select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where 
       ($27::bigint is null or account_id=$27)
+      and ($31::bigint is null or post_template_id=$31)
       and ($15::timestamp is null or created_at > $15)
       and ($16::timestamp is null or created_at < $16)
       and ($2::bigint is null or time_cursor > $2) 
       and ($3::bigint is null or time_cursor < $3) 
-      and ($4::visibility is null or visibility=$4) 
+      and ($4::smallint is null or visibility=$4) 
       and approved=true 
       and deleted=false 
       and ($5::bigint is null or time_cursor > $5 or time_cursor < $6)
@@ -66,7 +67,7 @@ pub async fn get_posts(
       and ($21::bigint is null or time_cursor > $21 or time_cursor < $22)
       and ($23::bigint is null or time_cursor > $23 or time_cursor < $24)
       and ($25::bigint is null or time_cursor > $25 or time_cursor < $26)
-      and ($28::gender is null or gender =$28)
+      and ($28::smallint is null or gender =$28)
       and ($29::date is null or birthday >= $29)
       and ($30::date is null or birthday < $30)
       order by time_cursor desc 
@@ -75,7 +76,7 @@ pub async fn get_posts(
 &limit,
 filter.before,
 filter.after,
-default_visibility as Option<Visibility>,
+default_visibility as _,
 get_range_value_or_none(&skip.get(0),0),
 get_range_value_or_none(&skip.get(0),1),
 get_range_value_or_none(&skip.get(1),0),
@@ -99,9 +100,10 @@ get_range_value_or_none(&skip.get(8),1),
 get_range_value_or_none(&skip.get(9),0),
 get_range_value_or_none(&skip.get(9),1),
 filter.account_id,
-filter.gender.clone() as Option<Gender>,
+filter.gender.clone() as _,
 filter.start_birthday,
-filter.end_birthday
+filter.end_birthday,
+filter.post_template_id
   )
   .fetch_all(pool)
   .await?;

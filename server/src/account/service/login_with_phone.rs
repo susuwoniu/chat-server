@@ -43,8 +43,9 @@ pub async fn login_with_phone(
             // first check is registered.
             let identifier = format!("{}{}", &phone_country_code, phone_number);
             let account_auth_row = query!(
-                r#"select id, account_id,current_signin_at from account_auths where identifier = $1 and identity_type = 'phone' and deleted = false"#,
+                r#"select id, account_id,current_signin_at from account_auths where identifier = $1 and identity_type = $2 and deleted = false"#,
                 identifier,
+                IdentityType::Phone as _
             )
             .fetch_optional(pool)
             .await?;

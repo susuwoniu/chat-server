@@ -11,19 +11,18 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize, sqlx::Type)]
 #[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "client_platform")]
+#[repr(i16)]
+
 pub enum ClientPlatform {
-    Android,
+    IOS = 1,
+    Android = 2,
     #[serde(rename = "iOS")]
-    #[sqlx(rename = "iOS")]
-    IOS,
-    Web,
-    Windows,
-    #[sqlx(rename = "macOS")]
+    Web = 3,
+    Windows = 4,
     #[serde(rename = "macOS")]
-    MacOS,
-    Linux,
-    WechatMini,
+    MacOS = 5,
+    Linux = 6,
+    WechatMini = 7,
 }
 
 #[async_trait]

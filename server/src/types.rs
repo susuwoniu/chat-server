@@ -1,7 +1,9 @@
 use crate::{error::ServiceError, util::option_base62_i64};
 use axum::Json;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::HashMap;
+
 // original type common type
 pub type ServiceResult<V> = std::result::Result<V, ServiceError>;
 pub type ServiceJson<V> = std::result::Result<Json<V>, ServiceError>;
@@ -83,17 +85,23 @@ pub struct Filter {
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "gender", rename_all = "snake_case")]
+#[repr(i16)]
 pub enum Gender {
-    Unknown,
-    Male,
-    Female,
-    Other,
-    Intersex,
+    Unknown = 0,
+    Male = 1,
+    Female = 2,
+    Intersex = 3,
+    Other = 10,
 }
 
 impl Default for Gender {
     fn default() -> Self {
         return Gender::Unknown;
     }
+}
+
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq, Clone)]
+#[repr(i32)]
+pub enum JsonVersion {
+    V1 = 1,
 }

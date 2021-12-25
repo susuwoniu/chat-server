@@ -2,7 +2,7 @@ use crate::{
     account::model::Account,
     error::ServiceError,
     global::Config,
-    types::FieldAction,
+    types::{FieldAction, JsonVersion},
     util::{base62_i64, base62_to_i64, datetime_tz, string_i64},
 };
 use chrono::{
@@ -15,29 +15,36 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Hash, std::cmp::Eq)]
 #[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "VARCHAR")] // only for PostgreSQL to match a type definition
-#[sqlx(rename_all = "snake_case")]
+#[repr(i16)]
 pub enum NotificationType {
     ProfileViewed,
     ProfileLiked,
-    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "CHAR(N)")] // only for PostgreSQL to match a type definition
-#[sqlx(rename_all = "snake_case")]
-
+#[repr(i16)]
 pub enum NotificationAction {
     ProfileViewed,
     ProfileLiked,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum NotificationActionData {
-    ProfileViewed,
-    ProfileLiked,
+pub struct ProfileViewedActionData {
+    pub version: JsonVersion,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProfileLikeedActionData {
+    pub version: JsonVersion,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[serde(untagged)]
+pub enum NotificationActionData {
+    ProfileViewed(ProfileViewedActionData),
+    ProfileLiked(ProfileLikeedActionData),
+}
+// TODO test with data
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Notification {
@@ -110,7 +117,7 @@ pub struct DbNotificationInbox {
     pub account_id: i64,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
-    pub _type: String,
+    pub _type: NotificationType,
     pub is_primary: bool,
     pub unread_count: i64,
     pub last_notification_id: i64,

@@ -1,7 +1,7 @@
 use crate::{
     alias::Pool,
     middleware::{Auth, Locale},
-    notification::{model::UpdateNotificationInboxParam, util::notification_type_to_string},
+    notification::model::UpdateNotificationInboxParam,
     types::ServiceResult,
 };
 use chrono::Utc;
@@ -33,7 +33,7 @@ where
 account_id = $1 and _type = $2
 "#,
         auth.account_id,
-        notification_type_to_string(&_type),
+        _type as _,
         now,
         unread_count
     )

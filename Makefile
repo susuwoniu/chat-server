@@ -1,4 +1,4 @@
-.PHONY: start reload stop init db test keygen client run build serve migrate redeploy log
+.PHONY: start reload stop init db test keygen client run build serve migrate redeploy log init-templates
 init:
 	sqlx database create
 	sqlx migrate run
@@ -8,6 +8,8 @@ create-admin:
 	cargo run -- admin create
 set-admin:
 	cargo run -- admin set
+init-templates:
+	cargo run -- admin init-templates ./docs/product/post-template.yml
 db:
 	sqlx migrate add $(name)
 start:

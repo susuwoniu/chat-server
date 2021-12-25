@@ -81,14 +81,14 @@ pub fn service_route() -> Router {
 }
 async fn delete_me_profile_image(
     Extension(pool): Extension<Pool>,
-    Path(sequence): Path<u32>,
+    Path(order): Path<u16>,
     Auth { account_id, .. }: Auth,
 ) -> JsonApiResponse {
-    delete_profile_image(&pool, &account_id, sequence as i32).await?;
+    delete_profile_image(&pool, &account_id, order as i16).await?;
     QuickResponse::default()
 }
 async fn put_me_image_handler(
-    Path(sequence): Path<u32>,
+    Path(order): Path<u16>,
     Extension(pool): Extension<Pool>,
     Extension(kv): Extension<KvPool>,
 
@@ -103,7 +103,7 @@ async fn put_me_image_handler(
         &kv,
         &auth.account_id,
         UpdateAccountImageParam {
-            sequence: sequence as i32,
+            order: order as i16,
             url: payload.url,
             width: payload.width,
             height: payload.height,
@@ -286,7 +286,7 @@ async fn send_phone_code_handler(
     QuickResponse::meta(data)
 }
 async fn patch_me_image_handler(
-    Path(sequence): Path<u32>,
+    Path(order): Path<u16>,
     Extension(pool): Extension<Pool>,
     Extension(kv): Extension<KvPool>,
 
@@ -301,7 +301,7 @@ async fn patch_me_image_handler(
         &kv,
         &auth.account_id,
         UpdateAccountImageParam {
-            sequence: sequence as i32,
+            order: order as i16,
             url: payload.url,
             width: payload.width,
             height: payload.height,

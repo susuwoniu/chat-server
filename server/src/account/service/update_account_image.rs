@@ -1,12 +1,13 @@
 use crate::{
     account::model::{
-        DbProfileImage, ProfileImage, Thumbtail, UpdateAccountImageParam, UpdateAccountImagesParam,
+        DbProfileImage, DbProfileImagesJson, ProfileImage, Thumbtail, UpdateAccountImageParam,
+        UpdateAccountImagesParam,
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
     global::Config,
     middleware::Locale,
-    types::ServiceResult,
+    types::{JsonVersion, ServiceResult},
     util::id::next_id,
 };
 use chrono::{NaiveDateTime, Utc};
@@ -23,7 +24,7 @@ fn format_image(image: DbProfileImage) -> ProfileImage {
         url: image.url,
         width: image.width,
         height: image.height,
-        sequence: image.sequence,
+        order: image._order,
         size: image.size,
         mime_type: image.mime_type,
         updated_at: image.updated_at,
@@ -39,8 +40,8 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
     let images = query_as!(
         DbProfileImage,
         r#"
-      select id,account_id,sequence,url,size,height,width,mime_type,updated_at from account_images
-      where account_id = $1
+      select id,account_id,_order,url,size,height,width,mime_type,updated_at from account_images
+      where account_id = $1 and deleted=false order by _order asc
   "#,
         account_id,
     )
@@ -78,7 +79,10 @@ where id = $1
         now.naive_utc(),
         is_update_avatar,
         avatar_url,
-        json!(images)
+        json!(DbProfileImagesJson {
+            images: images,
+            version: JsonVersion::V1
+        })
     )
     .execute(pool)
     .await?;
@@ -97,10 +101,14 @@ pub async fn put_profile_images(
     let mut tx = pool.begin().await?;
     let _ = query!(
         r#"
-      DELETE from account_images
-      where account_id = $1
-  "#,
+        UPDATE account_images
+        SET deleted=true,
+        updated_at=$2,
+        deleted_at=$2
+        where account_id = $1 and deleted=false
+        "#,
         account_id,
+        now.naive_utc(),
     )
     .execute(&mut tx)
     .await;
@@ -111,7 +119,7 @@ pub async fn put_profile_images(
     let mut v1: Vec<i64> = Vec::new();
     let mut v2: Vec<NaiveDateTime> = Vec::new();
     let mut v3: Vec<i64> = Vec::new();
-    let mut v4: Vec<i32> = Vec::new();
+    let mut v4: Vec<i16> = Vec::new();
     let mut v5: Vec<String> = Vec::new();
     let mut v6: Vec<f64> = Vec::new();
     let mut v7: Vec<f64> = Vec::new();
@@ -125,7 +133,7 @@ pub async fn put_profile_images(
         index = index + 1;
         v2.push(now.naive_utc());
         v3.push(*account_id);
-        v4.push(row.sequence);
+        v4.push(row.order);
         v5.push(row.url.clone());
         v6.push(row.width);
         v7.push(row.height);
@@ -134,7 +142,7 @@ pub async fn put_profile_images(
         db_images.push(format_image(DbProfileImage {
             id: final_id,
             account_id: *account_id,
-            sequence: row.sequence,
+            _order: row.order,
             url: row.url,
             width: row.width,
             height: row.height,
@@ -147,7 +155,7 @@ pub async fn put_profile_images(
     sqlx::query(
     r#"
     INSERT into account_images 
-    (id, updated_at, account_id, sequence, url, width, height, size, mime_type) SELECT * FROM UNNEST ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    (id, updated_at, account_id, _order, url, width, height, size, mime_type) SELECT * FROM UNNEST ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 "#
   ).bind(&v1).bind(&v2).bind(&v3).bind(&v4).bind(&v5).bind(&v6).bind(&v7).bind(&v8).bind(&v9)
   .execute(&mut tx)
@@ -173,7 +181,7 @@ pub async fn insert_or_update_profile_image(
     let now = Utc::now();
     let id = next_id();
     let UpdateAccountImageParam {
-        sequence,
+        order,
         url,
         width,
         height,
@@ -181,19 +189,19 @@ pub async fn insert_or_update_profile_image(
         mime_type,
     } = param;
     let cfg = Config::global();
-    if sequence >= cfg.account.max_profile_images {
+    if order >= cfg.account.max_profile_images {
         return Err(ServiceError::bad_request(
             locale,
             "reach_account_images_limit",
-            Error::Other(format!("sequence: {}", sequence)),
+            Error::Other(format!("order: {}", order)),
         ));
     }
     query!(
         r#"
     INSERT into account_images 
-    (id, updated_at, account_id, sequence, url, width, height, size, mime_type)
+    (id, updated_at, account_id, _order, url, width, height, size, mime_type)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) 
-    ON CONFLICT (account_id, sequence)  DO UPDATE SET 
+    ON CONFLICT (account_id, _order,deleted_at)  DO UPDATE SET 
     updated_at=$2,
     url=$5,
     width =$6,
@@ -204,7 +212,7 @@ pub async fn insert_or_update_profile_image(
         id,
         now.naive_utc(),
         account_id,
-        sequence,
+        order,
         url,
         width,
         height,
@@ -218,7 +226,7 @@ pub async fn insert_or_update_profile_image(
     let image = format_image(DbProfileImage {
         id,
         account_id: *account_id,
-        sequence,
+        _order: order,
         url,
         updated_at: now.naive_utc(),
         width,
@@ -226,7 +234,7 @@ pub async fn insert_or_update_profile_image(
         size,
         mime_type,
     });
-    if sequence == 0 {
+    if order == 0 {
         update_account_image(pool, *account_id, true, Some(image.clone())).await?;
     } else {
         update_account_image(pool, *account_id, false, None).await?;
@@ -245,18 +253,18 @@ pub async fn update_profile_image(
     let now = Utc::now();
     let cfg = Config::global();
     let UpdateAccountImageParam {
-        sequence,
+        order,
         url,
         width,
         height,
         size,
         mime_type,
     } = param;
-    if sequence >= cfg.account.max_profile_images {
+    if order >= cfg.account.max_profile_images {
         return Err(ServiceError::bad_request(
             locale,
             "reach_account_images_limit",
-            Error::Other(format!("sequence: {}", sequence)),
+            Error::Other(format!("order: {}", order)),
         ));
     }
     let updated_row = query!(
@@ -265,16 +273,16 @@ pub async fn update_profile_image(
     SET 
     updated_at=$3,
     url=COALESCE($4,url),
-    sequence =$2,
+    _order =$2,
     width = COALESCE($5,width),
     height= COALESCE($6,height),
     size= COALESCE($7,size),
     mime_type = COALESCE($8,mime_type)
-    where account_id = $1 and sequence = $2
+    where account_id = $1 and _order = $2 and deleted=false
     RETURNING id
 "#,
         account_id,
-        sequence,
+        order,
         now.naive_utc(),
         url,
         width,
@@ -288,7 +296,7 @@ pub async fn update_profile_image(
     let image = format_image(DbProfileImage {
         id: updated_row.id,
         account_id: *account_id,
-        sequence,
+        _order: order,
         url,
         updated_at: now.naive_utc(),
         width,
@@ -296,7 +304,7 @@ pub async fn update_profile_image(
         size,
         mime_type,
     });
-    if sequence == 0 {
+    if order == 0 {
         update_account_image(pool, *account_id, true, Some(image.clone())).await?;
     } else {
         update_account_image(pool, *account_id, false, None).await?;
@@ -304,22 +312,19 @@ pub async fn update_profile_image(
     Ok(image)
 }
 
-pub async fn delete_profile_image(
-    pool: &Pool,
-    account_id: &i64,
-    sequence: i32,
-) -> ServiceResult<()> {
+pub async fn delete_profile_image(pool: &Pool, account_id: &i64, order: i16) -> ServiceResult<()> {
     let _ = query!(
         r#"
-    DELETE from account_images
-    where account_id = $1 and sequence = $2
+    UPDATE account_images
+    set deleted=true,deleted_at=now()
+    where account_id = $1 and _order = $2 and deleted=false
 "#,
         account_id,
-        sequence,
+        order,
     )
     .execute(pool)
     .await;
-    if sequence == 0 {
+    if order == 0 {
         update_account_image(pool, *account_id, true, None).await?;
     } else {
         update_account_image(pool, *account_id, false, None).await?;

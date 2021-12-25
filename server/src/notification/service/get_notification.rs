@@ -20,7 +20,7 @@ pub async fn get_notification_inbox(
     let rows = query_as!(
         DbNotificationInbox,
         r#"
-      select created_at,updated_at,account_id,_type,is_primary,unread_count,last_notification_id,last_notification_updated_at,total_count from notification_inboxes where 
+      select created_at,updated_at,account_id,_type as "_type:NotificationType",is_primary,unread_count,last_notification_id,last_notification_updated_at,total_count from notification_inboxes where 
       account_id = $1
 "#,
         auth.account_id
@@ -34,11 +34,7 @@ pub async fn get_notification_inbox(
     // fetch all account
     let mut inbox_map: HashMap<NotificationType, DbNotificationInbox> = HashMap::new();
     for inbox in rows {
-        if let Some(row_type) = string_to_notification_type(&inbox._type) {
-            inbox_map.insert(row_type, inbox);
-        } else {
-            print!("{:?}", inbox._type);
-        }
+        inbox_map.insert(inbox._type.clone(), inbox);
     }
     let profile_viewed_notification_option = inbox_map.remove(&NotificationType::ProfileViewed);
     let profile_liked_notification_option = inbox_map.remove(&NotificationType::ProfileLiked);
@@ -77,17 +73,6 @@ pub async fn get_notification_inbox(
     return Ok(notification_inbox);
 }
 
-fn string_to_notification_type(_type: &str) -> Option<NotificationType> {
-    if _type == "profile_viewed" {
-        return Some(NotificationType::ProfileViewed);
-    } else if _type == "profile_liked" {
-        return Some(NotificationType::ProfileLiked);
-    } else {
-        println!("ttttt: {:?}", _type);
-        return None;
-    }
-}
-
 fn format_notification_inbox_item(item: DbNotificationInbox) -> NotificationInboxItem {
     let DbNotificationInbox {
         account_id,
@@ -104,7 +89,7 @@ fn format_notification_inbox_item(item: DbNotificationInbox) -> NotificationInbo
         account_id: account_id,
         created_at: created_at,
         updated_at,
-        _type: string_to_notification_type(&_type).unwrap_or(NotificationType::Unknown),
+        _type,
         is_primary,
         unread_count,
         last_notification: None,

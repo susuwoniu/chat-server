@@ -1,13 +1,13 @@
 use crate::{
     account::model::{
-        Account, AccountView, AccountViewFilter, DbAccount, DbAccountView, FullAccount,
-        ProfileImage,
+        Account, AccountView, AccountViewFilter, DbAccount, DbAccountView, DbProfileImagesJson,
+        FullAccount, ProfileImage,
     },
     alias::Pool,
     error::{Error, ServiceError},
     global::Config,
     middleware::Locale,
-    types::{Action, ActionType, DataWithPageInfo, Gender, PageInfo, ServiceResult},
+    types::{Action, ActionType, DataWithPageInfo, Gender, JsonVersion, PageInfo, ServiceResult},
 };
 use chrono::offset::FixedOffset;
 use chrono::Datelike;
@@ -255,7 +255,12 @@ pub fn format_account(account: DbAccount) -> FullAccount {
     }
     let mut profile_images: Vec<ProfileImage> = Vec::new();
     if let Some(profile_images_value) = account.profile_images {
-        profile_images = serde_json::from_value(profile_images_value).unwrap_or(Vec::new());
+        let db_profile_images: DbProfileImagesJson = serde_json::from_value(profile_images_value)
+            .unwrap_or(DbProfileImagesJson {
+                version: JsonVersion::V1,
+                images: Vec::new(),
+            });
+        profile_images = db_profile_images.images;
     }
     FullAccount {
         id: account.id,

@@ -41,5 +41,4 @@ pub fn is_post_template_content_valid(locale: &Locale, content: &str) -> Service
     } else {
         return Ok(());
     }
-    return Ok(());
 }
