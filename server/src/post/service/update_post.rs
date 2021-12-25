@@ -1,11 +1,17 @@
 use crate::{
-    account::service::get_account::get_account,
-    alias::Pool,
+    account::{
+        model::UpdateAccountParam,
+        service::{get_account::get_account, update_account::update_account},
+    },
+    alias::{KvPool, Pool},
     error::{Error, ServiceError},
     middleware::{Auth, Locale},
     post::{
-        model::{DbPost, Post, UpdatePostParam, Visibility},
-        service::get_post::{format_post, get_post},
+        model::{DbPost, Post, UpdatePostParam, UpdatePostTemplateParam, Visibility},
+        service::{
+            get_post::{format_post, get_post},
+            update_post_template::update_post_template,
+        },
     },
     types::{FieldAction, Gender, ServiceResult},
     util::id::next_id,
@@ -16,6 +22,7 @@ use sqlx::{query, query_as};
 pub async fn update_post(
     locale: &Locale,
     pool: &Pool,
+    kv: &KvPool,
     id: i64,
     param: UpdatePostParam,
     auth: Auth,
@@ -251,6 +258,37 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
   )
   .fetch_one(pool)
   .await?;
-    let account = get_account(locale, pool, row.account_id).await?;
-    Ok(format_post(row, account).into())
+    // 更新account， 更新post_template
+    if deleted_edit_value.is_some() {
+        let account = update_account(
+            locale,
+            pool,
+            kv,
+            UpdateAccountParam {
+                account_id: Some(auth.account_id),
+                post_count_action: Some(FieldAction::DecreaseOne),
+                ..Default::default()
+            },
+            &auth,
+            true,
+        )
+        .await?;
+        // todo used count
+        update_post_template(
+            locale,
+            pool,
+            current.post_template_id,
+            UpdatePostTemplateParam {
+                used_count_action: Some(FieldAction::DecreaseOne),
+                ..Default::default()
+            },
+            auth,
+            true,
+        )
+        .await?;
+        Ok(format_post(row, account.into()).into())
+    } else {
+        let account = get_account(locale, pool, row.account_id).await?;
+        Ok(format_post(row, account).into())
+    }
 }

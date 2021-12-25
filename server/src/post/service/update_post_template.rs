@@ -7,7 +7,7 @@ use crate::{
         service::get_post_template::{format_post_template, get_post_template},
         util,
     },
-    types::ServiceResult,
+    types::{FieldAction, ServiceResult},
 };
 
 use chrono::Utc;
@@ -18,6 +18,7 @@ pub async fn update_post_template(
     id: i64,
     param: UpdatePostTemplateParam,
     auth: Auth,
+    is_internal: bool,
 ) -> ServiceResult<PostTemplate> {
     let UpdatePostTemplateParam {
         title,
@@ -25,6 +26,8 @@ pub async fn update_post_template(
         featured,
         deleted,
         priority,
+        used_count_action,
+        skipped_count_action,
     } = param;
 
     // get post template
@@ -54,6 +57,14 @@ pub async fn update_post_template(
             ));
         }
     }
+    // only internal
+    if !is_internal && (used_count_action.is_some()) {
+        return Err(ServiceError::permission_limit(
+            locale,
+            "no_permission_to_modify_internal_only",
+            Error::Default,
+        ));
+    }
     let mut deleted_edit_value = None;
     if let Some(deleted_value) = deleted {
         if deleted_value {
@@ -72,6 +83,32 @@ pub async fn update_post_template(
         deleted_at = Some(now);
         deleted_by = Some(auth.account_id);
     }
+
+    let mut used_count_changed_value = None;
+
+    if let Some(used_count_action) = used_count_action {
+        match used_count_action {
+            FieldAction::IncreaseOne => {
+                used_count_changed_value = Some(1);
+            }
+            FieldAction::DecreaseOne => {
+                used_count_changed_value = Some(-1);
+            }
+        }
+    }
+
+    let mut skipped_count_changed_value = None;
+
+    if let Some(skipped_count_action) = skipped_count_action {
+        match skipped_count_action {
+            FieldAction::IncreaseOne => {
+                skipped_count_changed_value = Some(1);
+            }
+            FieldAction::DecreaseOne => {
+                skipped_count_changed_value = Some(-1);
+            }
+        }
+    }
     let row =  query_as!(DbPostTemplate,
     r#"
 UPDATE post_templates set 
@@ -84,7 +121,9 @@ featured_by = COALESCE($5,featured_by),
 deleted = COALESCE($6,deleted), 
 deleted_at = COALESCE($7,deleted_at), 
 deleted_by = COALESCE($8,deleted_by),
-priority = COALESCE($10,priority)
+priority = COALESCE($10,priority),
+used_count=CASE WHEN $12::bigint is null THEN used_count ELSE used_count+$12::bigint END,
+skipped_count=CASE WHEN $13::bigint is null THEN skipped_count ELSE skipped_count+$13::bigint END
 WHERE id = $9 and deleted = false
 RETURNING id,title,content,used_count,skipped_count,created_at,featured_by,updated_at,account_id,featured,featured_at,time_cursor
 "#,
@@ -98,7 +137,10 @@ RETURNING id,title,content,used_count,skipped_count,created_at,featured_by,updat
     deleted_by,
     id,
     priority_edit_value,
-    title
+    title,
+    used_count_changed_value as Option<i32>,
+    skipped_count_changed_value as Option<i32>
+
   )
   .fetch_one(pool)
   .await?;

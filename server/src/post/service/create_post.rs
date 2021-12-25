@@ -7,8 +7,11 @@ use crate::{
     global::config::get_random_background_color,
     middleware::{Auth, Locale},
     post::{
-        model::{CreatePostParam, DbPost, Post, Visibility},
-        service::{get_post::format_post, get_post_template::get_post_template},
+        model::{CreatePostParam, DbPost, Post, UpdatePostTemplateParam, Visibility},
+        service::{
+            get_post::format_post, get_post_template::get_post_template,
+            update_post_template::update_post_template,
+        },
         util,
     },
     types::{FieldAction, Gender, ServiceResult},
@@ -96,5 +99,19 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
         true,
     )
     .await?;
+    // todo used count
+    update_post_template(
+        locale,
+        pool,
+        post_template_id,
+        UpdatePostTemplateParam {
+            used_count_action: Some(FieldAction::IncreaseOne),
+            ..Default::default()
+        },
+        auth,
+        true,
+    )
+    .await?;
+
     return Ok(format_post(post, account.into()));
 }

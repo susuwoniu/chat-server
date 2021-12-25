@@ -21,9 +21,9 @@ serve:
 run:
 	RUST_LOG=info cargo run -- server start
 stop:
-	systemctl stop caddy
+	systemctl stop chat
 reload:
-	systemctl reload caddy
+	systemctl reload chat
 test:
 	cargo test -- --nocapture
 keygen:

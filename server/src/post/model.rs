@@ -405,6 +405,8 @@ pub struct UpdatePostTemplateParam {
     pub featured: Option<bool>,
     pub deleted: Option<bool>,
     pub priority: Option<i64>,
+    pub used_count_action: Option<FieldAction>,
+    pub skipped_count_action: Option<FieldAction>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdatePostParam {

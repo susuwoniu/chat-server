@@ -400,13 +400,13 @@ pub async fn update_account(
         }
 
         if account.birthday.is_none() || Some(birthday) != account.birthday {
-            birthday_change_count = Some(account.birthday_change_count + 1);
+            birthday_change_count = Some(1);
         }
     }
     let mut name_change_count = None;
     if let Some(name) = name.clone() {
         if name != account.name {
-            name_change_count = Some(account.name_change_count + 1);
+            name_change_count = Some(1);
             // update im name
 
             update_im_account(
@@ -423,7 +423,7 @@ pub async fn update_account(
     let mut bio_change_count = None;
     if let Some(bio) = bio.clone() {
         if bio != account.bio {
-            bio_change_count = Some(account.bio_change_count + 1);
+            bio_change_count = Some(1);
         }
     }
     let mut gender_change_count = None;
@@ -442,31 +442,31 @@ pub async fn update_account(
             ));
         }
         if gender != account.gender {
-            gender_change_count = Some(account.gender_change_count + 1);
+            gender_change_count = Some(1);
         }
     }
 
-    let mut post_template_count_value = None;
+    let mut post_template_count_changed_value = None;
 
     if let Some(post_template_count_action) = post_template_count_action {
         match post_template_count_action {
             FieldAction::IncreaseOne => {
-                post_template_count_value = Some(account.post_template_count + 1);
+                post_template_count_changed_value = Some(1);
             }
             FieldAction::DecreaseOne => {
-                post_template_count_value = Some(account.post_template_count - 1);
+                post_template_count_changed_value = Some(-1);
             }
         }
     }
-    let mut post_count_value = None;
+    let mut post_count_changed_value = None;
 
     if let Some(post_count_action) = post_count_action {
         match post_count_action {
             FieldAction::IncreaseOne => {
-                post_count_value = Some(account.post_count + 1);
+                post_count_changed_value = Some(1);
             }
             FieldAction::DecreaseOne => {
-                post_count_value = Some(account.post_count - 1);
+                post_count_changed_value = Some(-1);
             }
         }
     }
@@ -512,13 +512,14 @@ pub async fn update_account(
     state_id=COALESCE($23,state_id),
     city_id=COALESCE($24,city_id),
     approved_at=COALESCE($25,approved_at),
-    birthday_change_count=COALESCE($26,birthday_change_count),
-    name_change_count=COALESCE($27,name_change_count),
-    bio_change_count=COALESCE($28,bio_change_count),
-    gender_change_count=COALESCE($29,gender_change_count),
+    birthday_change_count=CASE WHEN $26::bigint is null THEN birthday_change_count ELSE birthday_change_count+$26::bigint END,
+    name_change_count=CASE WHEN $27::bigint is null THEN name_change_count ELSE name_change_count+$27::bigint END,
+    bio_change_count=CASE WHEN $28::bigint is null THEN bio_change_count ELSE bio_change_count+$28::bigint END,
+    gender_change_count=CASE WHEN $29::bigint is null THEN gender_change_count ELSE gender_change_count+$29::bigint END,
+
     skip_optional_info=COALESCE($30,skip_optional_info),
-    post_template_count=COALESCE($31,post_template_count),
-    post_count=COALESCE($32,post_count), 
+    post_template_count=CASE WHEN $31::bigint is null THEN post_template_count ELSE post_template_count+$31::bigint END,
+    post_count=CASE WHEN $32::bigint is null THEN post_count ELSE post_count+$32::bigint END,
     like_count=CASE WHEN $33::bigint is null THEN like_count ELSE like_count+$33::bigint END,
     show_viewed_action=COALESCE($34,show_viewed_action)
     where id = $1
@@ -549,13 +550,13 @@ pub async fn update_account(
     state_id,
     city_id,
     approved_at,
-    birthday_change_count,
-    name_change_count,
-    bio_change_count,
-    gender_change_count,
+    birthday_change_count as Option<i32>,
+    name_change_count as Option<i32>,
+    bio_change_count as Option<i32>,
+    gender_change_count as Option<i32>,
     skip_optional_info,
-    post_template_count_value,
-    post_count_value,
+    post_template_count_changed_value as Option<i32>,
+    post_count_changed_value as Option<i32>,
     like_count_changed_value as Option<i32>,
     show_viewed_action
   )
