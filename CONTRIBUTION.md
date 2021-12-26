@@ -45,10 +45,12 @@ sudo su - postgres
 # 进行psql命令行
 psql
 
-# 创建数据库扩展
-CREATE EXTENSION IF NOT EXISTS postgis;
+
 # 创建数据库
 CREATE DATABASE chat;
+\c chat
+# 创建数据库扩展
+CREATE EXTENSION IF NOT EXISTS postgis;
 # 创建postgres用户
 create user chat_postgres with encrypted password 'chat_postgres_password';
 # 授权给用户刚创建的数据库的权限
