@@ -146,6 +146,7 @@ pub struct Post {
     #[serde(with = "base62_i64")]
     pub cursor: i64,
     pub gender: Gender,
+    pub distance: Option<f64>,
 }
 jsonapi_model!(Post; "posts"; has one author);
 #[derive(Debug, Clone)]
@@ -168,6 +169,7 @@ pub struct DbPost {
     pub client_id: i64,
     pub post_template_title: String,
     pub ip: Option<IpNetwork>,
+    pub distance: Option<f64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiPostTemplateFilter {
@@ -196,6 +198,10 @@ pub struct ApiPostFilter {
     pub start_age: Option<i64>,
     pub end_age: Option<i64>,
     pub post_template_id: Option<i64>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub distance: Option<f64>,
+    pub id: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
@@ -210,6 +216,10 @@ pub struct PostFilter {
     pub start_birthday: Option<NaiveDate>,
     pub end_birthday: Option<NaiveDate>,
     pub post_template_id: Option<i64>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub distance: Option<f64>,
+    pub id: Option<i64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -291,6 +301,10 @@ impl TryFrom<ApiPostFilter> for PostFilter {
             start_birthday: start_birthday_value,
             end_birthday: end_birthday_value,
             post_template_id: value.post_template_id,
+            latitude: value.latitude,
+            longitude: value.longitude,
+            distance: value.distance,
+            id: value.id,
         })
     }
 }
@@ -393,6 +407,9 @@ pub struct CreatePostParam {
     #[serde(default = "default_visibility")]
     #[derivative(Default(value = "Visibility::Public"))]
     pub visibility: Visibility,
+    // 地理位置
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
 }
 fn default_visibility() -> Visibility {
     Visibility::Public

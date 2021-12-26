@@ -1,8 +1,5 @@
 use crate::{
-    account::{
-        model::Account,
-        service::get_account::{get_account, get_accounts},
-    },
+    account::{model::Account, service::get_account::get_accounts},
     alias::Pool,
     error::{Error, ServiceError},
     global::Config,
@@ -16,11 +13,19 @@ use sqlx::query_as;
 pub async fn get_posts(
     locale: &Locale,
     pool: &Pool,
-    filter: &PostFilter,
+    filter: PostFilter,
     auth: &Option<Auth>,
 ) -> ServiceResult<DataWithPageInfo<Post>> {
     let cfg = Config::global();
     let skip = filter.skip.clone();
+    let PostFilter {
+        longitude,
+        latitude,
+        distance,
+        id,
+        ..
+    } = filter;
+    dbg!(&longitude, &latitude, &distance);
     let mut default_visibility = Some(Visibility::Public);
     if let Some(ref auth) = auth {
         if let Some(filter_account_id) = filter.account_id {
@@ -47,8 +52,9 @@ pub async fn get_posts(
     }
     let rows = query_as!(DbPost,
     r#"
-      select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where 
-      ($27::bigint is null or account_id=$27)
+      select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
+      ($35::bigint is null or id=$35)
+      and ($27::bigint is null or account_id=$27)
       and ($31::bigint is null or post_template_id=$31)
       and ($15::timestamp is null or created_at > $15)
       and ($16::timestamp is null or created_at < $16)
@@ -70,6 +76,7 @@ pub async fn get_posts(
       and ($28::smallint is null or gender =$28)
       and ($29::date is null or birthday >= $29)
       and ($30::date is null or birthday < $30)
+      and (CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN true ELSE ST_DWithin(geom::geography,ST_SetSRID(ST_Point($32,$33),4326)::geography,$34) END )
       order by time_cursor desc 
       limit $1
 "#,
@@ -103,7 +110,11 @@ filter.account_id,
 filter.gender.clone() as _,
 filter.start_birthday,
 filter.end_birthday,
-filter.post_template_id
+filter.post_template_id,
+longitude,
+latitude,
+distance,
+id
   )
   .fetch_all(pool)
   .await?;
@@ -233,52 +244,7 @@ pub async fn get_post_views(
     };
     return Ok(collection);
 }
-// 获取文章
-pub async fn get_post(
-    locale: &Locale,
-    pool: &Pool,
-    id: i64,
-    auth: &Option<Auth>,
-) -> ServiceResult<Post> {
-    let mut has_permission_view = false;
 
-    let row = query_as!(DbPost,
-    r#"
-      select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color from posts where id=$1 and deleted=false
-"#,
-id
-  )
-  .fetch_optional(pool)
-  .await?;
-    if let Some(row) = row {
-        // is public
-        if row.visibility == Visibility::Public {
-            has_permission_view = true;
-        } else if let Some(ref auth) = auth {
-            if auth.account_id == row.account_id {
-                // 用户可以看自己所有的帖子
-                has_permission_view = true;
-            }
-        }
-        // 没有权限则拒绝
-        if !has_permission_view {
-            return Err(ServiceError::permission_limit(
-                locale,
-                "no_permission_to_view_post",
-                Error::Other(format!("Can not view not public post {}", id)),
-            ));
-        }
-        let account = get_account(locale, pool, row.account_id).await?;
-
-        return Ok(format_post(row, account.into()));
-    } else {
-        return Err(ServiceError::record_not_exist(
-            locale,
-            "post_not_exists",
-            Error::Other(format!("Can not found post template id: {} at db", id)),
-        ));
-    }
-}
 pub fn format_post_view(raw: DbPostView, viewed_by_account: Account) -> PostView {
     let DbPostView {
         id,
@@ -319,6 +285,7 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
         client_id: _,
         ip: _,
         color,
+        distance,
     } = raw;
     return Post {
         id,
@@ -338,6 +305,7 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
         visibility,
         author: author,
         color,
+        distance,
     };
 }
 fn get_range_value_or_none(range: &Option<&[i64; 2]>, position: usize) -> Option<i64> {

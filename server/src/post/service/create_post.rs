@@ -35,6 +35,8 @@ pub async fn create_post(
         post_template_id,
         visibility,
         target_gender,
+        latitude,
+        longitude,
     } = param;
     // add post template
     let id = next_id();
@@ -58,11 +60,20 @@ pub async fn create_post(
     if let Some(color) = color {
         final_color = color;
     }
+
+    // let mut geom: Option<geo_types::Geometry<f64>> = None;
+    // if let Some(latitude) = latitude {
+    //     if let Some(longitude) = longitude {
+    //     }
+    // }
+    // let geom: geo_types::Geometry<f64> = geo::Point::new(10.0 as f64, 20.0 as f64).into();
+
     let post = query_as!(DbPost,
     r#"
-INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday,color,post_template_title)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-RETURNING id,content,background_color,account_id,updated_at,post_template_title,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color
+INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday,color,post_template_title,geom)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+    CASE WHEN ($19::float8 is null or $20::float8 is null) THEN null ELSE ST_SetSRID(ST_Point($19,$20),4326) END)
+RETURNING id,content,background_color,account_id,updated_at,post_template_title,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,null::float8 as distance
 "#,
     id,
     content,
@@ -81,7 +92,9 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
     auth.account_id,
     author.birthday,
     final_color,
-    post_template.title
+    post_template.title,
+    longitude,
+    latitude
   )
   .fetch_one(pool)
   .await?;

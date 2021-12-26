@@ -7,9 +7,9 @@ use crate::{
     error::{Error, ServiceError},
     middleware::{Auth, Locale},
     post::{
-        model::{DbPost, Post, UpdatePostParam, UpdatePostTemplateParam, Visibility},
+        model::{DbPost, Post, PostFilter, UpdatePostParam, UpdatePostTemplateParam, Visibility},
         service::{
-            get_post::{format_post, get_post},
+            get_post::{format_post, get_posts},
             update_post_template::update_post_template,
         },
     },
@@ -38,7 +38,24 @@ pub async fn update_post(
         replied_count_action,
     } = param;
     // get post
-    let current = get_post(locale, pool, id, &Some(auth.clone())).await?;
+    let posts = get_posts(
+        locale,
+        pool,
+        PostFilter {
+            id: Some(id),
+            ..Default::default()
+        },
+        &Some(auth.clone()),
+    )
+    .await?;
+    if &posts.data.len() == &0 {
+        return Err(ServiceError::record_not_exist(
+            &locale,
+            "can_not_found_post",
+            Error::Default,
+        ));
+    }
+    let current = posts.data[0].clone();
 
     let now = Utc::now().naive_utc();
 
@@ -238,7 +255,7 @@ deleted_at = COALESCE($14,deleted_at),
 deleted_by = COALESCE($15,deleted_by),
 replied_count=COALESCE($16,replied_count)
 WHERE id = $1 and deleted = false
-RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color
+RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color,null::float8 as distance
 "#,    id,
     featured_edit_value,
     featured_at,
