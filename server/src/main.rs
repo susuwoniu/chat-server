@@ -10,6 +10,7 @@ mod im;
 mod middleware;
 mod notification;
 mod post;
+mod report;
 mod route;
 mod types;
 mod util;

@@ -275,7 +275,7 @@ pub async fn update_account(
         ));
     }
     // only admin or moderator
-    if (!is_admin || !is_moderator)
+    if (!is_admin && !is_moderator)
         && (suspended.is_some()
             || suspended_at.is_some()
             || suspended_until.is_some()
@@ -302,7 +302,7 @@ pub async fn update_account(
 
     // only vip
 
-    if (!is_vip || !is_admin)
+    if (!is_vip && !is_admin)
         && (show_age.is_some() || show_distance.is_some() || show_viewed_action.is_some())
     {
         return Err(ServiceError::permission_limit(

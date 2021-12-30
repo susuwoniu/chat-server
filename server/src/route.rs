@@ -1,9 +1,13 @@
 use crate::{
     account::route::service_route as account_service_route,
-    constant::{ACCOUNT_SERVICE_PATH, API_V1_PREFIX, NOTIFICATION_SERVICE_PATH, POST_SERVICE_PATH},
+    constant::{
+        ACCOUNT_SERVICE_PATH, API_V1_PREFIX, NOTIFICATION_SERVICE_PATH, POST_SERVICE_PATH,
+        REPORT_SERVICE_PATH,
+    },
     middleware::{ClientPlatform, ClientVersion, Signature},
     notification::route::service_route as notification_service_route,
     post::route::service_route as post_service_route,
+    report::route::service_route as report_service_route,
 };
 use axum::{extract::extractor_middleware, routing::get, Json, Router};
 use jsonapi::api::{DocumentData, JsonApiDocument, JsonApiInfo, JsonApiValue};
@@ -56,6 +60,7 @@ pub fn app_route() -> Router {
                 .nest(ACCOUNT_SERVICE_PATH, account_service_route())
                 .nest(POST_SERVICE_PATH, post_service_route())
                 .nest(NOTIFICATION_SERVICE_PATH, notification_service_route())
+                .nest(REPORT_SERVICE_PATH, report_service_route())
                 .route_layer(extractor_middleware::<ClientVersion>())
                 .route_layer(extractor_middleware::<ClientPlatform>())
                 .route_layer(extractor_middleware::<Signature>()),
