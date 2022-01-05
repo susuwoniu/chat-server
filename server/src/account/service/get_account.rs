@@ -9,9 +9,7 @@ use crate::{
     middleware::Locale,
     types::{Action, ActionType, DataWithPageInfo, Gender, JsonVersion, PageInfo, ServiceResult},
 };
-use chrono::offset::FixedOffset;
-use chrono::Datelike;
-use chrono::{Date, Utc};
+use chrono::{offset::FixedOffset, Date, Datelike, Duration, NaiveDateTime, Utc};
 use itertools::Itertools;
 use sqlx::query_as;
 use std::iter::Iterator;
@@ -22,7 +20,7 @@ pub async fn get_db_account(
 ) -> ServiceResult<DbAccount> {
     let row=  query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images from accounts where id = $1 and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at from accounts where id = $1 and deleted=false
 "#,
 account_id
   )
@@ -159,7 +157,7 @@ async fn get_db_accounts(
     }
     let rows = query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images from accounts where id = ANY ($1::bigint[]) and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at from accounts where id = ANY ($1::bigint[]) and deleted=false
 "#,
 &account_ids
   )
@@ -262,6 +260,21 @@ pub fn format_account(account: DbAccount) -> FullAccount {
             });
         profile_images = db_profile_images.images;
     }
+    let min_duration_between_posts_in_minutes = cfg.post.min_duration_between_posts_in_minutes;
+    let vip_min_duration_between_posts_in_minutes =
+        cfg.post.vip_min_duration_between_posts_in_minutes;
+    let last_post_created_at = account.last_post_created_at;
+    let mut next_post_not_before = NaiveDateTime::from_timestamp(0, 0);
+
+    if let Some(last_post_created_at) = last_post_created_at {
+        if account.vip || account.admin || account.admin {
+            next_post_not_before =
+                last_post_created_at + Duration::minutes(vip_min_duration_between_posts_in_minutes);
+        } else {
+            next_post_not_before =
+                last_post_created_at + Duration::minutes(min_duration_between_posts_in_minutes);
+        }
+    }
     FullAccount {
         id: account.id,
         name: account.name,
@@ -303,6 +316,8 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         gender_change_count: account.gender_change_count,
         post_template_count: account.post_template_count,
         show_viewed_action: account.show_viewed_action,
+        last_post_created_at: account.last_post_created_at,
+        next_post_not_before: next_post_not_before,
     }
 }
 pub fn format_account_view(raw: DbAccountView, viewed_by_account: Account) -> AccountView {

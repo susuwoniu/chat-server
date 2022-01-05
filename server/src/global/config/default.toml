@@ -24,7 +24,9 @@ default_background_colors = [
   "#90be6d",
 ]
 default_listed_posts_duration_in_days = 30
+min_duration_between_posts_in_minutes = 180
 min_post_content_count = 6
+vip_min_duration_between_posts_in_minutes = 30
 [auth]
 access_token_expires_in_minutes = 1440
 phone_code_verification_duration_in_seconds = 60

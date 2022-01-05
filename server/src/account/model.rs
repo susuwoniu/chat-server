@@ -247,6 +247,10 @@ pub struct FullAccount {
     pub gender_change_count: i32,
     pub actions: Vec<Action>,
     pub post_template_count: i64,
+    #[serde(with = "option_datetime_tz")]
+    pub last_post_created_at: Option<NaiveDateTime>,
+    #[serde(with = "datetime_tz")]
+    pub next_post_not_before: NaiveDateTime,
 }
 jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
 #[derive(Debug, Clone)]
@@ -318,6 +322,7 @@ pub struct DbAccount {
     pub skip_optional_info: bool,
     pub profile_image_change_count: i32,
     pub profile_images: Option<Value>,
+    pub last_post_created_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -449,6 +454,7 @@ pub struct UpdateAccountParam {
     pub post_template_count_action: Option<FieldAction>,
     pub post_count_action: Option<FieldAction>,
     pub like_count_action: Option<FieldAction>,
+    pub last_post_created_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

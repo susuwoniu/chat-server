@@ -1,9 +1,10 @@
 use crate::{
     account::{
         model::UpdateAccountParam,
-        service::{get_account::get_db_account, update_account::update_account},
+        service::{get_account::get_full_account, update_account::update_account},
     },
     alias::{KvPool, Pool},
+    error::{Error, ServiceError},
     global::config::get_random_background_color,
     middleware::{Auth, Locale},
     post::{
@@ -15,9 +16,9 @@ use crate::{
         util,
     },
     types::{FieldAction, Gender, ServiceResult},
-    util::id::next_id,
+    util::{date::naive_to_beijing, id::next_id},
 };
-use chrono::Utc;
+use chrono::{Duration, Utc};
 use ipnetwork17::IpNetwork;
 use sqlx::query_as;
 pub async fn create_post(
@@ -44,12 +45,26 @@ pub async fn create_post(
 
     util::is_post_content_valid(locale, &content)?;
     let final_visibility = util::get_post_content_visibility(&content, visibility);
+    let author = get_full_account(locale, pool, auth.account_id).await?;
+    if author.suspended {
+        return Err(ServiceError::account_suspended(
+            locale,
+            author.suspended_reason.clone(),
+            author.suspended_until.clone(),
+            Error::Other(format!("account {} suspened.", author.id)),
+        ));
+    }
 
+    if author.next_post_not_before - now > Duration::minutes(5) {
+        return Err(ServiceError::account_post_not_before(
+            locale,
+            naive_to_beijing(author.next_post_not_before.clone()),
+            Error::Default,
+        ));
+    }
     // get post template info
     let post_template = get_post_template(locale, pool, post_template_id).await?;
     // get account
-
-    let author = get_db_account(locale, pool, auth.account_id).await?;
 
     let mut final_background_color = get_random_background_color();
     if let Some(background_color) = background_color {
@@ -60,13 +75,6 @@ pub async fn create_post(
     if let Some(color) = color {
         final_color = color;
     }
-
-    // let mut geom: Option<geo_types::Geometry<f64>> = None;
-    // if let Some(latitude) = latitude {
-    //     if let Some(longitude) = longitude {
-    //     }
-    // }
-    // let geom: geo_types::Geometry<f64> = geo::Point::new(10.0 as f64, 20.0 as f64).into();
 
     let post = query_as!(DbPost,
     r#"
@@ -105,6 +113,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
         kv,
         UpdateAccountParam {
             account_id: Some(auth.account_id),
+            last_post_created_at: Some(now),
             post_count_action: Some(FieldAction::IncreaseOne),
             ..Default::default()
         },

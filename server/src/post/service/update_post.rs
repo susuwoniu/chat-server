@@ -267,7 +267,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     approved_edit_value,
     approved_at,
     approved_by,
-    visibility as Option<Visibility>,
+    visibility.clone() as Option<Visibility>,
     deleted_edit_value,
     deleted_at,
     deleted_by,
@@ -276,36 +276,38 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
   .fetch_one(pool)
   .await?;
     // 更新account， 更新post_template
-    if deleted_edit_value.is_some() {
-        let account = update_account(
-            locale,
-            pool,
-            kv,
-            UpdateAccountParam {
-                account_id: Some(auth.account_id),
-                post_count_action: Some(FieldAction::DecreaseOne),
-                ..Default::default()
-            },
-            &auth,
-            true,
-        )
-        .await?;
-        // todo used count
-        update_post_template(
-            locale,
-            pool,
-            current.post_template_id,
-            UpdatePostTemplateParam {
-                used_count_action: Some(FieldAction::DecreaseOne),
-                ..Default::default()
-            },
-            auth,
-            true,
-        )
-        .await?;
-        Ok(format_post(row, account.into()).into())
-    } else {
-        let account = get_account(locale, pool, row.account_id).await?;
-        Ok(format_post(row, account).into())
+    if deleted_edit_value.is_some() || visibility.is_some() {
+        if deleted_edit_value.is_some() {
+            let account = update_account(
+                locale,
+                pool,
+                kv,
+                UpdateAccountParam {
+                    account_id: Some(auth.account_id),
+                    post_count_action: Some(FieldAction::DecreaseOne),
+                    ..Default::default()
+                },
+                &auth,
+                true,
+            )
+            .await?;
+        }
+        if deleted_edit_value.is_some() || visibility == Some(Visibility::Private) {
+            // todo used count
+            update_post_template(
+                locale,
+                pool,
+                current.post_template_id,
+                UpdatePostTemplateParam {
+                    used_count_action: Some(FieldAction::DecreaseOne),
+                    ..Default::default()
+                },
+                auth,
+                true,
+            )
+            .await?;
+        }
     }
+    let account = get_account(locale, pool, row.account_id).await?;
+    Ok(format_post(row, account).into())
 }

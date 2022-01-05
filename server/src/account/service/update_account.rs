@@ -260,6 +260,7 @@ pub async fn update_account(
         like_count_action,
         show_viewed_action,
         account_id: account_id_value,
+        last_post_created_at,
     } = param;
     let account_id = account_id_value.unwrap_or(auth_account_id);
 
@@ -291,7 +292,8 @@ pub async fn update_account(
     if !is_internal
         && (post_count_action.is_some()
             || post_template_count_action.is_some()
-            || like_count_action.is_some())
+            || like_count_action.is_some()
+            || last_post_created_at.is_some())
     {
         return Err(ServiceError::permission_limit(
             locale,
@@ -516,14 +518,14 @@ pub async fn update_account(
     name_change_count=CASE WHEN $27::bigint is null THEN name_change_count ELSE name_change_count+$27::bigint END,
     bio_change_count=CASE WHEN $28::bigint is null THEN bio_change_count ELSE bio_change_count+$28::bigint END,
     gender_change_count=CASE WHEN $29::bigint is null THEN gender_change_count ELSE gender_change_count+$29::bigint END,
-
     skip_optional_info=COALESCE($30,skip_optional_info),
     post_template_count=CASE WHEN $31::bigint is null THEN post_template_count ELSE post_template_count+$31::bigint END,
     post_count=CASE WHEN $32::bigint is null THEN post_count ELSE post_count+$32::bigint END,
     like_count=CASE WHEN $33::bigint is null THEN like_count ELSE like_count+$33::bigint END,
-    show_viewed_action=COALESCE($34,show_viewed_action)
+    show_viewed_action=COALESCE($34,show_viewed_action),
+    last_post_created_at = COALESCE($35,last_post_created_at)
     where id = $1
-    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images
+    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at
 "#,
     account_id,
     now.naive_utc(),
@@ -558,7 +560,8 @@ pub async fn update_account(
     post_template_count_changed_value as Option<i32>,
     post_count_changed_value as Option<i32>,
     like_count_changed_value as Option<i32>,
-    show_viewed_action
+    show_viewed_action,
+    last_post_created_at
   )
   .fetch_one(pool)
   .await?;

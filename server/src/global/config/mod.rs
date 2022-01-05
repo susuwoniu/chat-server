@@ -60,6 +60,8 @@ pub struct Post {
     pub default_listed_posts_duration_in_days: i64,
     pub min_post_content_count: i64,
     pub default_background_colors: Vec<String>,
+    pub min_duration_between_posts_in_minutes: i64,
+    pub vip_min_duration_between_posts_in_minutes: i64,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {
