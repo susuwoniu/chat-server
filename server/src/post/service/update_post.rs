@@ -278,7 +278,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     // 更新account， 更新post_template
     if deleted_edit_value.is_some() || visibility.is_some() {
         if deleted_edit_value.is_some() {
-            let account = update_account(
+             update_account(
                 locale,
                 pool,
                 kv,
