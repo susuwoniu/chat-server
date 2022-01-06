@@ -401,7 +401,7 @@ pub struct CreatePostParam {
     pub content: String,
     #[serde(with = "string_i64")]
     pub post_template_id: i64,
-    pub background_color: Option<i64>,
+    pub background_color: Option<u32>,
     pub color: Option<i64>,
     pub target_gender: Option<Gender>,
     #[serde(default = "default_visibility")]

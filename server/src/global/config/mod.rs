@@ -8,7 +8,6 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 use hex_color::HexColor;
 use rand::seq::SliceRandom;
 use std::net::SocketAddr;
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub server: Server,
@@ -165,17 +164,33 @@ impl Config {
     }
 }
 
-pub fn get_random_background_color() -> i64 {
+pub fn get_random_background_color() -> u32 {
     let cfg = Config::global();
     let colors = cfg.post.default_background_colors.clone();
+
     let mut rng = rand::thread_rng();
     // get a random color from colors
     let color = colors.choose(&mut rng).unwrap();
     let hex_color: HexColor = color.parse().unwrap_or(HexColor::new(239, 71, 111));
-
     let raw_bytes = [0xff, hex_color.r, hex_color.g, hex_color.b];
 
     // use `u32::from_ne_bytes` instead
-    let num = u32::from_ne_bytes(raw_bytes);
-    return num as i64;
+    let num = u32::from_be_bytes(raw_bytes);
+    return num;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_get_random_background_color() {
+        let hex = "#F8CA47";
+        let hex_color: HexColor = hex.parse().unwrap();
+        let raw_bytes = [0xff, hex_color.r, hex_color.g, hex_color.b];
+
+        // use `u32::from_ne_bytes` instead
+        let num = u32::from_be_bytes(raw_bytes);
+        // let argb: i64 = 4294494791;
+        assert_eq!(num, 4294494791);
+    }
 }
