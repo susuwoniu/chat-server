@@ -14,10 +14,6 @@ bucket_url = ""
 region = "ap-shanghai"
 [post]
 default_background_colors = [
-  "#264653",
-  "#2a9d8f",
-  "#6b705c",
-  "#457b9d",
   "#b5179e",
   "#fca311",
   "#ef476f",
