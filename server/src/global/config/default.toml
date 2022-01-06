@@ -14,10 +14,19 @@ bucket_url = ""
 region = "ap-shanghai"
 [post]
 default_background_colors = [
-  "#b5179e",
-  "#fca311",
-  "#ef476f",
-  "#90be6d",
+  "#00b894",
+  "#4bcffa",
+  "#74b9ff",
+  "#a29bfe",
+  "#2d3436",
+  "#b8e994",
+  "#ff7675",
+  "#fd79a8",
+  "#FBDF4C",
+  "#FFB3A7",
+  "#89729E",
+  "#F8CA47",
+  "#3A6CAF",
 ]
 default_listed_posts_duration_in_days = 30
 min_duration_between_posts_in_minutes = 180
