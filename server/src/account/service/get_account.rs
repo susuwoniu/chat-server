@@ -6,12 +6,12 @@ use crate::{
     alias::Pool,
     error::{Error, ServiceError},
     global::Config,
-    middleware::Locale,
+    middleware::{Auth, Locale},
     types::{Action, ActionType, DataWithPageInfo, Gender, JsonVersion, PageInfo, ServiceResult},
 };
 use chrono::{offset::FixedOffset, Date, Datelike, Duration, NaiveDateTime, Utc};
 use itertools::Itertools;
-use sqlx::query_as;
+use sqlx::{query, query_as};
 use std::iter::Iterator;
 pub async fn get_db_account(
     locale: &Locale,
@@ -182,6 +182,44 @@ pub async fn get_accounts(
 pub async fn get_account(locale: &Locale, pool: &Pool, account_id: i64) -> ServiceResult<Account> {
     let db_account = get_db_account(locale, pool, account_id).await?;
     return Ok(Account::from(format_account(db_account)));
+}
+pub async fn get_other_account(
+    locale: &Locale,
+    pool: &Pool,
+    account_id: i64,
+    auth: Option<Auth>,
+) -> ServiceResult<Account> {
+    let db_account = get_db_account(locale, pool, account_id).await?;
+    // get is_liked if auth
+    let mut account = Account::from(format_account(db_account));
+
+    if let Some(auth) = auth {
+        // get is_liked
+        let is_liked = Some(get_is_liked(locale, pool, auth.account_id, account_id).await?);
+        account.is_liked = is_liked;
+    }
+    return Ok(account);
+}
+pub async fn get_is_liked(
+    _: &Locale,
+    pool: &Pool,
+    account_id: i64,
+    target_account_id: i64,
+) -> ServiceResult<bool> {
+    let row = query!(
+        r#"
+          select id from likes where account_id = $1 and target_account_id=$2
+    "#,
+        account_id,
+        target_account_id
+    )
+    .fetch_optional(pool)
+    .await?;
+    if let Some(_) = row {
+        return Ok(true);
+    } else {
+        return Ok(false);
+    }
 }
 pub async fn get_full_account(
     locale: &Locale,

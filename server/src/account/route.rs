@@ -8,7 +8,7 @@ use crate::{
             UpdateOtherAccountParam,
         },
         service::{
-            get_account::{get_account, get_account_views, get_accounts, get_full_account},
+            get_account::{get_account_views, get_accounts, get_full_account, get_other_account},
             login_with_phone::login_with_phone,
             refresh_token_to_access_token::refresh_token_to_access_token,
             send_phone_code::send_phone_code,
@@ -254,8 +254,9 @@ async fn get_account_handler(
     Extension(pool): Extension<Pool>,
     Path(path_param): Path<GetAccountPathParam>,
     locale: Locale,
+    auth: Option<Auth>,
 ) -> JsonApiResponse {
-    let account = get_account(&locale, &pool, path_param.account_id).await?;
+    let account = get_other_account(&locale, &pool, path_param.account_id, auth).await?;
     Ok(Json(account.to_jsonapi_document()))
 }
 async fn get_accounts_by_ids_handler(

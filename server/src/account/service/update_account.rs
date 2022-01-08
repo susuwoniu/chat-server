@@ -131,11 +131,16 @@ pub async fn update_other_account(
                 .execute(pool)
                 .await;
                 if query_result.is_err() {
-                    tracing::warn!(
+                    tracing::error!(
                         "Duduplicate like from {} to account {}",
                         account_id,
                         target_account_id
                     );
+                    return Err(ServiceError::bad_request(
+                        locale,
+                        "duduplicated_like_action",
+                        Error::Default,
+                    ));
                 } else {
                     is_primary = true;
                     is_increase_likes_count_success = true;
@@ -153,11 +158,16 @@ pub async fn update_other_account(
                 .execute(pool)
                 .await;
                 if query_result.is_err() {
-                    tracing::warn!(
+                    tracing::error!(
                         "Duduplicate like from {} to account {}",
                         account_id,
                         target_account_id
                     );
+                    return Err(ServiceError::bad_request(
+                        locale,
+                        "duduplicated_like_action",
+                        Error::Default,
+                    ));
                 } else {
                     field_action = Some(FieldAction::DecreaseOne);
                     is_delete_likes_success = true;

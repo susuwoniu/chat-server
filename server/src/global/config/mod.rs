@@ -174,7 +174,6 @@ pub fn get_random_background_color() -> u32 {
     let hex_color: HexColor = color.parse().unwrap_or(HexColor::new(239, 71, 111));
     let raw_bytes = [0xff, hex_color.r, hex_color.g, hex_color.b];
 
-    // use `u32::from_ne_bytes` instead
     let num = u32::from_be_bytes(raw_bytes);
     return num;
 }
@@ -188,7 +187,6 @@ mod tests {
         let hex_color: HexColor = hex.parse().unwrap();
         let raw_bytes = [0xff, hex_color.r, hex_color.g, hex_color.b];
 
-        // use `u32::from_ne_bytes` instead
         let num = u32::from_be_bytes(raw_bytes);
         // let argb: i64 = 4294494791;
         assert_eq!(num, 4294494791);

@@ -139,6 +139,7 @@ pub struct Account {
     #[serde(with = "option_datetime_tz")]
     pub approved_at: Option<NaiveDateTime>,
     pub profile_images: Vec<ProfileImage>,
+    pub is_liked: Option<bool>,
 }
 
 jsonapi_model!(Account; "accounts");
@@ -524,6 +525,7 @@ impl From<FullAccount> for Account {
             approved_at,
             show_viewed_action,
             profile_images,
+            is_liked: None,
         }
     }
 }
