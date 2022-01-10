@@ -18,6 +18,8 @@ use crate::{
     types::{FieldAction, Gender, ServiceResult},
     util::{date::naive_to_beijing, id::next_id},
 };
+use sonyflake::Sonyflake;
+
 use chrono::{Duration, Utc};
 use ipnetwork17::IpNetwork;
 use sqlx::query_as;
@@ -28,6 +30,7 @@ pub async fn create_post(
     param: CreatePostParam,
     auth: Auth,
     ip: IpNetwork,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<Post> {
     let CreatePostParam {
         content,
@@ -40,7 +43,7 @@ pub async fn create_post(
         longitude,
     } = param;
     // add post template
-    let id = next_id();
+    let id = next_id(sf);
     let now = Utc::now().naive_utc();
 
     util::is_post_content_valid(locale, &content)?;

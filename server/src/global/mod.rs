@@ -16,3 +16,5 @@ pub use http_client::HttpClient;
 pub use sensitive_words::SensitiveWords;
 pub mod im_client;
 pub use im_client::ImClient;
+// pub mod id;
+// pub use id::GlobalId;

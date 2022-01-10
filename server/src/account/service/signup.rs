@@ -8,12 +8,18 @@ use crate::{
     types::ServiceResult,
     util::{id::next_id, string::get_random_letter},
 };
+use sonyflake::Sonyflake;
 
 use chrono::Utc;
 use fluent_bundle::FluentArgs;
 use sqlx::query;
-pub async fn signup(locale: &Locale, pool: &Pool, param: SignupParam) -> ServiceResult<SignupData> {
-    let account_id = next_id();
+pub async fn signup(
+    locale: &Locale,
+    pool: &Pool,
+    param: SignupParam,
+    sf: &mut Sonyflake,
+) -> ServiceResult<SignupData> {
+    let account_id = next_id(sf);
     let cfg = Config::global();
     let now = Utc::now();
     // get random name
@@ -65,7 +71,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
   )
   .execute(&mut tx)
   .await?;
-    let account_auth_id = next_id();
+    let account_auth_id = next_id(sf);
 
     // add account_auths
     // TODO source_from, sign_up_ip, invite_id

@@ -16,6 +16,7 @@ use crate::{
     types::{FieldAction, Gender, ServiceResult},
     util::id::next_id,
 };
+use sonyflake::Sonyflake;
 
 use chrono::Utc;
 use sqlx::{query, query_as};
@@ -26,6 +27,7 @@ pub async fn update_post(
     id: i64,
     param: UpdatePostParam,
     auth: Auth,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<Post> {
     let UpdatePostParam {
         promote,
@@ -122,7 +124,7 @@ pub async fn update_post(
                     // check user settings
                     if current.author.show_viewed_action {
                         // add to view table
-                        let view_id = next_id();
+                        let view_id = next_id(sf);
                         let view_insert_result = query!(
                             r#"INSERT INTO post_view 
           (id,viewed_by,post_id,post_account_id,updated_at)
@@ -158,7 +160,7 @@ pub async fn update_post(
                 FieldAction::IncreaseOne => {
                     // Add to post_skip table
                     // TODO 优化，这一步可以延迟写入
-                    let next_id = next_id();
+                    let next_id = next_id(sf);
                     let insert_result = query!(
                         r#"INSERT INTO post_skip 
         (id,skipped_by,post_id,post_account_id,updated_at)
@@ -192,7 +194,7 @@ pub async fn update_post(
         if current.account_id != auth.account_id {
             match replied_count_action {
                 FieldAction::IncreaseOne => {
-                    let next_id = next_id();
+                    let next_id = next_id(sf);
                     let insert_result = query!(
                         r#"INSERT INTO post_reply 
         (id,replied_by,post_id,post_account_id,updated_at)
@@ -224,7 +226,7 @@ pub async fn update_post(
     if let Some(promote) = promote {
         if promote {
             if auth.admin || auth.moderator || auth.vip {
-                time_cursor = Some(next_id());
+                time_cursor = Some(next_id(sf));
             } else {
                 // 没权限
                 return Err(ServiceError::permission_limit(
@@ -278,7 +280,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     // 更新account， 更新post_template
     if deleted_edit_value.is_some() || visibility.is_some() {
         if deleted_edit_value.is_some() {
-             update_account(
+            update_account(
                 locale,
                 pool,
                 kv,

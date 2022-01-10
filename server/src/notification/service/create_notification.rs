@@ -7,13 +7,16 @@ use crate::{
 };
 use chrono::Utc;
 use serde_json::json;
+use sonyflake::Sonyflake;
 use sqlx::query;
+
 pub async fn create_notification(
     _: &Locale,
     pool: &Pool,
     _: &KvPool,
     param: CreateNotificationParam,
     auth: Auth,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<()> {
     let CreateNotificationParam {
         content,
@@ -25,7 +28,7 @@ pub async fn create_notification(
         field_action,
     } = param;
     // add notification template
-    let id = next_id();
+    let id = next_id(sf);
     let now = Utc::now().naive_utc();
     let mut tx = pool.begin().await?;
     if field_action == FieldAction::IncreaseOne {
@@ -48,7 +51,7 @@ pub async fn create_notification(
         .await?;
     }
 
-    let inbox_id = next_id();
+    let inbox_id = next_id(sf);
     let count_changed_value = if field_action == FieldAction::IncreaseOne {
         1
     } else {

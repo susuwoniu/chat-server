@@ -13,12 +13,14 @@ use crate::{
     types::ServiceResult,
 };
 use deadpool_redis::redis::cmd;
+use sonyflake::Sonyflake;
 use sqlx::query;
 pub async fn login_with_phone(
     locale: &Locale,
     pool: &Pool,
     kv: &KvPool,
     param: &SigninWithPhoneParam,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<AuthData> {
     // verify code
     // get kv value
@@ -63,6 +65,7 @@ pub async fn login_with_phone(
                         ip: ip.clone(),
                         platform: platform.clone(),
                     },
+                    sf,
                 )
                 .await
             } else {
@@ -80,6 +83,7 @@ pub async fn login_with_phone(
                         platform: platform.clone(),
                         admin: false,
                     },
+                    sf,
                 )
                 .await?;
                 let SignupData {
@@ -100,6 +104,7 @@ pub async fn login_with_phone(
                         ip: ip.clone(),
                         platform: platform.clone(),
                     },
+                    sf,
                 )
                 .await
             }

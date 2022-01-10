@@ -6,13 +6,16 @@ use crate::{
     util::id::next_id,
 };
 use chrono::Utc;
+use sonyflake::Sonyflake;
 use sqlx::query;
+
 pub async fn create_report(
     _: &Locale,
     pool: &Pool,
     _: &KvPool,
     param: CreateReportParam,
     auth: Auth,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<Report> {
     // add post template
     let CreateReportParam {
@@ -22,7 +25,7 @@ pub async fn create_report(
         related_post_id,
         related_account_id,
     } = param;
-    let id = next_id();
+    let id = next_id(sf);
     let now = Utc::now().naive_utc();
     let final_images = images.unwrap_or_default();
     let final_content = content.unwrap_or_default();

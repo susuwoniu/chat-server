@@ -38,6 +38,7 @@ use axum::{
     Json, Router,
 };
 use jsonapi::model::*;
+use sonyflake::Sonyflake;
 
 pub fn service_route() -> Router {
     Router::new()
@@ -96,6 +97,7 @@ async fn put_me_image_handler(
     auth: Auth,
     Json(payload): Json<PutImageParam>,
     _: Signature,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = insert_or_update_profile_image(
         &locale,
@@ -110,6 +112,7 @@ async fn put_me_image_handler(
             size: payload.size,
             mime_type: payload.mime_type,
         },
+        &mut sf,
     )
     .await?;
     Ok(Json(data.to_jsonapi_document()))
@@ -120,8 +123,9 @@ async fn put_me_images_handler(
     auth: Auth,
     Json(payload): Json<UpdateAccountImagesParam>,
     _: Signature,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = put_profile_images(&locale, &pool, &auth.account_id, payload).await?;
+    let data = put_profile_images(&locale, &pool, &auth.account_id, payload, &mut sf).await?;
     Ok(Json(vec_to_jsonapi_document(data)))
 }
 async fn get_account_images_handler(
@@ -171,6 +175,7 @@ async fn patch_other_account_handler(
     locale: Locale,
     auth: Auth,
     Json(payload): Json<ApiUpdateOtherAccountParam>,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     update_other_account(
         &locale,
@@ -182,6 +187,7 @@ async fn patch_other_account_handler(
             like_count_action: payload.like_count_action,
         },
         auth,
+        &mut sf,
     )
     .await?;
     QuickResponse::default()
@@ -210,8 +216,10 @@ async fn access_token_handler(
     auth: RefreshTokenAuth,
     platform: ClientPlatform,
     Ip(ip): Ip,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip, platform).await?;
+    let data =
+        refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip, platform, &mut sf).await?;
     Ok(Json(data.to_jsonapi_document()))
 }
 
@@ -224,6 +232,7 @@ async fn phone_auth_handler(
     Json(payload): Json<PhoneAuthBodyParam>,
     Ip(ip): Ip,
     platform: ClientPlatform,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let PhoneAuthPathParam {
         phone_country_code,
@@ -244,6 +253,7 @@ async fn phone_auth_handler(
             ip,
             platform,
         },
+        &mut sf,
     )
     .await?;
     let doc = auth_data.to_jsonapi_document();
@@ -317,7 +327,8 @@ async fn create_profile_image_upload_slot_handler(
     locale: Locale,
     Json(payload): Json<CreateUploadSlot>,
     auth: Auth,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> SimpleMetaResponse<UploadSlot> {
-    let data = create_profile_image_upload_slot(&locale, payload, auth).await?;
+    let data = create_profile_image_upload_slot(&locale, payload, auth, &mut sf).await?;
     QuickResponse::meta(data)
 }

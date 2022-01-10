@@ -21,6 +21,7 @@ use axum::{
     Json, Router,
 };
 use jsonapi::{api::*, model::*};
+use sonyflake::Sonyflake;
 
 pub fn service_route() -> Router {
     Router::new()
@@ -40,8 +41,9 @@ async fn create_report_handler(
     locale: Locale,
     Json(payload): Json<CreateReportParam>,
     auth: Auth,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = create_report(&locale, &pool, &kv, payload, auth).await?;
+    let data = create_report(&locale, &pool, &kv, payload, auth, &mut sf).await?;
     Ok(Json(data.to_jsonapi_document()))
 }
 

@@ -7,9 +7,9 @@ use once_cell::sync::OnceCell;
 use std::collections::HashMap;
 use std::fmt;
 use unic_langid::LanguageIdentifier;
+pub static I18N: OnceCell<I18n> = OnceCell::new();
 
 const PROJECT_DIR: Dir = include_dir!("../resources/locales");
-pub static I18N: OnceCell<I18n> = OnceCell::new();
 pub struct I18nBundle(pub FluentBundle<FluentResource, IntlLangMemoizer>);
 impl fmt::Debug for I18nBundle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

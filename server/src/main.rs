@@ -30,8 +30,10 @@ use crate::{
 };
 use axum::AddExtensionLayer;
 use deadpool_redis::Config as RedisConfig;
+use sonyflake::Sonyflake;
 use sqlx::postgres::PgPoolOptions;
 use structopt::StructOpt;
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv::dotenv().ok();
@@ -50,12 +52,18 @@ async fn main() -> Result<(), Error> {
             .finish();
         tracing::subscriber::set_global_default(log_level_filter).unwrap();
     }
+    // init id
+    // GlobalId::init(1);
+    let mut sf = Sonyflake::builder()
+        .machine_id(&|| Ok(1))
+        .finalize()
+        .unwrap();
     // sub command
     let opt = CliOpt::from_args();
     match opt {
         CliOpt::Client(client_subcommand) => match client_subcommand {
             ClientCommand::Create => {
-                let client_id = next_id();
+                let client_id = next_id(&mut sf);
                 let client_secret = util::password::generate();
                 println!("client_id: {}", client_id);
                 println!("client_secret: {}", client_secret);
@@ -137,6 +145,7 @@ async fn main() -> Result<(), Error> {
                             app_route()
                                 .layer(AddExtensionLayer::new(pool))
                                 .layer(AddExtensionLayer::new(redis_pool))
+                                .layer(AddExtensionLayer::new(sf))
                                 .into_make_service(),
                         )
                         .await

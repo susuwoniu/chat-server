@@ -10,6 +10,7 @@ use crate::{
     util::id::next_id,
 };
 use ipnetwork17::IpNetwork;
+use sonyflake::Sonyflake;
 
 use chrono::Utc;
 use sqlx::query;
@@ -20,6 +21,7 @@ pub async fn create_post_template(
     param: CreatePostTemplateParam,
     auth: Auth,
     ip: IpNetwork,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<PostTemplate> {
     // add post template
     let CreatePostTemplateParam {
@@ -27,7 +29,7 @@ pub async fn create_post_template(
         content,
         featured,
     } = param;
-    let id = next_id();
+    let id = next_id(sf);
     let now = Utc::now().naive_utc();
     let mut featured_value = false;
 

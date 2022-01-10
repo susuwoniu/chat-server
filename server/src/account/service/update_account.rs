@@ -18,6 +18,7 @@ use crate::{
     types::{FieldAction, Gender, JsonVersion, ServiceResult},
     util::id::next_id,
 };
+use sonyflake::Sonyflake;
 
 use chrono::Utc;
 use sqlx::{query, query_as};
@@ -28,6 +29,7 @@ pub async fn update_other_account(
     kv: &KvPool,
     param: UpdateOtherAccountParam,
     auth: Auth,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<()> {
     let account_id = auth.account_id;
     let mut field_action = None;
@@ -62,7 +64,7 @@ pub async fn update_other_account(
             FieldAction::IncreaseOne => {
                 // TODO
                 let mut tx = pool.begin().await?;
-                let id = next_id();
+                let id = next_id(sf);
                 query!(
                     r#"
       INSERT INTO account_view_records (id,viewed_by,target_account_id,updated_at,created_at)
@@ -115,7 +117,7 @@ pub async fn update_other_account(
         match like_count_action {
             FieldAction::IncreaseOne => {
                 // TODO
-                let id = next_id();
+                let id = next_id(sf);
 
                 let query_result = query!(
                     r#"
@@ -220,7 +222,7 @@ pub async fn update_other_account(
             action_data: action_data,
         };
         // create notification
-        create_notification(locale, pool, kv, notification, auth.clone()).await?;
+        create_notification(locale, pool, kv, notification, auth.clone(), sf).await?;
     }
 
     return Ok(());

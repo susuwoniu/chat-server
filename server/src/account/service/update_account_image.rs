@@ -10,6 +10,8 @@ use crate::{
     types::{JsonVersion, ServiceResult},
     util::id::next_id,
 };
+use sonyflake::Sonyflake;
+
 use chrono::{NaiveDateTime, Utc};
 use serde_json::json;
 use sqlx::{query, query_as};
@@ -94,6 +96,7 @@ pub async fn put_profile_images(
     pool: &Pool,
     account_id: &i64,
     param: UpdateAccountImagesParam,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<Vec<ProfileImage>> {
     let now = Utc::now();
 
@@ -125,7 +128,7 @@ pub async fn put_profile_images(
     let mut v7: Vec<f64> = Vec::new();
     let mut v8: Vec<i64> = Vec::new();
     let mut v9: Vec<String> = Vec::new();
-    let id = next_id();
+    let id = next_id(sf);
     let mut index = 0;
     images.into_iter().for_each(|row| {
         let final_id = id + index;
@@ -177,9 +180,10 @@ pub async fn insert_or_update_profile_image(
     _: &KvPool,
     account_id: &i64,
     param: UpdateAccountImageParam,
+    sf: &mut Sonyflake,
 ) -> ServiceResult<ProfileImage> {
     let now = Utc::now();
-    let id = next_id();
+    let id = next_id(sf);
     let UpdateAccountImageParam {
         order,
         url,

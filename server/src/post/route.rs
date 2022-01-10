@@ -29,6 +29,7 @@ use axum::{
     Json, Router,
 };
 use jsonapi::{api::*, model::*};
+use sonyflake::Sonyflake;
 
 pub fn service_route() -> Router {
     Router::new()
@@ -64,8 +65,9 @@ async fn create_post_template_handler(
     Json(payload): Json<CreatePostTemplateParam>,
     auth: Auth,
     Ip(ip): Ip,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = create_post_template(&locale, &pool, &kv, payload, auth, ip).await?;
+    let data = create_post_template(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
     Ok(Json(data.to_jsonapi_document()))
 }
 async fn create_post_handler(
@@ -75,8 +77,9 @@ async fn create_post_handler(
     Json(payload): Json<CreatePostParam>,
     auth: Auth,
     Ip(ip): Ip,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = create_post(&locale, &pool, &kv, payload, auth, ip).await?;
+    let data = create_post(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
     Ok(Json(data.to_jsonapi_document()))
 }
 async fn get_posts_handler(
@@ -266,8 +269,9 @@ async fn patch_post_handler(
     locale: Locale,
     auth: Auth,
     Json(payload): Json<UpdatePostParam>,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = update_post(&locale, &pool, &kv, id, payload, auth).await?;
+    let data = update_post(&locale, &pool, &kv, id, payload, auth, &mut sf).await?;
     Ok(Json(data.to_jsonapi_document()))
 }
 async fn delete_post_handler(
@@ -276,6 +280,7 @@ async fn delete_post_handler(
     Path(id): Path<i64>,
     locale: Locale,
     auth: Auth,
+    Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     update_post(
         &locale,
@@ -287,6 +292,7 @@ async fn delete_post_handler(
             ..Default::default()
         },
         auth,
+        &mut sf,
     )
     .await?;
     QuickResponse::default()

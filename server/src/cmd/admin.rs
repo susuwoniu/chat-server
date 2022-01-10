@@ -12,6 +12,7 @@ use crate::{
 use deadpool_redis::Config as RedisConfig;
 use dialoguer::Input;
 use ipnetwork17::IpNetwork;
+use sonyflake::Sonyflake;
 use sqlx::postgres::PgPoolOptions;
 
 pub async fn create_admin() -> Result<(), Error> {
@@ -30,6 +31,10 @@ pub async fn create_admin() -> Result<(), Error> {
         .max_connections(cfg.db.max_connections)
         .connect(&database_url)
         .await?;
+    let mut sf = Sonyflake::builder()
+        .machine_id(&|| Ok(65535))
+        .finalize()
+        .unwrap();
     let account_auth = signup(
         &Locale::default(),
         &pool,
@@ -43,6 +48,7 @@ pub async fn create_admin() -> Result<(), Error> {
             platform: ClientPlatform::IOS,
             admin: true,
         },
+        &mut sf,
     )
     .await?;
     println!("account_auth: {:?}", account_auth);
@@ -103,7 +109,10 @@ pub async fn init_post_templates(opts: InitTemplateOpts) -> Result<(), Error> {
     let post_templates: Vec<PostTemplateItem> = serde_yaml::from_str(&file_content)?;
     let account_id = account_id_value.unwrap();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env not set");
-
+    let mut sf = Sonyflake::builder()
+        .machine_id(&|| Ok(65535))
+        .finalize()
+        .unwrap();
     // Database
     let pool = PgPoolOptions::new()
         .max_connections(cfg.db.max_connections)
@@ -145,6 +154,7 @@ pub async fn init_post_templates(opts: InitTemplateOpts) -> Result<(), Error> {
                 vip: false,
             },
             IpNetwork::V4(std::net::Ipv4Addr::new(127, 0, 0, 1).into()),
+            &mut sf,
         )
         .await?;
     }
