@@ -149,7 +149,7 @@ impl AuthData {
             device_id: device_id,
             actions,
             account,
-            im_username: format!("im{}", account_id),
+            im_username: format!("{}", account_id),
             im_access_token: "".to_string(),
             im_access_token_expires_at: NaiveDateTime::from_timestamp(0, 0),
         }
