@@ -14,7 +14,8 @@ pub async fn get_posts(
     locale: &Locale,
     pool: &Pool,
     filter: PostFilter,
-    auth: &Option<Auth>,
+    auth: Option<Auth>,
+    internal: bool,
 ) -> ServiceResult<DataWithPageInfo<Post>> {
     let cfg = Config::global();
     let skip = filter.skip.clone();
@@ -25,15 +26,17 @@ pub async fn get_posts(
         id,
         ..
     } = filter;
-    dbg!(&longitude, &latitude, &distance);
     let mut default_visibility = Some(Visibility::Public);
-    if let Some(ref auth) = auth {
+    if let Some(auth) = auth.clone() {
         if let Some(filter_account_id) = filter.account_id {
             if auth.account_id == filter_account_id {
                 // 用户可以看自己所有的帖子
                 default_visibility = None;
             }
         }
+    }
+    if internal {
+        default_visibility = None;
     }
     let mut limit = cfg.page_size;
     if let Some(filter_limit) = filter.limit {
@@ -50,7 +53,7 @@ pub async fn get_posts(
             limit = filter_limit;
         }
     }
-    let rows = query_as!(DbPost,
+    let mut rows = query_as!(DbPost,
     r#"
       select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
       ($35::bigint is null or id=$35)
@@ -118,6 +121,25 @@ id
   )
   .fetch_all(pool)
   .await?;
+
+    // remove no access posts
+    if internal {
+        rows.retain(|row| {
+            if row.visibility == Visibility::Private {
+                if let Some(auth) = &auth {
+                    if auth.account_id == row.account_id || auth.admin || auth.moderator {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                true
+            }
+        });
+    }
 
     // fetch all account
 

@@ -47,7 +47,8 @@ pub async fn update_post(
             id: Some(id),
             ..Default::default()
         },
-        &Some(auth.clone()),
+        Some(auth.clone()),
+        true,
     )
     .await?;
     if &posts.data.len() == &0 {
