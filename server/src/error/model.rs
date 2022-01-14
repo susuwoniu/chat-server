@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::Utc;
 use config::ConfigError;
 use deadpool_redis::redis::RedisError;
 use deadpool_redis::CreatePoolError;
@@ -14,7 +15,6 @@ use sqlx::Error as SqlxError;
 use std::convert::From;
 use std::{collections::HashMap, io};
 use thiserror::Error as ThisError;
-
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("io error")]
@@ -83,10 +83,14 @@ pub struct RootError {
 
 impl IntoResponse for ServiceError {
     fn into_response(self) -> Response {
+        let mut raw_meta = HashMap::new();
+        let now = Utc::now();
+        raw_meta.insert("now".to_string(), json!(now.to_rfc3339()));
+
         let status = self.status;
         let body = Json(json!(RootError {
             errors: vec![self.clone()],
-            meta: None
+            meta: Some(raw_meta)
         }));
         return (status, body).into_response();
     }
@@ -97,10 +101,14 @@ impl IntoResponse for RootError {
         if self.errors.len() > 0 {
             return (self.errors[0].status, Json(json!(self))).into_response();
         } else {
+            let mut raw_meta = HashMap::new();
+            let now = Utc::now();
+            raw_meta.insert("now".to_string(), json!(now.to_rfc3339()));
+
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 RootError {
-                    meta: None,
+                    meta: Some(raw_meta),
                     errors: vec![ServiceError::internal(
                         &Locale::default(),
                         "unknown_internal_error",

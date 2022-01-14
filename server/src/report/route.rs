@@ -11,7 +11,7 @@ use crate::{
         },
     },
     types::JsonApiResponse,
-    util::page::{format_page_links, format_page_meta},
+    util::page::{format_page_links, format_page_meta, format_response},
 };
 
 use axum::{
@@ -44,7 +44,7 @@ async fn create_report_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = create_report(&locale, &pool, &kv, payload, auth, &mut sf).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 
 async fn get_report_handler(
@@ -53,7 +53,7 @@ async fn get_report_handler(
     locale: Locale,
 ) -> JsonApiResponse {
     let data = get_report(&locale, &pool, id).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn get_reports_handler(
     Extension(pool): Extension<Pool>,
@@ -79,7 +79,7 @@ async fn get_reports_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn patch_report_handler(
     Extension(pool): Extension<Pool>,
@@ -89,5 +89,5 @@ async fn patch_report_handler(
     Json(payload): Json<UpdateReportParam>,
 ) -> JsonApiResponse {
     let data = update_report(&locale, &pool, id, payload, auth, false).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }

@@ -252,6 +252,7 @@ pub struct FullAccount {
     pub last_post_created_at: Option<NaiveDateTime>,
     #[serde(with = "datetime_tz")]
     pub next_post_not_before: NaiveDateTime,
+    pub is_can_post: bool,
 }
 jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
 #[derive(Debug, Clone)]

@@ -1,9 +1,9 @@
 use crate::{error::ServiceError, util::option_base62_i64};
 use axum::Json;
+use chrono::Utc;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::HashMap;
-
 // original type common type
 pub type ServiceResult<V> = std::result::Result<V, ServiceError>;
 pub type ServiceJson<V> = std::result::Result<Json<V>, ServiceError>;
@@ -25,6 +25,9 @@ impl QuickResponse {
     pub fn minimize() -> ServiceJson<JsonApiDocument> {
         let mut success_meta: Meta = HashMap::new();
         success_meta.insert("success".to_string(), json!(true));
+        let server_time = Utc::now();
+        let server_time_value = json!(server_time.to_rfc3339());
+        success_meta.insert("now".to_string(), server_time_value);
         return Ok(Json(JsonApiDocument::Data(DocumentData {
             data: Some(PrimaryData::None),
             ..Default::default()
@@ -38,6 +41,7 @@ impl QuickResponse {
     where
         T: Serialize,
     {
+        // todo add now
         return Ok(Json(SimpleMetaDoc { meta }));
     }
 }

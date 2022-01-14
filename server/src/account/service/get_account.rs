@@ -313,6 +313,12 @@ pub fn format_account(account: DbAccount) -> FullAccount {
                 last_post_created_at + Duration::minutes(min_duration_between_posts_in_minutes);
         }
     }
+    // is can post next post
+    let is_can_post = if let Some(last_post_created_at) = last_post_created_at {
+        last_post_created_at < next_post_not_before
+    } else {
+        true
+    };
     FullAccount {
         id: account.id,
         name: account.name,
@@ -356,6 +362,7 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         show_viewed_action: account.show_viewed_action,
         last_post_created_at: account.last_post_created_at,
         next_post_not_before: next_post_not_before,
+        is_can_post: is_can_post,
     }
 }
 pub fn format_account_view(raw: DbAccountView, viewed_by_account: Account) -> AccountView {

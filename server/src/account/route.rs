@@ -115,7 +115,7 @@ async fn put_me_image_handler(
         &mut sf,
     )
     .await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn put_me_images_handler(
     Extension(pool): Extension<Pool>,
@@ -126,7 +126,7 @@ async fn put_me_images_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = put_profile_images(&locale, &pool, &auth.account_id, payload, &mut sf).await?;
-    Ok(Json(vec_to_jsonapi_document(data)))
+    Ok(format_response(vec_to_jsonapi_document(data)))
 }
 async fn get_account_images_handler(
     Extension(pool): Extension<Pool>,
@@ -134,12 +134,12 @@ async fn get_account_images_handler(
 ) -> JsonApiResponse {
     let data = get_profile_images(&pool, account_id).await?;
 
-    Ok(Json(vec_to_jsonapi_document(data)))
+    Ok(format_response(vec_to_jsonapi_document(data)))
 }
 async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
     let data = get_profile_images(&pool, auth.account_id).await?;
 
-    Ok(Json(vec_to_jsonapi_document(data)))
+    Ok(format_response(vec_to_jsonapi_document(data)))
 }
 async fn get_me_views_handler(
     Extension(pool): Extension<Pool>,
@@ -166,7 +166,7 @@ async fn get_me_views_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn patch_other_account_handler(
     Extension(pool): Extension<Pool>,
@@ -202,7 +202,7 @@ async fn patch_account_handler(
 ) -> JsonApiResponse {
     payload.account_id = Some(auth.account_id);
     let account = update_account(&locale, &pool, &kv, payload, &auth, false).await?;
-    Ok(Json(account.to_jsonapi_document()))
+    Ok(format_response(account.to_jsonapi_document()))
 }
 async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {
     signout(&kv, &auth).await?;
@@ -220,7 +220,7 @@ async fn access_token_handler(
 ) -> JsonApiResponse {
     let data =
         refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip, platform, &mut sf).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 
 async fn phone_auth_handler(
@@ -257,7 +257,7 @@ async fn phone_auth_handler(
     )
     .await?;
     let doc = auth_data.to_jsonapi_document();
-    Ok(Json(doc))
+    Ok(format_response(doc))
 }
 
 async fn get_account_handler(
@@ -267,7 +267,7 @@ async fn get_account_handler(
     auth: Option<Auth>,
 ) -> JsonApiResponse {
     let account = get_other_account(&locale, &pool, path_param.account_id, auth).await?;
-    Ok(Json(account.to_jsonapi_document()))
+    Ok(format_response(account.to_jsonapi_document()))
 }
 async fn get_accounts_by_ids_handler(
     Extension(pool): Extension<Pool>,
@@ -275,7 +275,7 @@ async fn get_accounts_by_ids_handler(
     locale: Locale,
 ) -> JsonApiResponse {
     let data = get_accounts(&locale, &pool, query.ids).await?;
-    Ok(Json(vec_to_jsonapi_document(data)))
+    Ok(format_response(vec_to_jsonapi_document(data)))
 }
 async fn get_me_handler(
     Extension(pool): Extension<Pool>,
@@ -322,7 +322,7 @@ async fn patch_me_image_handler(
         },
     )
     .await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn create_profile_image_upload_slot_handler(
     locale: Locale,
@@ -331,5 +331,6 @@ async fn create_profile_image_upload_slot_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> SimpleMetaResponse<UploadSlot> {
     let data = create_profile_image_upload_slot(&locale, payload, auth, &mut sf).await?;
+
     QuickResponse::meta(data)
 }

@@ -19,7 +19,7 @@ use crate::{
         },
     },
     types::{JsonApiResponse, QuickResponse},
-    util::page::{format_page_links, format_page_meta},
+    util::page::{format_page_links, format_page_meta, format_response},
 };
 
 use axum::{
@@ -68,7 +68,7 @@ async fn create_post_template_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = create_post_template(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn create_post_handler(
     Extension(pool): Extension<Pool>,
@@ -80,7 +80,7 @@ async fn create_post_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = create_post(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn get_posts_handler(
     Extension(pool): Extension<Pool>,
@@ -108,7 +108,7 @@ async fn get_posts_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn get_post_views_handler(
     Extension(pool): Extension<Pool>,
@@ -136,7 +136,7 @@ async fn get_post_views_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn get_account_posts_handler(
     Extension(pool): Extension<Pool>,
@@ -165,7 +165,7 @@ async fn get_account_posts_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn get_me_posts_handler(
     Extension(pool): Extension<Pool>,
@@ -194,7 +194,7 @@ async fn get_me_posts_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn get_post_handler(
     Extension(pool): Extension<Pool>,
@@ -208,7 +208,7 @@ async fn get_post_handler(
     let data = get_posts(&locale, &pool, posts_filter, option_auth, false).await?;
 
     if data.data.len() > 0 {
-        Ok(Json(data.data[0].to_jsonapi_document()))
+        Ok(format_response(data.data[0].to_jsonapi_document()))
     } else {
         Err(ServiceError::record_not_exist(
             &locale,
@@ -224,7 +224,7 @@ async fn get_post_template_handler(
     locale: Locale,
 ) -> JsonApiResponse {
     let data = get_post_template(&locale, &pool, id).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn get_post_templates_handler(
     Extension(pool): Extension<Pool>,
@@ -250,7 +250,7 @@ async fn get_post_templates_handler(
         included: other,
         ..Default::default()
     });
-    Ok(Json(response))
+    Ok(format_response(response))
 }
 async fn patch_post_template_handler(
     Extension(pool): Extension<Pool>,
@@ -260,7 +260,7 @@ async fn patch_post_template_handler(
     Json(payload): Json<UpdatePostTemplateParam>,
 ) -> JsonApiResponse {
     let data = update_post_template(&locale, &pool, id, payload, auth, false).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn patch_post_handler(
     Extension(pool): Extension<Pool>,
@@ -272,7 +272,7 @@ async fn patch_post_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = update_post(&locale, &pool, &kv, id, payload, auth, &mut sf).await?;
-    Ok(Json(data.to_jsonapi_document()))
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn delete_post_handler(
     Extension(pool): Extension<Pool>,
