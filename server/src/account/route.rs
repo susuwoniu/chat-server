@@ -28,7 +28,7 @@ use crate::{
     },
     middleware::{Auth, ClientPlatform, Ip, Locale, Qs, RefreshTokenAuth, Signature},
     types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
-    util::page::{format_page_links, format_page_meta},
+    util::page::{format_page_links, format_page_meta, format_response},
 };
 
 use axum::{
@@ -284,7 +284,8 @@ async fn get_me_handler(
 ) -> JsonApiResponse {
     let account = get_full_account(&locale, &pool, auth.account_id).await?;
     let doc = account.to_jsonapi_document();
-    Ok(Json(doc))
+
+    Ok(format_response(doc))
 }
 async fn send_phone_code_handler(
     Path(path_param): Path<SendPhoneCodePathParam>,
