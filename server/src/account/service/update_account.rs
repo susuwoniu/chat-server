@@ -47,7 +47,11 @@ pub async fn update_other_account(
     } = param;
     // 是否本人
     if target_account_id == account_id {
-        return Ok(());
+        return Err(ServiceError::bad_request(
+            locale,
+            "can_not_modify_self_profile",
+            Error::Default,
+        ));
     }
     // 互斥，only one once.
     if viewed_count_action.is_some() && like_count_action.is_some() {
@@ -101,6 +105,35 @@ pub async fn update_other_account(
             }
             FieldAction::DecreaseOne => {
                 // viewed_count_action_value = None;
+                // check vip
+                if !(auth.vip || auth.admin || auth.moderator) {
+                    return Err(ServiceError::permission_limit(
+                        locale,
+                        "no_permission_to_modify_vip_only_properties",
+                        Error::Default,
+                    ));
+                }
+                query!(
+                    r#"
+      DELETE from account_view_records where viewed_by=$1 and target_account_id=$2
+      "#,
+                    account_id,
+                    target_account_id,
+                )
+                .execute(pool)
+                .await?;
+
+                // decreate count
+
+                query!(
+                    r#"
+                        delete from account_views where  viewed_by=$1 and target_account_id=$2
+                        "#,
+                    account_id,
+                    target_account_id,
+                )
+                .execute(pool)
+                .await?;
             }
         }
     }
