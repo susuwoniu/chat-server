@@ -6,7 +6,7 @@ use crate::{
         base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64,
     },
 };
-use chrono::prelude::{NaiveDate, NaiveDateTime};
+use chrono::prelude::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use ipnetwork17::IpNetwork;
 use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
@@ -253,6 +253,8 @@ pub struct FullAccount {
     #[serde(with = "datetime_tz")]
     pub next_post_not_before: NaiveDateTime,
     pub is_can_post: bool,
+    pub now: DateTime<Utc>,
+    pub next_post_in_seconds: i64,
 }
 jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
 #[derive(Debug, Clone)]
