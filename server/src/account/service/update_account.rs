@@ -159,6 +159,7 @@ pub async fn update_other_account(
                 )
                 .execute(pool)
                 .await;
+
                 if query_result.is_err() {
                     tracing::error!(
                         "Duduplicate like from {} to account {}",
@@ -171,8 +172,23 @@ pub async fn update_other_account(
                         Error::Default,
                     ));
                 } else {
-                    field_action = Some(FieldAction::DecreaseOne);
-                    is_delete_likes_success = true;
+                    let query_result_parsed = query_result.unwrap();
+                    if query_result_parsed.rows_affected() > 0 {
+                        field_action = Some(FieldAction::DecreaseOne);
+                        is_delete_likes_success = true;
+                    } else {
+                        // failed
+                        tracing::error!(
+                            "not found like relation from {} to account {}",
+                            account_id,
+                            target_account_id
+                        );
+                        return Err(ServiceError::bad_request(
+                            locale,
+                            "must_like_first",
+                            Error::Default,
+                        ));
+                    }
                 }
             }
         }
