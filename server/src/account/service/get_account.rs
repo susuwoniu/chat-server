@@ -313,14 +313,10 @@ pub fn format_account(account: DbAccount) -> FullAccount {
                 last_post_created_at + Duration::minutes(min_duration_between_posts_in_minutes);
         }
     }
+    let now_naive = now.naive_utc();
 
     // is can post next post
-    let is_can_post = if let Some(last_post_created_at) = last_post_created_at {
-        last_post_created_at < next_post_not_before
-    } else {
-        true
-    };
-    let now_naive = now.naive_utc();
+    let is_can_post = now_naive >= next_post_not_before;
     // next post seconds
     let next_post_in_seconds = next_post_not_before - now_naive;
     FullAccount {
