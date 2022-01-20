@@ -53,6 +53,7 @@ pub async fn update_other_account(
             Error::Default,
         ));
     }
+
     // 互斥，only one once.
     if viewed_count_action.is_some() && like_count_action.is_some() {
         return Err(ServiceError::bad_request(
@@ -324,12 +325,13 @@ pub async fn update_account(
         last_post_created_at,
     } = param;
     let account_id = account_id_value.unwrap_or(auth_account_id);
+    let is_self = auth_account_id == account_id;
 
     // check permiss
 
     // only admin fields
 
-    if !is_admin && (admin.is_some() || moderator.is_some()) {
+    if !is_admin && (admin.is_some() || moderator.is_some() || vip.is_some()) {
         return Err(ServiceError::permission_limit(
             locale,
             "no_permission_to_modify_admin_or_moderator",
@@ -375,7 +377,7 @@ pub async fn update_account(
         ));
     }
     // only these fields than others can change
-    if auth_account_id != account_id
+    if (!is_self && !is_admin && !is_moderator)
         && (name.is_some()
             || bio.is_some()
             || gender.is_some()
@@ -403,7 +405,7 @@ pub async fn update_account(
     {
         return Err(ServiceError::permission_limit(
             locale,
-            "no_permission_to_modify_self_only_properties",
+            "no_permission_to_modify_admin_or_self_only_properties",
             Error::Other(trace_info),
         ));
     }

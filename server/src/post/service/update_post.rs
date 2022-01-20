@@ -94,6 +94,8 @@ pub async fn update_post(
     } else {
         // if self
         if auth.account_id != current.account_id {
+            dbg!(auth.account_id);
+            dbg!(current.account_id);
             // 非admin/moderator/self only can update view_count, skipped_count, replied_count
             if !(viewed_count_action.is_some()
                 || skipped_count_action.is_some()
@@ -293,7 +295,7 @@ pub async fn update_post(
                 // 没权限
                 return Err(ServiceError::permission_limit(
                     locale,
-                    "only_admin_or_moderator_or_vip_can_update_post_template",
+                    "only_admin_or_moderator_or_vip_can_update_post_time_cursor",
                     Error::Default,
                 ));
             }

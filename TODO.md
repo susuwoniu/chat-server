@@ -26,3 +26,5 @@
 - [ ] post approved 审核
 - [ ] phone number verify
 - [ ] account +1 的逻辑优化，利用数据库的原子相加性
+- [ ] vip 开始时间，结束时间
+- [ ] 客户端，当 vip 状态改变时做 token 更新

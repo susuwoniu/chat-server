@@ -315,8 +315,8 @@ pub fn format_post(raw: DbPost, author: Account, auth: Option<Auth>) -> Post {
     let max_time_cursor_change_count = cfg.post.max_time_cursor_change_count;
     let mut is_can_promote = false;
     if let Some(auth) = auth {
-        if auth.account_id == author.id {
-            if time_cursor_change_count <= max_time_cursor_change_count {
+        if auth.account_id == author.id && (auth.admin || auth.moderator || auth.vip) {
+            if time_cursor_change_count < max_time_cursor_change_count {
                 is_can_promote = true;
             }
         }

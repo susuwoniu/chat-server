@@ -34,7 +34,7 @@ use crate::{
 use axum::{
     extract::{Extension, Path, Query},
     http::Uri,
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Json, Router,
 };
 use jsonapi::model::*;
@@ -55,12 +55,13 @@ pub fn service_route() -> Router {
             "/accounts/:account_id",
             get(get_account_handler).patch(patch_other_account_handler),
         )
+        .route("/admin/accounts/:account_id", patch(patch_account_handler))
         .route(
             "/accounts/:account_id/profile-images",
             get(get_account_images_handler),
         )
         .route("/accounts", get(get_accounts_by_ids_handler))
-        .route("/me", get(get_me_handler).patch(patch_account_handler))
+        .route("/me", get(get_me_handler).patch(patch_me_account_handler))
         .route(
             "/me/profile-images/:order",
             put(put_me_image_handler)
@@ -193,6 +194,18 @@ async fn patch_other_account_handler(
     QuickResponse::default()
 }
 async fn patch_account_handler(
+    Extension(pool): Extension<Pool>,
+    Extension(kv): Extension<KvPool>,
+    Path(target_accoutn_id): Path<i64>,
+    locale: Locale,
+    auth: Auth,
+    Json(mut payload): Json<UpdateAccountParam>,
+) -> JsonApiResponse {
+    payload.account_id = Some(target_accoutn_id);
+    let account = update_account(&locale, &pool, &kv, payload, &auth, false).await?;
+    Ok(format_response(account.to_jsonapi_document()))
+}
+async fn patch_me_account_handler(
     Extension(pool): Extension<Pool>,
     Extension(kv): Extension<KvPool>,
 
