@@ -79,6 +79,15 @@ pub struct DataWithPageInfo<T> {
     pub data: Vec<T>,
     pub page_info: PageInfo,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataWithMeta<T, M>
+where
+    M: Serialize,
+{
+    pub data: T,
+    pub meta: M,
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Filter {
     #[serde(with = "option_base62_i64")]

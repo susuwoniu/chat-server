@@ -5,7 +5,7 @@ use crate::{
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
-    global::config::get_random_background_color,
+    global::{config::get_random_background_color, Config},
     middleware::{Auth, Locale},
     post::{
         model::{CreatePostParam, DbPost, Post, UpdatePostTemplateParam, Visibility},
@@ -15,14 +15,20 @@ use crate::{
         },
         util,
     },
-    types::{FieldAction, Gender, ServiceResult},
+    types::{DataWithMeta, FieldAction, Gender, ServiceResult},
     util::{date::naive_to_beijing, id::next_id},
 };
 use sonyflake::Sonyflake;
 
-use chrono::{Duration, Utc};
+use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork17::IpNetwork;
+use serde::{Deserialize, Serialize};
 use sqlx::query_as;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NextPostMeta {
+    pub next_post_not_before: NaiveDateTime,
+}
 pub async fn create_post(
     locale: &Locale,
     pool: &Pool,
@@ -31,7 +37,7 @@ pub async fn create_post(
     auth: Auth,
     ip: IpNetwork,
     sf: &mut Sonyflake,
-) -> ServiceResult<Post> {
+) -> ServiceResult<DataWithMeta<Post, NextPostMeta>> {
     let CreatePostParam {
         content,
         background_color,
@@ -45,6 +51,7 @@ pub async fn create_post(
     // add post template
     let id = next_id(sf);
     let now = Utc::now().naive_utc();
+    let cfg = Config::global();
 
     util::is_post_content_valid(locale, &content)?;
     let final_visibility = util::get_post_content_visibility(&content, visibility);
@@ -124,7 +131,6 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
         true,
     )
     .await?;
-    // todo used count
     update_post_template(
         locale,
         pool,
@@ -137,6 +143,21 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
         true,
     )
     .await?;
+    let min_duration_between_posts_in_minutes = cfg.post.min_duration_between_posts_in_minutes;
+    let vip_min_duration_between_posts_in_minutes =
+        cfg.post.vip_min_duration_between_posts_in_minutes;
+    let next_post_not_before;
 
-    return Ok(format_post(post, account.into()));
+    if account.vip || account.admin || account.admin {
+        next_post_not_before = now + Duration::minutes(vip_min_duration_between_posts_in_minutes);
+    } else {
+        next_post_not_before = now + Duration::minutes(min_duration_between_posts_in_minutes);
+    }
+
+    return Ok(DataWithMeta {
+        data: format_post(post, account.into()),
+        meta: NextPostMeta {
+            next_post_not_before,
+        },
+    });
 }

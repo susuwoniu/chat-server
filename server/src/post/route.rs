@@ -28,6 +28,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use serde_json::{json, Value};
+
 use jsonapi::{api::*, model::*};
 use sonyflake::Sonyflake;
 
@@ -80,7 +82,20 @@ async fn create_post_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = create_post(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
-    Ok(format_response(data.to_jsonapi_document()))
+    let mut meta: HashMap<String, Value> = HashMap::new();
+    meta.insert(
+        "next_post_not_before".to_string(),
+        json!(data.meta.next_post_not_before),
+    );
+    let response = JsonApiDocument::Data(DocumentData {
+        meta: Some(meta),
+        data: Some(PrimaryData::Single(Box::new(
+            data.data.to_jsonapi_resource().0,
+        ))),
+
+        ..Default::default()
+    });
+    Ok(format_response(response))
 }
 async fn get_posts_handler(
     Extension(pool): Extension<Pool>,
