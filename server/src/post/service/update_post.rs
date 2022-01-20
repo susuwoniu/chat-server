@@ -15,17 +15,19 @@ use crate::{
         },
     },
     types::{DataWithMeta, FieldAction, Gender, ServiceResult},
-    util::{datetime_tz, id::next_id},
+    util::{
+        date::{naive_to_beijing, naive_to_utc},
+        id::next_id,
+    },
 };
 use serde::{Deserialize, Serialize};
 use sonyflake::Sonyflake;
 
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use sqlx::{query, query_as};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NextPostMeta {
-    #[serde(with = "datetime_tz")]
-    pub next_post_not_before: NaiveDateTime,
+    pub next_post_not_before: DateTime<Utc>,
 }
 pub async fn update_post(
     locale: &Locale,
@@ -68,8 +70,16 @@ pub async fn update_post(
         ));
     }
     let current = posts.data[0].clone();
-
+    let post_author = current.author;
     let now = Utc::now().naive_utc();
+    if post_author.suspended {
+        return Err(ServiceError::account_suspended(
+            locale,
+            post_author.suspended_reason.clone(),
+            post_author.suspended_until.clone(),
+            Error::Other(format!("account {} suspened.", post_author.id)),
+        ));
+    }
 
     let mut featured_edit_value = None;
     let mut approved_edit_value = None;
@@ -132,7 +142,7 @@ pub async fn update_post(
                 FieldAction::IncreaseOne => {
                     // add to view table
                     // check user settings
-                    if current.author.show_viewed_action {
+                    if post_author.show_viewed_action {
                         // add to view table
                         let view_id = next_id(sf);
                         let view_insert_result = query!(
@@ -233,13 +243,39 @@ pub async fn update_post(
     }
     // 修改time cursor // 判断权限
     let mut time_cursor = None;
+    let mut time_cursor_change_count = None;
     let vip_min_duration_between_posts_in_minutes =
         cfg.post.vip_min_duration_between_posts_in_minutes;
     if let Some(promote) = promote {
         if promote {
             if auth.admin || auth.moderator || auth.vip {
-                time_cursor = Some(next_id(sf));
+                // check time cursor change count
 
+                if !current.is_can_promote {
+                    return Err(ServiceError::reach_max_change_limit(
+                        locale,
+                        "max_time_cursor_change_count_reached",
+                        "time-cursor",
+                        None,
+                        Error::Other(format!(
+                            "post {} time_cursor reach max change limit",
+                            current.id
+                        )),
+                    ));
+                }
+
+                // check laste post time
+
+                if post_author.next_post_not_before - now > Duration::minutes(5) {
+                    return Err(ServiceError::account_post_not_before(
+                        locale,
+                        naive_to_beijing(post_author.next_post_not_before.clone()),
+                        Error::Default,
+                    ));
+                }
+
+                time_cursor = Some(next_id(sf));
+                time_cursor_change_count = Some(1);
                 update_account(
                     locale,
                     pool,
@@ -281,9 +317,10 @@ visibility = COALESCE($12,visibility),
 deleted = COALESCE($13,deleted), 
 deleted_at = COALESCE($14,deleted_at), 
 deleted_by = COALESCE($15,deleted_by),
-replied_count=COALESCE($16,replied_count)
+replied_count=COALESCE($16,replied_count),
+time_cursor_change_count=CASE WHEN $17::int is null THEN time_cursor_change_count ELSE time_cursor_change_count+$17::int END
 WHERE id = $1 and deleted = false
-RETURNING id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color,null::float8 as distance
+RETURNING id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color,null::float8 as distance
 "#,    id,
     featured_edit_value,
     featured_at,
@@ -299,7 +336,9 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
     deleted_edit_value,
     deleted_at,
     deleted_by,
-    replied_count_value
+    replied_count_value,
+    time_cursor_change_count as Option<i32>
+
   )
   .fetch_one(pool)
   .await?;
@@ -330,7 +369,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
                     used_count_action: Some(FieldAction::DecreaseOne),
                     ..Default::default()
                 },
-                auth,
+                auth.clone(),
                 true,
             )
             .await?;
@@ -342,9 +381,9 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
         .unwrap_or(NaiveDateTime::from_timestamp(0, 0))
         + Duration::minutes(vip_min_duration_between_posts_in_minutes);
     return Ok(DataWithMeta {
-        data: format_post(row, account.into()),
+        data: format_post(row, account.into(), Some(auth)),
         meta: NextPostMeta {
-            next_post_not_before,
+            next_post_not_before: naive_to_utc(next_post_not_before),
         },
     });
 }

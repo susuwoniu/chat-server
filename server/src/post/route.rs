@@ -84,7 +84,6 @@ async fn create_post_handler(
     let data = create_post(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
     let mut meta: HashMap<String, Value> = HashMap::new();
     let next = json!(data.meta.next_post_not_before);
-    dbg!(&next);
     meta.insert("next_post_not_before".to_string(), next);
     let response = JsonApiDocument::Data(DocumentData {
         meta: Some(meta),
@@ -286,7 +285,18 @@ async fn patch_post_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = update_post(&locale, &pool, &kv, id, payload, auth, &mut sf).await?;
-    Ok(format_response(data.data.to_jsonapi_document()))
+    let mut meta: HashMap<String, Value> = HashMap::new();
+    let next = json!(data.meta.next_post_not_before);
+    meta.insert("next_post_not_before".to_string(), next);
+    let response = JsonApiDocument::Data(DocumentData {
+        meta: Some(meta),
+        data: Some(PrimaryData::Single(Box::new(
+            data.data.to_jsonapi_resource().0,
+        ))),
+
+        ..Default::default()
+    });
+    Ok(format_response(response))
 }
 async fn delete_post_handler(
     Extension(pool): Extension<Pool>,

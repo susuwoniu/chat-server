@@ -138,6 +138,7 @@ pub struct Post {
     #[serde(with = "datetime_tz")]
     pub updated_at: NaiveDateTime,
     pub visibility: Visibility,
+    pub is_can_promote: bool,
     pub target_gender: Option<Gender>,
     pub author: Account,
     #[serde(with = "string_i64")]
@@ -147,6 +148,7 @@ pub struct Post {
     pub cursor: i64,
     pub gender: Gender,
     pub distance: Option<f64>,
+    pub time_cursor_change_count: i32,
 }
 jsonapi_model!(Post; "posts"; has one author);
 #[derive(Debug, Clone)]
@@ -170,6 +172,7 @@ pub struct DbPost {
     pub post_template_title: String,
     pub ip: Option<IpNetwork>,
     pub distance: Option<f64>,
+    pub time_cursor_change_count: i32,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiPostTemplateFilter {

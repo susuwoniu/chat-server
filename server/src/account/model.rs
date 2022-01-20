@@ -140,6 +140,10 @@ pub struct Account {
     pub approved_at: Option<NaiveDateTime>,
     pub profile_images: Vec<ProfileImage>,
     pub is_liked: Option<bool>,
+    #[serde(with = "option_datetime_tz")]
+    pub last_post_created_at: Option<NaiveDateTime>,
+    #[serde(with = "datetime_tz")]
+    pub next_post_not_before: NaiveDateTime,
 }
 
 jsonapi_model!(Account; "accounts");
@@ -501,6 +505,8 @@ impl From<FullAccount> for Account {
             approved_at,
             show_viewed_action,
             profile_images,
+            last_post_created_at,
+            next_post_not_before,
             ..
         } = account;
 
@@ -529,6 +535,8 @@ impl From<FullAccount> for Account {
             show_viewed_action,
             profile_images,
             is_liked: None,
+            last_post_created_at,
+            next_post_not_before,
         }
     }
 }

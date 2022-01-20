@@ -39,3 +39,4 @@ record-not-exist-title=记录不存在
 record-not-exist-detail=未在数据库中找到该记录，请检查后再试
 param-invalid-title=提交的内容格式有误
 param-invalid-detail=请检查后再提交哦
+time-cursor=帖子曝光时间

@@ -94,7 +94,7 @@ pub async fn create_post(
 INSERT INTO posts (id,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender,target_gender,visibility,approved,approved_at,approved_by,birthday,color,post_template_title,geom)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
     CASE WHEN ($19::float8 is null or $20::float8 is null) THEN null ELSE ST_SetSRID(ST_Point($19,$20),4326) END)
-RETURNING id,content,background_color,account_id,updated_at,post_template_title,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,null::float8 as distance
+RETURNING id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_title,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,null::float8 as distance
 "#,
     id,
     content,
@@ -142,7 +142,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
             used_count_action: Some(FieldAction::IncreaseOne),
             ..Default::default()
         },
-        auth,
+        auth.clone(),
         true,
     )
     .await?;
@@ -158,7 +158,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
     }
 
     return Ok(DataWithMeta {
-        data: format_post(post, account.into()),
+        data: format_post(post, account.into(), Some(auth.clone())),
         meta: NextPostMeta {
             next_post_not_before: naive_to_utc(next_post_not_before),
         },

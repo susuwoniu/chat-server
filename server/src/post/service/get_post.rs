@@ -55,7 +55,7 @@ pub async fn get_posts(
     }
     let mut rows = query_as!(DbPost,
     r#"
-      select id,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
+      select id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
       ($35::bigint is null or id=$35)
       and ($27::bigint is null or account_id=$27)
       and ($31::bigint is null or post_template_id=$31)
@@ -160,7 +160,7 @@ id
         .filter_map(|row| {
             let account = account_map.get(&row.account_id);
             if let Some(account) = account {
-                return Some(format_post(row, account.clone()));
+                return Some(format_post(row, account.clone(), auth.clone()));
             } else {
                 return None;
             }
@@ -287,7 +287,9 @@ pub fn format_post_view(raw: DbPostView, viewed_by_account: Account) -> PostView
         viewed_by_account,
     };
 }
-pub fn format_post(raw: DbPost, author: Account) -> Post {
+pub fn format_post(raw: DbPost, author: Account, auth: Option<Auth>) -> Post {
+    let cfg = Config::global();
+
     let DbPost {
         id,
         content,
@@ -308,8 +310,19 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
         ip: _,
         color,
         distance,
+        time_cursor_change_count,
     } = raw;
+    let max_time_cursor_change_count = cfg.post.max_time_cursor_change_count;
+    let mut is_can_promote = false;
+    if let Some(auth) = auth {
+        if auth.account_id == author.id {
+            if time_cursor_change_count <= max_time_cursor_change_count {
+                is_can_promote = true;
+            }
+        }
+    }
     return Post {
+        is_can_promote: is_can_promote,
         id,
         content,
         background_color,
@@ -328,6 +341,7 @@ pub fn format_post(raw: DbPost, author: Account) -> Post {
         author: author,
         color,
         distance,
+        time_cursor_change_count,
     };
 }
 fn get_range_value_or_none(range: &Option<&[i64; 2]>, position: usize) -> Option<i64> {

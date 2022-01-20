@@ -29,6 +29,7 @@ default_background_colors = [
   "#3A6CAF",
 ]
 default_listed_posts_duration_in_days = 30
+max_time_cursor_change_count = 2
 min_duration_between_posts_in_minutes = 180
 min_post_content_count = 6
 vip_min_duration_between_posts_in_minutes = 30

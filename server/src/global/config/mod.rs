@@ -61,6 +61,7 @@ pub struct Post {
     pub default_background_colors: Vec<String>,
     pub min_duration_between_posts_in_minutes: i64,
     pub vip_min_duration_between_posts_in_minutes: i64,
+    pub max_time_cursor_change_count: i32,
 }
 #[derive(Default, Debug, Deserialize, Clone)]
 pub struct Auth {

@@ -179,6 +179,7 @@ pub async fn get_accounts(
         })
         .collect());
 }
+#[allow(dead_code)]
 pub async fn get_account(locale: &Locale, pool: &Pool, account_id: i64) -> ServiceResult<Account> {
     let db_account = get_db_account(locale, pool, account_id).await?;
     return Ok(Account::from(format_account(db_account)));
