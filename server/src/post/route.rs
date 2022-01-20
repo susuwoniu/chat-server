@@ -287,7 +287,7 @@ async fn patch_post_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data = update_post(&locale, &pool, &kv, id, payload, auth, &mut sf).await?;
-    Ok(format_response(data.to_jsonapi_document()))
+    Ok(format_response(data.data.to_jsonapi_document()))
 }
 async fn delete_post_handler(
     Extension(pool): Extension<Pool>,

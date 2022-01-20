@@ -16,7 +16,7 @@ use crate::{
         util,
     },
     types::{DataWithMeta, FieldAction, Gender, ServiceResult},
-    util::{date::naive_to_beijing, id::next_id},
+    util::{date::naive_to_beijing, datetime_tz, id::next_id},
 };
 use sonyflake::Sonyflake;
 
@@ -27,6 +27,7 @@ use sqlx::query_as;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NextPostMeta {
+    #[serde(with = "datetime_tz")]
     pub next_post_not_before: NaiveDateTime,
 }
 pub async fn create_post(

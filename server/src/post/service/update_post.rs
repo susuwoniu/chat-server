@@ -5,6 +5,7 @@ use crate::{
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
+    global::Config,
     middleware::{Auth, Locale},
     post::{
         model::{DbPost, Post, PostFilter, UpdatePostParam, UpdatePostTemplateParam, Visibility},
@@ -13,13 +14,19 @@ use crate::{
             update_post_template::update_post_template,
         },
     },
-    types::{FieldAction, Gender, ServiceResult},
-    util::id::next_id,
+    types::{DataWithMeta, FieldAction, Gender, ServiceResult},
+    util::{datetime_tz, id::next_id},
 };
+use serde::{Deserialize, Serialize};
 use sonyflake::Sonyflake;
 
-use chrono::Utc;
+use chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{query, query_as};
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NextPostMeta {
+    #[serde(with = "datetime_tz")]
+    pub next_post_not_before: NaiveDateTime,
+}
 pub async fn update_post(
     locale: &Locale,
     pool: &Pool,
@@ -28,7 +35,9 @@ pub async fn update_post(
     param: UpdatePostParam,
     auth: Auth,
     sf: &mut Sonyflake,
-) -> ServiceResult<Post> {
+) -> ServiceResult<DataWithMeta<Post, NextPostMeta>> {
+    let cfg = Config::global();
+
     let UpdatePostParam {
         promote,
         viewed_count_action,
@@ -223,11 +232,29 @@ pub async fn update_post(
         }
     }
     // 修改time cursor // 判断权限
+    let mut next_post_not_before = now;
     let mut time_cursor = None;
+    let vip_min_duration_between_posts_in_minutes =
+        cfg.post.vip_min_duration_between_posts_in_minutes;
     if let Some(promote) = promote {
         if promote {
             if auth.admin || auth.moderator || auth.vip {
                 time_cursor = Some(next_id(sf));
+                next_post_not_before =
+                    now + Duration::minutes(vip_min_duration_between_posts_in_minutes);
+                update_account(
+                    locale,
+                    pool,
+                    kv,
+                    UpdateAccountParam {
+                        account_id: Some(auth.account_id),
+                        last_post_created_at: Some(now),
+                        ..Default::default()
+                    },
+                    &auth,
+                    true,
+                )
+                .await?;
             } else {
                 // 没权限
                 return Err(ServiceError::permission_limit(
@@ -312,5 +339,11 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
         }
     }
     let account = get_account(locale, pool, row.account_id).await?;
-    Ok(format_post(row, account).into())
+
+    return Ok(DataWithMeta {
+        data: format_post(row, account.into()),
+        meta: NextPostMeta {
+            next_post_not_before,
+        },
+    });
 }
