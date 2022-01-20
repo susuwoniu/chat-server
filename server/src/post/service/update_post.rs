@@ -1,7 +1,7 @@
 use crate::{
     account::{
         model::UpdateAccountParam,
-        service::{get_account::get_account, update_account::update_account},
+        service::{get_account::get_full_account, update_account::update_account},
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
@@ -232,7 +232,6 @@ pub async fn update_post(
         }
     }
     // 修改time cursor // 判断权限
-    let mut next_post_not_before = now;
     let mut time_cursor = None;
     let vip_min_duration_between_posts_in_minutes =
         cfg.post.vip_min_duration_between_posts_in_minutes;
@@ -240,8 +239,7 @@ pub async fn update_post(
         if promote {
             if auth.admin || auth.moderator || auth.vip {
                 time_cursor = Some(next_id(sf));
-                next_post_not_before =
-                    now + Duration::minutes(vip_min_duration_between_posts_in_minutes);
+
                 update_account(
                     locale,
                     pool,
@@ -338,8 +336,11 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_id,cli
             .await?;
         }
     }
-    let account = get_account(locale, pool, row.account_id).await?;
-
+    let account = get_full_account(locale, pool, row.account_id).await?;
+    let next_post_not_before = account
+        .last_post_created_at
+        .unwrap_or(NaiveDateTime::from_timestamp(0, 0))
+        + Duration::minutes(vip_min_duration_between_posts_in_minutes);
     return Ok(DataWithMeta {
         data: format_post(row, account.into()),
         meta: NextPostMeta {

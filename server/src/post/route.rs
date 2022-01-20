@@ -83,10 +83,9 @@ async fn create_post_handler(
 ) -> JsonApiResponse {
     let data = create_post(&locale, &pool, &kv, payload, auth, ip, &mut sf).await?;
     let mut meta: HashMap<String, Value> = HashMap::new();
-    meta.insert(
-        "next_post_not_before".to_string(),
-        json!(data.meta.next_post_not_before),
-    );
+    let next = json!(data.meta.next_post_not_before);
+    dbg!(&next);
+    meta.insert("next_post_not_before".to_string(), next);
     let response = JsonApiDocument::Data(DocumentData {
         meta: Some(meta),
         data: Some(PrimaryData::Single(Box::new(

@@ -16,19 +16,21 @@ use crate::{
         util,
     },
     types::{DataWithMeta, FieldAction, Gender, ServiceResult},
-    util::{date::naive_to_beijing, datetime_tz, id::next_id},
+    util::{
+        date::{naive_to_beijing, naive_to_utc},
+        id::next_id,
+    },
 };
 use sonyflake::Sonyflake;
 
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use ipnetwork17::IpNetwork;
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NextPostMeta {
-    #[serde(with = "datetime_tz")]
-    pub next_post_not_before: NaiveDateTime,
+    pub next_post_not_before: DateTime<Utc>,
 }
 pub async fn create_post(
     locale: &Locale,
@@ -158,7 +160,7 @@ RETURNING id,content,background_color,account_id,updated_at,post_template_title,
     return Ok(DataWithMeta {
         data: format_post(post, account.into()),
         meta: NextPostMeta {
-            next_post_not_before,
+            next_post_not_before: naive_to_utc(next_post_not_before),
         },
     });
 }
