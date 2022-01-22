@@ -20,7 +20,7 @@ pub enum ReportType {
     Illegal = 6,
     Leak = 7,
     Violate = 8,
-    Complatin = 9,
+    Complaint = 9,
     Feedback = 80,
     Ask = 81,
     Other = 99,
