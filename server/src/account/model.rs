@@ -281,6 +281,16 @@ pub struct DbAccountLike {
     pub updated_at: NaiveDateTime,
     pub created_at: NaiveDateTime,
 }
+
+#[derive(Debug, Clone)]
+
+pub struct DbAccountBlock {
+    pub id: i64,
+    pub account_id: i64,
+    pub target_account_id: i64,
+    pub updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountLiked {
     #[serde(with = "string_i64")]
@@ -315,7 +325,25 @@ pub struct AccountLike {
     #[serde(with = "base62_i64")]
     pub cursor: i64,
 }
-jsonapi_model!(AccountLike; "account-like"; has one target_account);
+jsonapi_model!(AccountLike; "account-likes"; has one target_account);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountBlock {
+    #[serde(with = "string_i64")]
+    pub id: i64,
+    #[serde(with = "datetime_tz")]
+    pub created_at: NaiveDateTime,
+    #[serde(with = "datetime_tz")]
+    pub updated_at: NaiveDateTime,
+    #[serde(with = "string_i64")]
+    pub target_account_id: i64,
+    #[serde(with = "string_i64")]
+    pub account_id: i64,
+    pub target_account: Account,
+    #[serde(with = "base62_i64")]
+    pub cursor: i64,
+}
+jsonapi_model!(AccountBlock; "account-blocks"; has one target_account);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountView {
     #[serde(with = "string_i64")]

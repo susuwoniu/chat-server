@@ -1,6 +1,6 @@
 use crate::{
     account::{
-        model::{Account, AccountLike, AccountLikeFilter, AccountLiked, DbAccountLike},
+        model::{Account, AccountBlock, AccountLikeFilter, DbAccountBlock},
         service::get_account::get_accounts,
     },
     alias::Pool,
@@ -12,13 +12,13 @@ use crate::{
 use sqlx::query_as;
 use std::iter::Iterator;
 
-pub async fn get_db_account_likes(
+pub async fn get_db_account_blocks(
     locale: &Locale,
     pool: &Pool,
     filter: &AccountLikeFilter,
     target_account_id: Option<i64>,
     account_id: Option<i64>,
-) -> ServiceResult<Vec<DbAccountLike>> {
+) -> ServiceResult<Vec<DbAccountBlock>> {
     let cfg = Config::global();
     let mut limit = cfg.page_size;
     if let Some(filter_limit) = filter.limit {
@@ -36,9 +36,9 @@ pub async fn get_db_account_likes(
         }
     }
     let rows = query_as!(
-        DbAccountLike,
+        DbAccountBlock,
         r#"
-      select id,account_id,updated_at,created_at,target_account_id from likes where 
+      select id,account_id,updated_at,created_at,target_account_id from blocks where 
       ($1::bigint is null or target_account_id = $1) 
       and ($7::bigint is null or account_id = $7) 
       and ($2::bigint is null or id > $2) 
@@ -60,58 +60,14 @@ pub async fn get_db_account_likes(
     .await?;
     return Ok(rows);
 }
-pub async fn get_account_liked_list(
-    locale: &Locale,
-    pool: &Pool,
-    filter: &AccountLikeFilter,
-    target_account_id: i64,
-) -> ServiceResult<DataWithPageInfo<AccountLiked>> {
-    let rows = get_db_account_likes(locale, pool, filter, Some(target_account_id), None).await?;
-    // get accounts info
-    let accounts = get_accounts(
-        locale,
-        pool,
-        rows.clone().into_iter().map(|row| row.account_id).collect(),
-    )
-    .await?;
 
-    let account_map = accounts
-        .into_iter()
-        .map(|account| (account.id, account))
-        .collect::<std::collections::HashMap<_, _>>();
-
-    let data: Vec<AccountLiked> = rows
-        .into_iter()
-        .filter_map(|row| {
-            let account = account_map.get(&row.account_id);
-            if let Some(account) = account {
-                return Some(format_account_liked(row, account.clone()));
-            } else {
-                return None;
-            }
-        })
-        .collect();
-    let mut start = None;
-    let mut end = None;
-    if let Some(row) = data.first() {
-        start = Some(row.cursor);
-    }
-    if let Some(row) = data.last() {
-        end = Some(row.cursor);
-    }
-    let collection = DataWithPageInfo::<AccountLiked> {
-        data,
-        page_info: PageInfo { start, end },
-    };
-    return Ok(collection);
-}
-pub async fn get_account_likes_list(
+pub async fn get_account_blocks_list(
     locale: &Locale,
     pool: &Pool,
     filter: &AccountLikeFilter,
     account_id: i64,
-) -> ServiceResult<DataWithPageInfo<AccountLike>> {
-    let rows = get_db_account_likes(locale, pool, filter, None, Some(account_id)).await?;
+) -> ServiceResult<DataWithPageInfo<AccountBlock>> {
+    let rows = get_db_account_blocks(locale, pool, filter, None, Some(account_id)).await?;
     // get accounts info
     let accounts = get_accounts(
         locale,
@@ -128,12 +84,12 @@ pub async fn get_account_likes_list(
         .map(|account| (account.id, account))
         .collect::<std::collections::HashMap<_, _>>();
 
-    let data: Vec<AccountLike> = rows
+    let data: Vec<AccountBlock> = rows
         .into_iter()
         .filter_map(|row| {
             let account = account_map.get(&row.target_account_id);
             if let Some(account) = account {
-                return Some(format_account_like(row, account.clone()));
+                return Some(format_account_block(row, account.clone()));
             } else {
                 return None;
             }
@@ -147,39 +103,22 @@ pub async fn get_account_likes_list(
     if let Some(row) = data.last() {
         end = Some(row.cursor);
     }
-    let collection = DataWithPageInfo::<AccountLike> {
+    let collection = DataWithPageInfo::<AccountBlock> {
         data,
         page_info: PageInfo { start, end },
     };
     return Ok(collection);
 }
-pub fn format_account_liked(raw: DbAccountLike, account: Account) -> AccountLiked {
-    let DbAccountLike {
+
+pub fn format_account_block(raw: DbAccountBlock, account: Account) -> AccountBlock {
+    let DbAccountBlock {
         id,
         created_at,
         updated_at,
         account_id,
         target_account_id,
     } = raw;
-    return AccountLiked {
-        id,
-        created_at,
-        updated_at,
-        account_id,
-        target_account_id,
-        account: account,
-        cursor: id,
-    };
-}
-pub fn format_account_like(raw: DbAccountLike, account: Account) -> AccountLike {
-    let DbAccountLike {
-        id,
-        created_at,
-        updated_at,
-        account_id,
-        target_account_id,
-    } = raw;
-    return AccountLike {
+    return AccountBlock {
         id,
         created_at,
         updated_at,
