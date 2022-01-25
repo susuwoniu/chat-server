@@ -140,6 +140,7 @@ pub struct Account {
     pub approved_at: Option<NaiveDateTime>,
     pub profile_images: Vec<ProfileImage>,
     pub is_liked: Option<bool>,
+    pub is_blocked: Option<bool>,
     #[serde(with = "option_datetime_tz")]
     pub last_post_created_at: Option<NaiveDateTime>,
     #[serde(with = "datetime_tz")]
@@ -648,6 +649,7 @@ impl From<FullAccount> for Account {
             show_viewed_action,
             profile_images,
             is_liked: None,
+            is_blocked: None,
             last_post_created_at,
             next_post_not_before,
         }

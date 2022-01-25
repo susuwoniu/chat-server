@@ -198,6 +198,9 @@ pub async fn get_other_account(
         // get is_liked
         let is_liked = Some(get_is_liked(locale, pool, auth.account_id, account_id).await?);
         account.is_liked = is_liked;
+
+        let is_blocked = Some(get_is_blocked(locale, pool, auth.account_id, account_id).await?);
+        account.is_blocked = is_blocked;
     }
     return Ok(account);
 }
@@ -210,6 +213,28 @@ pub async fn get_is_liked(
     let row = query!(
         r#"
           select id from likes where account_id = $1 and target_account_id=$2
+    "#,
+        account_id,
+        target_account_id
+    )
+    .fetch_optional(pool)
+    .await?;
+    if let Some(_) = row {
+        return Ok(true);
+    } else {
+        return Ok(false);
+    }
+}
+
+pub async fn get_is_blocked(
+    _: &Locale,
+    pool: &Pool,
+    account_id: i64,
+    target_account_id: i64,
+) -> ServiceResult<bool> {
+    let row = query!(
+        r#"
+          select id from blocks where account_id = $1 and target_account_id=$2
     "#,
         account_id,
         target_account_id
