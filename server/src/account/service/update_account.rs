@@ -44,6 +44,7 @@ pub async fn update_other_account(
         viewed_count_action,
         target_account_id,
         like_count_action,
+        block_count_action,
     } = param;
     // 是否本人
     if target_account_id == account_id {
@@ -54,8 +55,20 @@ pub async fn update_other_account(
         ));
     }
 
+    let mut action_count = 0;
+
+    if viewed_count_action.is_some() {
+        action_count += 1;
+    }
+    if like_count_action.is_some() {
+        action_count += 1;
+    }
+    if block_count_action.is_some() {
+        action_count += 1;
+    }
+
     // 互斥，only one once.
-    if viewed_count_action.is_some() && like_count_action.is_some() {
+    if action_count > 1 {
         return Err(ServiceError::bad_request(
             locale,
             "only_one_action_can_edited_once",
@@ -208,7 +221,6 @@ pub async fn update_other_account(
                 } else {
                     let query_result_parsed = query_result.unwrap();
                     if query_result_parsed.rows_affected() > 0 {
-                        field_action = Some(FieldAction::DecreaseOne);
                         is_delete_likes_success = true;
                     } else {
                         // failed
@@ -260,6 +272,95 @@ pub async fn update_other_account(
         )
         .await?;
     }
+
+    // block action
+    // if like_count_action exist
+    let mut is_increase_blocks_count_success = false;
+    let mut is_delete_blocks_success = false;
+    if let Some(block_count_action) = block_count_action {
+        match block_count_action {
+            FieldAction::IncreaseOne => {
+                // TODO
+                let id = next_id(sf);
+
+                let query_result = query!(
+                    r#"
+          INSERT INTO blocks (id,account_id,target_account_id,updated_at,created_at)
+          VALUES ($1,$2,$3,$4,$5)
+          "#,
+                    id,
+                    account_id,
+                    target_account_id,
+                    now.naive_utc(),
+                    now.naive_utc()
+                )
+                .execute(pool)
+                .await;
+                if query_result.is_err() {
+                    tracing::error!(
+                        "Duduplicate block from {} to account {}",
+                        account_id,
+                        target_account_id
+                    );
+                    return Err(ServiceError::bad_request(
+                        locale,
+                        "duduplicated_block_action",
+                        Error::Default,
+                    ));
+                } else {
+                    is_increase_blocks_count_success = true;
+                }
+            }
+            FieldAction::DecreaseOne => {
+                let query_result = query!(
+                    r#"
+          DELETE from blocks where account_id=$1 and target_account_id=$2
+          "#,
+                    account_id,
+                    target_account_id,
+                )
+                .execute(pool)
+                .await;
+
+                if query_result.is_err() {
+                    tracing::error!(
+                        "Duduplicate block from {} to account {}",
+                        account_id,
+                        target_account_id
+                    );
+                    return Err(ServiceError::bad_request(
+                        locale,
+                        "duduplicated_block_action",
+                        Error::Default,
+                    ));
+                } else {
+                    let query_result_parsed = query_result.unwrap();
+                    if query_result_parsed.rows_affected() > 0 {
+                        is_delete_blocks_success = true;
+                    } else {
+                        // failed
+                        tracing::error!(
+                            "not found block relation from {} to account {}",
+                            account_id,
+                            target_account_id
+                        );
+                        return Err(ServiceError::bad_request(
+                            locale,
+                            "must_block_first",
+                            Error::Default,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    // update im system
+    if is_increase_blocks_count_success {
+    } else if is_delete_blocks_success {
+        // 解除block
+    }
+
     if field_action.is_some() {
         // 创建通知
         let notification = CreateNotificationParam {

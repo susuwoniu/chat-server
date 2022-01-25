@@ -271,6 +271,51 @@ pub struct DbAccountView {
     pub updated_at: NaiveDateTime,
     pub created_at: NaiveDateTime,
 }
+
+#[derive(Debug, Clone)]
+
+pub struct DbAccountLike {
+    pub id: i64,
+    pub account_id: i64,
+    pub target_account_id: i64,
+    pub updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountLiked {
+    #[serde(with = "string_i64")]
+    pub id: i64,
+    #[serde(with = "datetime_tz")]
+    pub created_at: NaiveDateTime,
+    #[serde(with = "datetime_tz")]
+    pub updated_at: NaiveDateTime,
+    #[serde(with = "string_i64")]
+    pub target_account_id: i64,
+    #[serde(with = "string_i64")]
+    pub account_id: i64,
+    pub account: Account,
+    #[serde(with = "base62_i64")]
+    pub cursor: i64,
+}
+jsonapi_model!(AccountLiked; "account-liked"; has one account);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountLike {
+    #[serde(with = "string_i64")]
+    pub id: i64,
+    #[serde(with = "datetime_tz")]
+    pub created_at: NaiveDateTime,
+    #[serde(with = "datetime_tz")]
+    pub updated_at: NaiveDateTime,
+    #[serde(with = "string_i64")]
+    pub target_account_id: i64,
+    #[serde(with = "string_i64")]
+    pub account_id: i64,
+    pub target_account: Account,
+    #[serde(with = "base62_i64")]
+    pub cursor: i64,
+}
+jsonapi_model!(AccountLike; "account-like"; has one target_account);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountView {
     #[serde(with = "string_i64")]
@@ -370,6 +415,44 @@ impl TryFrom<ApiAccountViewFilter> for AccountViewFilter {
         })
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ApiAccountLikeFilter {
+    pub after: Option<String>,
+    pub before: Option<String>,
+    pub start_time: Option<NaiveDateTime>,
+    pub end_time: Option<NaiveDateTime>,
+    pub limit: Option<i64>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AccountLikeFilter {
+    pub after: Option<i64>,
+    pub before: Option<i64>,
+    pub start_time: Option<NaiveDateTime>,
+    pub end_time: Option<NaiveDateTime>,
+    pub limit: Option<i64>,
+}
+impl TryFrom<ApiAccountLikeFilter> for AccountLikeFilter {
+    type Error = ServiceError;
+
+    fn try_from(value: ApiAccountLikeFilter) -> Result<Self, Self::Error> {
+        let mut after = None;
+        if let Some(after_value) = value.after {
+            after = Some(base62_to_i64(&after_value)?);
+        }
+        let mut before = None;
+        if let Some(before_value) = value.before {
+            before = Some(base62_to_i64(&before_value)?);
+        }
+        Ok(Self {
+            limit: value.limit,
+            after,
+            before,
+            start_time: value.start_time,
+            end_time: value.end_time,
+        })
+    }
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Thumbtail {
     pub url: String,
@@ -421,11 +504,13 @@ pub struct DbProfileImagesJson {
 pub struct ApiUpdateOtherAccountParam {
     pub viewed_count_action: Option<FieldAction>,
     pub like_count_action: Option<FieldAction>,
+    pub block_count_action: Option<FieldAction>,
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct UpdateOtherAccountParam {
     pub viewed_count_action: Option<FieldAction>,
     pub like_count_action: Option<FieldAction>,
+    pub block_count_action: Option<FieldAction>,
     pub target_account_id: i64,
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]

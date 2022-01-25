@@ -1,9 +1,4 @@
--- Add migration script here
 
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
 
 
 
@@ -12,13 +7,7 @@ SET default_table_access_method = heap;
 -- Name: account_auths; Type: TABLE; Schema: public; Owner: -
 --
 
-
---
--- Name: identity_type; 1: phone, 2: email, 3: wechat, 4: weibo, 5: apple, 6: google, 7:facebook, 8: twitter
---
-
-
-CREATE TABLE account_auths (
+CREATE TABLE public.account_auths (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -40,22 +29,12 @@ CREATE TABLE account_auths (
     deleted_at timestamp without time zone
 );
 
-CREATE INDEX index_identity_type_and_identifier ON account_auths USING btree (identifier, identity_type);
---
--- Name: index_login_activities_account_id; Type: INDEX; Schema: public; Owner: -
---
 
-CREATE INDEX index_login_activities_account_id ON account_auths USING btree (account_id);
---
--- Name: index_identity_type_and_identifier; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX unique_index_identity_type_and_identifier ON account_auths USING btree (identifier, identity_type, deleted_at);
 --
 -- Name: account_images; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE account_images (
+CREATE TABLE public.account_images (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -69,20 +48,13 @@ CREATE TABLE account_images (
     deleted boolean DEFAULT false NOT NULL,
     deleted_at timestamp without time zone
 );
---
--- Name: index_unique_images; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_unique_images ON account_images USING btree (account_id,_order,deleted_at);
-CREATE  INDEX index_account_id_images ON account_images USING btree (account_id);
-
 
 
 --
 -- Name: account_view_records; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE account_view_records (
+CREATE TABLE public.account_view_records (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -95,7 +67,7 @@ CREATE TABLE account_view_records (
 -- Name: account_views; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE account_views (
+CREATE TABLE public.account_views (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -109,11 +81,7 @@ CREATE TABLE account_views (
 -- Name: accounts; Type: TABLE; Schema: public; Owner: -
 --
 
--- 
---
--- Name: gender; 0 unknown, 1: male, 2: female, 3: intersex, 10: other,
---
-CREATE TABLE accounts (
+CREATE TABLE public.accounts (
     id bigint NOT NULL,
     name character varying(255) NOT NULL,
     username character varying(255),
@@ -156,50 +124,29 @@ CREATE TABLE accounts (
     profile_image_change_count integer DEFAULT 0 NOT NULL,
     post_template_count bigint DEFAULT 0 NOT NULL,
     show_viewed_action boolean DEFAULT true NOT NULL,
-    profile_images json
+    profile_images json,
+    last_post_created_at timestamp without time zone
 );
-CREATE UNIQUE INDEX unique_index_accounts_on_username ON accounts USING btree (username,deleted_at);
--- phone_number index
-CREATE INDEX unique_index_accounts_on_phone_number ON accounts USING btree (phone_number);
+
 
 --
 -- Name: blocks; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE blocks (
+CREATE TABLE public.blocks (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
-    target_account_id bigint NOT NULL,
-    deleted boolean DEFAULT false NOT NULL,
-    deleted_at timestamp without time zone
+    target_account_id bigint NOT NULL
 );
 
---
--- Name: index_blocks_on_account_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_blocks_on_account_id ON blocks USING btree (account_id);
-
---
--- Name: index_blocks_on_account_id_and_target_account_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX unique_index_blocks_on_account_id_and_target_account_id ON blocks USING btree (account_id, target_account_id, deleted_at);
-
-
---
--- Name: index_blocks_on_target_account_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_blocks_on_target_account_id ON blocks USING btree (target_account_id);
 
 --
 -- Name: invites; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE invites (
+CREATE TABLE public.invites (
     id bigint NOT NULL,
     account_id bigint NOT NULL,
     code character varying NOT NULL,
@@ -214,7 +161,7 @@ CREATE TABLE invites (
 -- Name: likes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE likes (
+CREATE TABLE public.likes (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -227,7 +174,7 @@ CREATE TABLE likes (
 -- Name: login_activities; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE login_activities (
+CREATE TABLE public.login_activities (
     id bigint NOT NULL,
     account_auth_id bigint NOT NULL,
     account_id bigint NOT NULL,
@@ -242,18 +189,13 @@ CREATE TABLE login_activities (
     deleted_at timestamp without time zone,
     client_platform smallint DEFAULT 1 NOT NULL
 );
---
--- Name: client_platform; Type: TYPE; Schema: public; Owner: -
---
--- 1: iOS, 2: Android, 3: Web, 4: Windows, 5: macOS, 6: Linux, 7: WechatMini
-
 
 
 --
 -- Name: notification_inboxes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE notification_inboxes (
+CREATE TABLE public.notification_inboxes (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -271,11 +213,8 @@ CREATE TABLE notification_inboxes (
 --
 -- Name: notifications; Type: TABLE; Schema: public; Owner: -
 --
--- _type: 1: profile_viewed, 2: profile_liked
 
--- _action: 1: profile_viewed, 2: profile_liked
-
-CREATE TABLE notifications (
+CREATE TABLE public.notifications (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -290,17 +229,12 @@ CREATE TABLE notifications (
     is_primary boolean DEFAULT false NOT NULL
 );
 
---
--- Name: index_for_account_id_and_type_of_notifications; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_for_account_id_and_type_of_notifications ON notifications USING btree (account_id);
 
 --
 -- Name: post_reply; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE post_reply (
+CREATE TABLE public.post_reply (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -314,7 +248,7 @@ CREATE TABLE post_reply (
 -- Name: post_skip; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE post_skip (
+CREATE TABLE public.post_skip (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -328,7 +262,7 @@ CREATE TABLE post_skip (
 -- Name: post_templates; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE post_templates (
+CREATE TABLE public.post_templates (
     id bigint NOT NULL,
     used_count bigint DEFAULT 0 NOT NULL,
     skipped_count bigint DEFAULT 0 NOT NULL,
@@ -354,7 +288,7 @@ CREATE TABLE post_templates (
 -- Name: post_view; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE post_view (
+CREATE TABLE public.post_view (
     id bigint NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
@@ -367,12 +301,8 @@ CREATE TABLE post_view (
 --
 -- Name: posts; Type: TABLE; Schema: public; Owner: -
 --
---
--- Name: visibility; 1: public, 2: private, 3:unlisted, 4: related,  5:direct
---
 
-
-CREATE TABLE posts (
+CREATE TABLE public.posts (
     id bigint NOT NULL,
     content text DEFAULT ''::text NOT NULL,
     post_template_id bigint NOT NULL,
@@ -401,7 +331,9 @@ CREATE TABLE posts (
     birthday date,
     background_color bigint NOT NULL,
     color bigint NOT NULL,
-    post_template_title character varying(255) NOT NULL
+    post_template_title character varying(255) NOT NULL,
+    geom public.geometry(Point,4326),
+    time_cursor_change_count integer DEFAULT 0 NOT NULL
 );
 
 
@@ -409,18 +341,20 @@ CREATE TABLE posts (
 -- Name: reports; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE reports (
+CREATE TABLE public.reports (
     id bigint NOT NULL,
-    report_type character varying(255) NOT NULL,
     content text DEFAULT ''::text NOT NULL,
-    images json,
-    action_taken boolean DEFAULT false NOT NULL,
-    action_taken_by_account_id bigint,
-    action_comment text DEFAULT ''::text NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     account_id bigint NOT NULL,
-    target_account_id bigint NOT NULL
+    _type smallint DEFAULT 0 NOT NULL,
+    state smallint DEFAULT 0 NOT NULL,
+    related_post_id bigint,
+    related_account_id bigint,
+    replied_content text,
+    replied_by bigint,
+    replied_at timestamp without time zone,
+    images character varying(2048)[] DEFAULT ARRAY[]::character varying[] NOT NULL
 );
 
 
@@ -429,7 +363,7 @@ CREATE TABLE reports (
 -- Name: account_auths account_auths_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account_auths
+ALTER TABLE ONLY public.account_auths
     ADD CONSTRAINT account_auths_pkey PRIMARY KEY (id);
 
 
@@ -437,7 +371,7 @@ ALTER TABLE ONLY account_auths
 -- Name: account_images account_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account_images
+ALTER TABLE ONLY public.account_images
     ADD CONSTRAINT account_images_pkey PRIMARY KEY (id);
 
 
@@ -445,7 +379,7 @@ ALTER TABLE ONLY account_images
 -- Name: account_view_records account_view_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account_view_records
+ALTER TABLE ONLY public.account_view_records
     ADD CONSTRAINT account_view_records_pkey PRIMARY KEY (id);
 
 
@@ -453,7 +387,7 @@ ALTER TABLE ONLY account_view_records
 -- Name: account_views account_views_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account_views
+ALTER TABLE ONLY public.account_views
     ADD CONSTRAINT account_views_pkey PRIMARY KEY (id);
 
 
@@ -461,7 +395,7 @@ ALTER TABLE ONLY account_views
 -- Name: accounts accounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY accounts
+ALTER TABLE ONLY public.accounts
     ADD CONSTRAINT accounts_pkey PRIMARY KEY (id);
 
 
@@ -469,7 +403,7 @@ ALTER TABLE ONLY accounts
 -- Name: blocks blocks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY blocks
+ALTER TABLE ONLY public.blocks
     ADD CONSTRAINT blocks_pkey PRIMARY KEY (id);
 
 
@@ -477,7 +411,7 @@ ALTER TABLE ONLY blocks
 -- Name: invites invites_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY invites
+ALTER TABLE ONLY public.invites
     ADD CONSTRAINT invites_code_key UNIQUE (code);
 
 
@@ -485,7 +419,7 @@ ALTER TABLE ONLY invites
 -- Name: invites invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY invites
+ALTER TABLE ONLY public.invites
     ADD CONSTRAINT invites_pkey PRIMARY KEY (id);
 
 
@@ -493,7 +427,7 @@ ALTER TABLE ONLY invites
 -- Name: likes likes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY likes
+ALTER TABLE ONLY public.likes
     ADD CONSTRAINT likes_pkey PRIMARY KEY (id);
 
 
@@ -501,7 +435,7 @@ ALTER TABLE ONLY likes
 -- Name: login_activities login_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY login_activities
+ALTER TABLE ONLY public.login_activities
     ADD CONSTRAINT login_activities_pkey PRIMARY KEY (id);
 
 
@@ -509,7 +443,7 @@ ALTER TABLE ONLY login_activities
 -- Name: notification_inboxes notification_inboxes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY notification_inboxes
+ALTER TABLE ONLY public.notification_inboxes
     ADD CONSTRAINT notification_inboxes_pkey PRIMARY KEY (id);
 
 
@@ -517,7 +451,7 @@ ALTER TABLE ONLY notification_inboxes
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY notifications
+ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 
 
@@ -525,7 +459,7 @@ ALTER TABLE ONLY notifications
 -- Name: post_reply post_reply_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY post_reply
+ALTER TABLE ONLY public.post_reply
     ADD CONSTRAINT post_reply_pkey PRIMARY KEY (id);
 
 
@@ -533,7 +467,7 @@ ALTER TABLE ONLY post_reply
 -- Name: post_skip post_skip_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY post_skip
+ALTER TABLE ONLY public.post_skip
     ADD CONSTRAINT post_skip_pkey PRIMARY KEY (id);
 
 
@@ -541,7 +475,7 @@ ALTER TABLE ONLY post_skip
 -- Name: post_templates post_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY post_templates
+ALTER TABLE ONLY public.post_templates
     ADD CONSTRAINT post_templates_pkey PRIMARY KEY (id);
 
 
@@ -549,7 +483,7 @@ ALTER TABLE ONLY post_templates
 -- Name: posts posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY posts
+ALTER TABLE ONLY public.posts
     ADD CONSTRAINT posts_pkey PRIMARY KEY (id);
 
 
@@ -557,7 +491,7 @@ ALTER TABLE ONLY posts
 -- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY reports
+ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
 
 
@@ -565,177 +499,253 @@ ALTER TABLE ONLY reports
 -- Name: post_view views_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY post_view
+ALTER TABLE ONLY public.post_view
     ADD CONSTRAINT views_pkey PRIMARY KEY (id);
 
 
+--
+-- Name: index_account_id_images; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_account_id_images ON public.account_images USING btree (account_id);
 
 
+--
+-- Name: index_account_id_type_on_notification_inboxes; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_account_id_type_on_notification_inboxes ON public.notification_inboxes USING btree (account_id);
 
 
+--
+-- Name: index_blocks_on_account_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_blocks_on_account_id ON public.blocks USING btree (account_id);
 
 
+--
+-- Name: index_blocks_on_target_account_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_blocks_on_target_account_id ON public.blocks USING btree (target_account_id);
 
 
+--
+-- Name: index_for_account_id_and_type_of_notifications; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_for_account_id_and_type_of_notifications ON public.notifications USING btree (account_id);
+
+
+--
+-- Name: index_identity_type_and_identifier; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_identity_type_and_identifier ON public.account_auths USING btree (identifier, identity_type);
 
 
 --
 -- Name: index_invites_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_invites_account_id ON invites USING btree (account_id);
+CREATE INDEX index_invites_account_id ON public.invites USING btree (account_id);
 
 
 --
 -- Name: index_invites_code; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_invites_code ON invites USING btree (code);
+CREATE INDEX index_invites_code ON public.invites USING btree (code);
 
 
 --
 -- Name: index_likes_on_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_likes_on_account_id ON likes USING btree (account_id);
+CREATE INDEX index_likes_on_account_id ON public.likes USING btree (account_id);
 
 
 --
 -- Name: index_likes_on_account_id_and_target_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX index_likes_on_account_id_and_target_account_id ON likes USING btree (account_id, target_account_id);
+CREATE UNIQUE INDEX index_likes_on_account_id_and_target_account_id ON public.likes USING btree (account_id, target_account_id);
 
 
 --
 -- Name: index_likes_on_target_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_likes_on_target_account_id ON likes USING btree (target_account_id);
+CREATE INDEX index_likes_on_target_account_id ON public.likes USING btree (target_account_id);
 
 
+--
+-- Name: index_login_activities_account_id; Type: INDEX; Schema: public; Owner: -
+--
 
+CREATE INDEX index_login_activities_account_id ON public.account_auths USING btree (account_id);
 
 
 --
 -- Name: index_post_reply_on_post_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_post_reply_on_post_account_id ON post_reply USING btree (post_account_id);
+CREATE INDEX index_post_reply_on_post_account_id ON public.post_reply USING btree (post_account_id);
 
 
 --
 -- Name: index_post_reply_on_replied_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_post_reply_on_replied_by ON post_reply USING btree (replied_by);
+CREATE INDEX index_post_reply_on_replied_by ON public.post_reply USING btree (replied_by);
 
 
 --
 -- Name: index_post_skip_on_post_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_post_skip_on_post_account_id ON post_skip USING btree (post_account_id);
+CREATE INDEX index_post_skip_on_post_account_id ON public.post_skip USING btree (post_account_id);
 
 
 --
 -- Name: index_post_skip_on_skipped_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_post_skip_on_skipped_by ON post_skip USING btree (skipped_by);
+CREATE INDEX index_post_skip_on_skipped_by ON public.post_skip USING btree (skipped_by);
 
 
 --
 -- Name: index_post_view_on_post_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_post_view_on_post_account_id ON post_view USING btree (post_account_id);
+CREATE INDEX index_post_view_on_post_account_id ON public.post_view USING btree (post_account_id);
 
 
 --
 -- Name: index_post_view_on_viewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_post_view_on_viewed_by ON post_view USING btree (viewed_by);
+CREATE INDEX index_post_view_on_viewed_by ON public.post_view USING btree (viewed_by);
 
 
 --
 -- Name: index_posts_on_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_posts_on_account_id ON posts USING btree (account_id);
+CREATE INDEX index_posts_on_account_id ON public.posts USING btree (account_id);
 
 
 --
 -- Name: index_records_view_on_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_records_view_on_account_id ON account_view_records USING btree (viewed_by);
+CREATE INDEX index_records_view_on_account_id ON public.account_view_records USING btree (viewed_by);
 
 
 --
 -- Name: index_records_view_on_target_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_records_view_on_target_account_id ON account_view_records USING btree (target_account_id);
+CREATE INDEX index_records_view_on_target_account_id ON public.account_view_records USING btree (target_account_id);
 
+
+--
+-- Name: index_unique_images; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_unique_images ON public.account_images USING btree (account_id, _order, COALESCE(deleted_at, '0001-01-01T00:00:00Z'));
 
 
 --
 -- Name: index_view_on_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_view_on_account_id ON account_views USING btree (viewed_by);
+CREATE INDEX index_view_on_account_id ON public.account_views USING btree (viewed_by);
 
 
 --
 -- Name: index_view_on_target_account_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_view_on_target_account_id ON account_views USING btree (target_account_id);
+CREATE INDEX index_view_on_target_account_id ON public.account_views USING btree (target_account_id);
 
 
 --
 -- Name: index_views_on_post_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_views_on_post_id ON post_view USING btree (post_id);
+CREATE INDEX index_views_on_post_id ON public.post_view USING btree (post_id);
+
+
+--
+-- Name: posts_location_index_geom; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX posts_location_index_geom ON public.posts USING gist (geom);
 
 
 --
 -- Name: unique_index_account_id_type_on_notification_inboxes; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX unique_index_account_id_type_on_notification_inboxes ON notification_inboxes USING btree (account_id,_type);
-CREATE  INDEX index_account_id_type_on_notification_inboxes ON notification_inboxes USING btree (account_id);
+CREATE UNIQUE INDEX unique_index_account_id_type_on_notification_inboxes ON public.notification_inboxes USING btree (account_id, _type);
 
 
 --
 -- Name: unique_index_account_views_on_account_id_and_viewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX unique_index_account_views_on_account_id_and_viewed_by ON account_views USING btree (viewed_by, target_account_id);
+CREATE UNIQUE INDEX unique_index_account_views_on_account_id_and_viewed_by ON public.account_views USING btree (viewed_by, target_account_id);
+
+
+--
+-- Name: unique_index_accounts_on_phone_number; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX unique_index_accounts_on_phone_number ON public.accounts USING btree (phone_number);
+
+
+--
+-- Name: unique_index_accounts_on_username; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX unique_index_accounts_on_username ON public.accounts USING btree (username, COALESCE(deleted_at, '0001-01-01T00:00:00Z'));
+
+
+--
+-- Name: unique_index_blocks_on_account_id_and_target_account_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX unique_index_blocks_on_account_id_and_target_account_id ON public.blocks USING btree (account_id, target_account_id);
+
+
+--
+-- Name: unique_index_identity_type_and_identifier; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX unique_index_identity_type_and_identifier ON public.account_auths USING btree (identifier, identity_type, COALESCE(deleted_at, '0001-01-01T00:00:00Z'));
 
 
 --
 -- Name: unique_index_post_reply_on_post_id_and_replied_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX unique_index_post_reply_on_post_id_and_replied_by ON post_reply USING btree (post_id, replied_by);
+CREATE UNIQUE INDEX unique_index_post_reply_on_post_id_and_replied_by ON public.post_reply USING btree (post_id, replied_by);
 
 
 --
 -- Name: unique_index_post_skip_on_post_id_and_skipped_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX unique_index_post_skip_on_post_id_and_skipped_by ON post_skip USING btree (post_id, skipped_by);
+CREATE UNIQUE INDEX unique_index_post_skip_on_post_id_and_skipped_by ON public.post_skip USING btree (post_id, skipped_by);
 
 
 --
 -- Name: unique_index_post_view_on_post_id_and_viewed_by; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX unique_index_post_view_on_post_id_and_viewed_by ON post_view USING btree (post_id, viewed_by);
+CREATE UNIQUE INDEX unique_index_post_view_on_post_id_and_viewed_by ON public.post_view USING btree (post_id, viewed_by);
 
 
 --

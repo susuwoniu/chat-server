@@ -1,14 +1,15 @@
 use crate::{
     account::{
         model::{
-            AccountViewFilter, ApiAccountViewFilter, ApiUpdateOtherAccountParam, DeviceParam,
-            GetAccountPathParam, GetAccountsParam, PhoneAuthBodyParam, PhoneAuthPathParam,
-            PhoneCodeMeta, PutImageParam, SendPhoneCodePathParam, SigninWithPhoneParam,
-            UpdateAccountImageParam, UpdateAccountImagesParam, UpdateAccountParam,
-            UpdateOtherAccountParam,
+            AccountLikeFilter, AccountViewFilter, ApiAccountLikeFilter, ApiAccountViewFilter,
+            ApiUpdateOtherAccountParam, DeviceParam, GetAccountPathParam, GetAccountsParam,
+            PhoneAuthBodyParam, PhoneAuthPathParam, PhoneCodeMeta, PutImageParam,
+            SendPhoneCodePathParam, SigninWithPhoneParam, UpdateAccountImageParam,
+            UpdateAccountImagesParam, UpdateAccountParam, UpdateOtherAccountParam,
         },
         service::{
             get_account::{get_account_views, get_accounts, get_full_account, get_other_account},
+            get_account_likes::{get_account_liked_list, get_account_likes_list},
             login_with_phone::login_with_phone,
             refresh_token_to_access_token::refresh_token_to_access_token,
             send_phone_code::send_phone_code,
@@ -69,6 +70,8 @@ pub fn service_route() -> Router {
                 .patch(patch_me_image_handler),
         )
         .route("/me/views", get(get_me_views_handler))
+        .route("/me/liked", get(get_me_liked_list_handler))
+        .route("/me/likes", get(get_me_likes_list_handler))
         .route(
             "/me/profile-images/slot",
             post(create_profile_image_upload_slot_handler),
@@ -169,6 +172,63 @@ async fn get_me_views_handler(
     });
     Ok(format_response(response))
 }
+
+async fn get_me_liked_list_handler(
+    Extension(pool): Extension<Pool>,
+    locale: Locale,
+    Qs(filter): Qs<ApiAccountLikeFilter>,
+    Query(query): Query<HashMap<String, String>>,
+    uri: Uri,
+    auth: Auth,
+) -> JsonApiResponse {
+    let account_view_filter = AccountLikeFilter::try_from(filter)?;
+    let data =
+        get_account_liked_list(&locale, &pool, &account_view_filter, auth.account_id).await?;
+    let resources = vec_to_jsonapi_resources(data.data);
+    let json_api_data = resources.0;
+    let other = resources.1;
+    let response = JsonApiDocument::Data(DocumentData {
+        meta: Some(format_page_meta(data.page_info.clone())),
+        data: Some(PrimaryData::Multiple(json_api_data)),
+        links: Some(format_page_links(
+            ACCOUNT_SERVICE_PATH,
+            uri.path(),
+            query,
+            data.page_info,
+        )),
+        included: other,
+        ..Default::default()
+    });
+    Ok(format_response(response))
+}
+async fn get_me_likes_list_handler(
+    Extension(pool): Extension<Pool>,
+    locale: Locale,
+    Qs(filter): Qs<ApiAccountLikeFilter>,
+    Query(query): Query<HashMap<String, String>>,
+    uri: Uri,
+    auth: Auth,
+) -> JsonApiResponse {
+    let account_view_filter = AccountLikeFilter::try_from(filter)?;
+    let data =
+        get_account_likes_list(&locale, &pool, &account_view_filter, auth.account_id).await?;
+    let resources = vec_to_jsonapi_resources(data.data);
+    let json_api_data = resources.0;
+    let other = resources.1;
+    let response = JsonApiDocument::Data(DocumentData {
+        meta: Some(format_page_meta(data.page_info.clone())),
+        data: Some(PrimaryData::Multiple(json_api_data)),
+        links: Some(format_page_links(
+            ACCOUNT_SERVICE_PATH,
+            uri.path(),
+            query,
+            data.page_info,
+        )),
+        included: other,
+        ..Default::default()
+    });
+    Ok(format_response(response))
+}
 async fn patch_other_account_handler(
     Extension(pool): Extension<Pool>,
     Extension(kv): Extension<KvPool>,
@@ -186,6 +246,7 @@ async fn patch_other_account_handler(
             viewed_count_action: payload.viewed_count_action,
             target_account_id: target_accoutn_id,
             like_count_action: payload.like_count_action,
+            block_count_action: payload.block_count_action,
         },
         auth,
         &mut sf,
