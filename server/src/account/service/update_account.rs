@@ -99,10 +99,11 @@ pub async fn update_other_account(
                 query!(
                     r#"
           INSERT into account_views as t 
-          (id, updated_at,created_at,viewed_by, target_account_id,viewed_count)
-          VALUES ($1,$2,$3,$4,$5,$6) 
+          (id, updated_at,created_at,viewed_by, target_account_id,viewed_count,time_cursor)
+          VALUES ($1,$2,$3,$4,$5,$6,$7) 
           ON CONFLICT (viewed_by, target_account_id)  DO UPDATE SET 
           updated_at=$2,
+          time_cursor=$7,
           viewed_count=t.viewed_count+1
       "#,
                     id,
@@ -110,7 +111,8 @@ pub async fn update_other_account(
                     now.naive_utc(),
                     account_id,
                     target_account_id,
-                    default_viewed_count
+                    default_viewed_count,
+                    id
                 )
                 .execute(&mut tx)
                 .await?;

@@ -59,13 +59,13 @@ pub async fn get_db_account_views(
     }
     let rows=  query_as!(DbAccountView,
     r#"
-      select id,viewed_by,viewed_count,updated_at,created_at,target_account_id from account_views where 
+      select id,viewed_by,viewed_count,updated_at,created_at,target_account_id,time_cursor from account_views where 
       target_account_id = $1 
       and ($2::bigint is null or id > $2) 
       and ($3::bigint is null or id < $3) 
       and ($4::timestamp is null or created_at > $4)
       and ($5::timestamp is null or created_at < $5)
-      order by id desc 
+      order by time_cursor desc 
       limit $6
 "#,
 target_account_id,
@@ -133,7 +133,7 @@ pub async fn get_db_account_view(
 ) -> ServiceResult<Option<DbAccountView>> {
     let row=  query_as!(DbAccountView,
     r#"
-      select id,viewed_by,viewed_count,updated_at,created_at,target_account_id from account_views where target_account_id = $1 and viewed_by = $2
+      select id,viewed_by,viewed_count,updated_at,created_at,target_account_id,time_cursor from account_views where target_account_id = $1 and viewed_by = $2
 "#,
 target_account_id,
 viewed_by
@@ -401,13 +401,14 @@ pub fn format_account_view(raw: DbAccountView, viewed_by_account: Account) -> Ac
         viewed_by,
         target_account_id,
         viewed_count,
+        time_cursor,
     } = raw;
     return AccountView {
         id,
         created_at,
         updated_at,
         viewed_by,
-        cursor: id,
+        cursor: time_cursor,
         viewed_by_account,
         target_account_id,
         viewed_count,

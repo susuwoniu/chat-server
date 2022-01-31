@@ -271,6 +271,7 @@ pub struct DbAccountView {
     pub target_account_id: i64,
     pub updated_at: NaiveDateTime,
     pub created_at: NaiveDateTime,
+    pub time_cursor: i64,
 }
 
 #[derive(Debug, Clone)]
