@@ -61,8 +61,8 @@ pub async fn get_db_account_views(
     r#"
       select id,viewed_by,viewed_count,updated_at,created_at,target_account_id,time_cursor from account_views where 
       target_account_id = $1 
-      and ($2::bigint is null or id > $2) 
-      and ($3::bigint is null or id < $3) 
+      and ($2::bigint is null or time_cursor > $2) 
+      and ($3::bigint is null or time_cursor < $3) 
       and ($4::timestamp is null or created_at > $4)
       and ($5::timestamp is null or created_at < $5)
       order by time_cursor desc 

@@ -210,7 +210,7 @@ openssl dhparam -out /etc/nginx/dhparam.pem 2048
 ## Generate SSL
 
 ```
-acme.sh --issue --dns dns_cf -d chat.scuinfo.com
+acme.sh --issue --dns dns_cf -d chat.scuinfo.com --server letsencrypt
 ```
 
 ```
