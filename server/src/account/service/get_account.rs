@@ -282,9 +282,11 @@ pub fn format_account(account: DbAccount) -> FullAccount {
     // first add aggre rule page action
 
     if account.agree_community_rules_at.is_none() {
+        let rules = include_str!("../../../../resources/terms/community-rules.md");
         actions.push(Action {
             _type: ActionType::AgreeCommunityRules,
             required: true,
+            content: Some(rules.to_string()),
         });
     }
 
@@ -293,12 +295,14 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         actions.push(Action {
             _type: ActionType::AddAccountBirthday,
             required: true,
+            content: None,
         });
     }
     if account.gender_change_count == 0 {
         actions.push(Action {
             _type: ActionType::AddAccountGender,
             required: true,
+            content: None,
         });
     }
     // optional info
@@ -308,18 +312,21 @@ pub fn format_account(account: DbAccount) -> FullAccount {
             actions.push(Action {
                 _type: ActionType::AddAccountName,
                 required: false,
+                content: None,
             });
         }
         if account.bio_change_count == 0 {
             actions.push(Action {
                 _type: ActionType::AddAccountBio,
                 required: false,
+                content: None,
             });
         }
         if account.profile_image_change_count == 0 {
             actions.push(Action {
                 _type: ActionType::AddAccountProfileImage,
                 required: false,
+                content: None,
             });
         }
     }

@@ -60,6 +60,7 @@ pub struct Action {
     #[serde(rename = "type")]
     pub _type: ActionType,
     pub required: bool,
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
