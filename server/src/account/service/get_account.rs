@@ -20,7 +20,7 @@ pub async fn get_db_account(
 ) -> ServiceResult<DbAccount> {
     let row=  query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at from accounts where id = $1 and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at from accounts where id = $1 and deleted=false
 "#,
 account_id
   )
@@ -157,7 +157,7 @@ async fn get_db_accounts(
     }
     let rows = query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at from accounts where id = ANY ($1::bigint[]) and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at from accounts where id = ANY ($1::bigint[]) and deleted=false
 "#,
 &account_ids
   )
@@ -279,6 +279,14 @@ pub fn format_account(account: DbAccount) -> FullAccount {
     }
     // todo 并行
     let mut actions: Vec<Action> = Vec::new();
+    // first add aggre rule page action
+
+    if account.agree_community_rules_at.is_none() {
+        actions.push(Action {
+            _type: ActionType::AgreeCommunityRules,
+            required: true,
+        });
+    }
 
     // required info
     if account.birthday_change_count == 0 {
@@ -391,6 +399,7 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         is_can_post: is_can_post,
         now: now,
         next_post_in_seconds: next_post_in_seconds.num_seconds(),
+        agree_community_rules_at: account.agree_community_rules_at,
     }
 }
 pub fn format_account_view(raw: DbAccountView, viewed_by_account: Account) -> AccountView {

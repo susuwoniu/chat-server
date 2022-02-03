@@ -426,6 +426,7 @@ pub async fn update_account(
         show_viewed_action,
         account_id: account_id_value,
         last_post_created_at,
+        agree_community_rules,
     } = param;
     let account_id = account_id_value.unwrap_or(auth_account_id);
     let is_self = auth_account_id == account_id;
@@ -535,6 +536,11 @@ pub async fn update_account(
     let mut approved_at = None;
     if approved.is_some() {
         approved_at = Some(now.naive_utc());
+    }
+
+    let mut agree_community_rules_at = None;
+    if agree_community_rules.is_some() {
+        agree_community_rules_at = Some(now.naive_utc());
     }
     let mut birthday_change_count = None;
     if let Some(birthday) = birthday {
@@ -689,9 +695,10 @@ pub async fn update_account(
     post_count=CASE WHEN $32::bigint is null THEN post_count ELSE post_count+$32::bigint END,
     like_count=CASE WHEN $33::bigint is null THEN like_count ELSE like_count+$33::bigint END,
     show_viewed_action=COALESCE($34,show_viewed_action),
-    last_post_created_at = COALESCE($35,last_post_created_at)
+    last_post_created_at = COALESCE($35,last_post_created_at),
+    agree_community_rules_at = COALESCE($36,agree_community_rules_at)
     where id = $1
-    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at
+    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at
 "#,
     account_id,
     now.naive_utc(),
@@ -727,7 +734,8 @@ pub async fn update_account(
     post_count_changed_value as Option<i32>,
     like_count_changed_value as Option<i32>,
     show_viewed_action,
-    last_post_created_at
+    last_post_created_at,
+    agree_community_rules_at
   )
   .fetch_one(pool)
   .await?;
