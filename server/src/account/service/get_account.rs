@@ -311,20 +311,21 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         if account.name_change_count == 0 {
             actions.push(Action {
                 _type: ActionType::AddAccountName,
-                required: false,
+                required: true,
+                content: None,
+            });
+        }
+
+        if account.profile_image_change_count == 0 {
+            actions.push(Action {
+                _type: ActionType::AddAccountProfileImage,
+                required: true,
                 content: None,
             });
         }
         if account.bio_change_count == 0 {
             actions.push(Action {
                 _type: ActionType::AddAccountBio,
-                required: false,
-                content: None,
-            });
-        }
-        if account.profile_image_change_count == 0 {
-            actions.push(Action {
-                _type: ActionType::AddAccountProfileImage,
                 required: false,
                 content: None,
             });
