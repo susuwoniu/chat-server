@@ -26,7 +26,7 @@ use crate::{
     constant::ACCOUNT_SERVICE_PATH,
     file::{
         model::{CreateUploadSlot, UploadSlot},
-        service::upload::create_profile_image_upload_slot,
+        service::upload::{create_avatar_upload_slot, create_profile_image_upload_slot},
     },
     middleware::{Auth, ClientPlatform, Ip, Locale, Qs, RefreshTokenAuth, Signature},
     types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
@@ -78,6 +78,7 @@ pub fn service_route() -> Router {
             "/me/profile-images/slot",
             post(create_profile_image_upload_slot_handler),
         )
+        .route("/me/avatar/slot", post(create_avatar_upload_slot_handler))
         .route(
             "/me/profile-images",
             get(get_me_images_handler)
@@ -437,6 +438,17 @@ async fn create_profile_image_upload_slot_handler(
     Extension(mut sf): Extension<Sonyflake>,
 ) -> SimpleMetaResponse<UploadSlot> {
     let data = create_profile_image_upload_slot(&locale, payload, auth, &mut sf).await?;
+
+    QuickResponse::meta(data)
+}
+
+async fn create_avatar_upload_slot_handler(
+    locale: Locale,
+    Json(payload): Json<CreateUploadSlot>,
+    auth: Auth,
+    Extension(mut sf): Extension<Sonyflake>,
+) -> SimpleMetaResponse<UploadSlot> {
+    let data = create_avatar_upload_slot(&locale, payload, auth, &mut sf).await?;
 
     QuickResponse::meta(data)
 }

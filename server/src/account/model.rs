@@ -1,7 +1,7 @@
 use crate::{
     error::ServiceError,
     middleware::ClientPlatform,
-    types::{Action, FieldAction, Gender, JsonVersion},
+    types::{Action, FieldAction, FieldUpdateAction, Gender, JsonVersion},
     util::{
         base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64,
     },
@@ -261,6 +261,8 @@ pub struct FullAccount {
     pub now: DateTime<Utc>,
     pub next_post_in_seconds: i64,
     pub agree_community_rules_at: Option<NaiveDateTime>,
+    pub bio_updated_at: Option<NaiveDateTime>,
+    pub name_updated_at: Option<NaiveDateTime>,
 }
 jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
 #[derive(Debug, Clone)]
@@ -403,11 +405,16 @@ pub struct DbAccount {
     pub phone_change_count: i32,
     pub gender_change_count: i32,
     pub post_template_count: i64,
-    pub skip_optional_info: bool,
     pub profile_image_change_count: i32,
     pub profile_images: Option<Value>,
     pub last_post_created_at: Option<NaiveDateTime>,
     pub agree_community_rules_at: Option<NaiveDateTime>,
+    pub gender_updated_at: Option<NaiveDateTime>,
+    pub bio_updated_at: Option<NaiveDateTime>,
+    pub name_updated_at: Option<NaiveDateTime>,
+    pub avatar_change_count: i32,
+    pub birthday_updated_at: Option<NaiveDateTime>,
+    pub phone_updated_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -555,6 +562,7 @@ pub struct UpdateAccountParam {
     pub moderator: Option<bool>,
     pub vip: Option<bool>,
     pub show_age: Option<bool>,
+    pub avatar: Option<String>,
     pub show_distance: Option<bool>,
     pub show_viewed_action: Option<bool>,
     pub suspended: Option<bool>,
@@ -575,7 +583,8 @@ pub struct UpdateAccountParam {
     pub city_id: Option<i32>,
     pub approved: Option<bool>,
     pub invite_id: Option<i64>,
-    pub skip_optional_info: Option<bool>,
+    pub bio_action: Option<FieldUpdateAction>,
+    pub avatar_action: Option<FieldUpdateAction>,
     pub post_template_count_action: Option<FieldAction>,
     pub post_count_action: Option<FieldAction>,
     pub like_count_action: Option<FieldAction>,

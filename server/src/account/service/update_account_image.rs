@@ -52,35 +52,22 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
 
     Ok(images.into_iter().map(format_image).collect())
 }
-async fn update_account_image(
-    pool: &Pool,
-    account_id: i64,
-    is_update_avatar: bool,
-    avatar: Option<ProfileImage>,
-) -> ServiceResult<()> {
+async fn update_account_image(pool: &Pool, account_id: i64) -> ServiceResult<()> {
     let now = Utc::now();
     // first get all images
     let images = get_profile_images(pool, account_id).await?;
-    let mut avatar_url: Option<String> = None;
-    if let Some(image) = avatar {
-        avatar_url = Some(format!("{}/{}", image.url, "avatar"));
-    }
 
     query!(
         r#"
 UPDATE accounts
 SET 
 updated_at=$2,
-avatar_updated_at= case when $3=true then $2 else avatar_updated_at end,
-avatar = case when $3=true then $4 else avatar end,
 profile_image_change_count=profile_image_change_count+1,
-profile_images = $5
+profile_images = $3
 where id = $1
 "#,
         account_id,
         now.naive_utc(),
-        is_update_avatar,
-        avatar_url,
         json!(DbProfileImagesJson {
             images: images,
             version: JsonVersion::V1
@@ -116,7 +103,6 @@ pub async fn put_profile_images(
     .execute(&mut tx)
     .await;
     let images = param.images;
-    // todo avatar
     let mut db_images: Vec<ProfileImage> = Vec::new();
     // insert all
     let mut v1: Vec<i64> = Vec::new();
@@ -164,13 +150,9 @@ pub async fn put_profile_images(
   .execute(&mut tx)
   .await?;
     tx.commit().await?;
-    if db_images.len() > 0 {
-        let image = db_images[0].clone();
-        update_account_image(pool, *account_id, true, Some(image)).await?;
-    } else {
-        // remove avatar
-        update_account_image(pool, *account_id, true, None).await?;
-    }
+
+    update_account_image(pool, *account_id).await?;
+
     return Ok(db_images);
 }
 
@@ -226,7 +208,6 @@ pub async fn insert_or_update_profile_image(
     .execute(pool)
     .await?;
 
-    // update avatar
     let image = format_image(DbProfileImage {
         id,
         account_id: *account_id,
@@ -238,11 +219,8 @@ pub async fn insert_or_update_profile_image(
         size,
         mime_type,
     });
-    if order == 0 {
-        update_account_image(pool, *account_id, true, Some(image.clone())).await?;
-    } else {
-        update_account_image(pool, *account_id, false, None).await?;
-    }
+
+    update_account_image(pool, *account_id).await?;
 
     Ok(image)
 }
@@ -308,11 +286,9 @@ pub async fn update_profile_image(
         size,
         mime_type,
     });
-    if order == 0 {
-        update_account_image(pool, *account_id, true, Some(image.clone())).await?;
-    } else {
-        update_account_image(pool, *account_id, false, None).await?;
-    }
+
+    update_account_image(pool, *account_id).await?;
+
     Ok(image)
 }
 
@@ -328,11 +304,8 @@ pub async fn delete_profile_image(pool: &Pool, account_id: &i64, order: i16) -> 
     )
     .execute(pool)
     .await;
-    if order == 0 {
-        update_account_image(pool, *account_id, true, None).await?;
-    } else {
-        update_account_image(pool, *account_id, false, None).await?;
-    }
+
+    update_account_image(pool, *account_id).await?;
 
     Ok(())
 }

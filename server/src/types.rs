@@ -52,7 +52,7 @@ pub enum ActionType {
     AddAccountName,
     AddAccountBio,
     AddAccountBirthday,
-    AddAccountProfileImage,
+    AddAccountAvatar,
     AddAccountGender,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -68,6 +68,12 @@ pub struct Action {
 pub enum FieldAction {
     IncreaseOne,
     DecreaseOne,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FieldUpdateAction {
+    Skip,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PageInfo {

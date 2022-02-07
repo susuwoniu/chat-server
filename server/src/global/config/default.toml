@@ -12,6 +12,11 @@ access_key_id = ""
 access_key_secret = ""
 bucket_url = ""
 region = "ap-shanghai"
+[avatar_file_server]
+access_key_id = ""
+access_key_secret = ""
+bucket_url = ""
+region = "ap-shanghai"
 [post]
 default_background_colors = [
   "#00b894",
@@ -59,7 +64,9 @@ url = ""
 
 url = "redis://127.0.0.1:6379"
 [account]
-max_profile_images = 9
+max_birthday_change_count = 1
+max_gender_change_count = 1
+max_profile_images = 6
 min_age = 18
 
 [im]

@@ -29,6 +29,7 @@ pub struct Config {
     pub post: Post,
     pub im: Im,
     pub profile_image_file_server: FileServer,
+    pub avatar_file_server: FileServer,
     pub notification: Notification,
     pub admin: Admin,
 }
@@ -84,6 +85,8 @@ pub struct Log {
 pub struct Account {
     pub max_profile_images: i16,
     pub min_age: i32,
+    pub max_gender_change_count: i32,
+    pub max_birthday_change_count: i32,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Server {

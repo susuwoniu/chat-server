@@ -15,7 +15,7 @@ use crate::{
         },
         service::create_notification::create_notification,
     },
-    types::{FieldAction, Gender, JsonVersion, ServiceResult},
+    types::{FieldAction, FieldUpdateAction, Gender, JsonVersion, ServiceResult},
     util::id::next_id,
 };
 use sonyflake::Sonyflake;
@@ -419,7 +419,7 @@ pub async fn update_account(
         city_id,
         approved,
         invite_id,
-        skip_optional_info,
+        avatar_action,
         post_template_count_action,
         post_count_action,
         like_count_action,
@@ -427,6 +427,8 @@ pub async fn update_account(
         account_id: account_id_value,
         last_post_created_at,
         agree_community_rules,
+        bio_action,
+        avatar,
     } = param;
     let account_id = account_id_value.unwrap_or(auth_account_id);
     let is_self = auth_account_id == account_id;
@@ -504,7 +506,9 @@ pub async fn update_account(
             || city_id.is_some()
             || approved.is_some()
             || invite_id.is_some()
-            || skip_optional_info.is_some()
+            || bio_action.is_some()
+            || avatar.is_some()
+            || avatar_action.is_some()
             || show_viewed_action.is_some())
     {
         return Err(ServiceError::permission_limit(
@@ -543,6 +547,7 @@ pub async fn update_account(
         agree_community_rules_at = Some(now.naive_utc());
     }
     let mut birthday_change_count = None;
+    let mut birthday_updated_at = None;
     if let Some(birthday) = birthday {
         // 修改次数限制
         // TODO
@@ -575,9 +580,11 @@ pub async fn update_account(
 
         if account.birthday.is_none() || Some(birthday) != account.birthday {
             birthday_change_count = Some(1);
+            birthday_updated_at = Some(now.naive_utc());
         }
     }
     let mut name_change_count = None;
+    let mut name_updated_at = None;
     if let Some(name) = name.clone() {
         if name != account.name {
             name_change_count = Some(1);
@@ -592,17 +599,49 @@ pub async fn update_account(
                 },
             )
             .await?;
+            name_updated_at = Some(now.naive_utc());
         }
     }
     let mut bio_change_count = None;
+    let mut bio_updated_at = None;
     if let Some(bio) = bio.clone() {
         if bio != account.bio {
             bio_change_count = Some(1);
+            bio_updated_at = Some(now.naive_utc());
+        }
+    }
+    if let Some(bio_action) = bio_action {
+        if bio_action == FieldUpdateAction::Skip {
+            bio_updated_at = Some(now.naive_utc());
+        }
+    }
+    let mut avatar_change_count = None;
+    let mut avatar_updated_at = None;
+    dbg!(&avatar);
+    if let Some(avatar) = avatar.clone() {
+        if !avatar.starts_with("https://") {
+            return Err(ServiceError::param_invalid(
+                locale,
+                "avatar_must_starts_with_https",
+                Error::Other(format!(
+                    "account {} avatar invalid, avatar: {}.",
+                    account.id, avatar
+                )),
+            ));
+        }
+
+        avatar_change_count = Some(1);
+        avatar_updated_at = Some(now.naive_utc());
+    }
+    if let Some(avatar_action) = avatar_action {
+        if avatar_action == FieldUpdateAction::Skip {
+            avatar_updated_at = Some(now.naive_utc());
         }
     }
     let mut gender_change_count = None;
+    let mut gender_updated_at = None;
     if let Some(gender) = gender.clone() {
-        if account.gender_change_count >= 100 {
+        if account.gender_change_count >= cfg.account.max_gender_change_count {
             // 不能再改
             return Err(ServiceError::reach_max_change_limit(
                 locale,
@@ -617,6 +656,7 @@ pub async fn update_account(
         }
         if gender != account.gender {
             gender_change_count = Some(1);
+            gender_updated_at = Some(now.naive_utc());
         }
     }
 
@@ -690,15 +730,21 @@ pub async fn update_account(
     name_change_count=CASE WHEN $27::bigint is null THEN name_change_count ELSE name_change_count+$27::bigint END,
     bio_change_count=CASE WHEN $28::bigint is null THEN bio_change_count ELSE bio_change_count+$28::bigint END,
     gender_change_count=CASE WHEN $29::bigint is null THEN gender_change_count ELSE gender_change_count+$29::bigint END,
-    skip_optional_info=COALESCE($30,skip_optional_info),
+    gender_updated_at=COALESCE($30,gender_updated_at),
     post_template_count=CASE WHEN $31::bigint is null THEN post_template_count ELSE post_template_count+$31::bigint END,
     post_count=CASE WHEN $32::bigint is null THEN post_count ELSE post_count+$32::bigint END,
     like_count=CASE WHEN $33::bigint is null THEN like_count ELSE like_count+$33::bigint END,
     show_viewed_action=COALESCE($34,show_viewed_action),
     last_post_created_at = COALESCE($35,last_post_created_at),
-    agree_community_rules_at = COALESCE($36,agree_community_rules_at)
+    agree_community_rules_at = COALESCE($36,agree_community_rules_at),
+    avatar_change_count=CASE WHEN $37::bigint is null THEN avatar_change_count ELSE avatar_change_count+$37::bigint END,
+    avatar_updated_at=COALESCE($38,avatar_updated_at),
+    name_updated_at=COALESCE($39,name_updated_at),
+    bio_updated_at=COALESCE($40,bio_updated_at),
+    birthday_updated_at=COALESCE($41,birthday_updated_at),
+    avatar=COALESCE($42,avatar)
     where id = $1
-    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,skip_optional_info,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at
+    RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,gender_updated_at,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at,bio_updated_at,name_updated_at,avatar_change_count,birthday_updated_at,phone_updated_at
 "#,
     account_id,
     now.naive_utc(),
@@ -729,13 +775,19 @@ pub async fn update_account(
     name_change_count as Option<i32>,
     bio_change_count as Option<i32>,
     gender_change_count as Option<i32>,
-    skip_optional_info,
+    gender_updated_at,
     post_template_count_changed_value as Option<i32>,
     post_count_changed_value as Option<i32>,
     like_count_changed_value as Option<i32>,
     show_viewed_action,
     last_post_created_at,
-    agree_community_rules_at
+    agree_community_rules_at,
+    avatar_change_count as Option<i32>,
+    avatar_updated_at,
+    name_updated_at,
+    bio_updated_at,
+    birthday_updated_at,
+    avatar
   )
   .fetch_one(pool)
   .await?;
