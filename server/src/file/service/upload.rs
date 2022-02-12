@@ -1,28 +1,31 @@
 use crate::{
     error::{Error, ServiceError},
-    file::model::{CreateUploadSlot, UploadSlot},
+    file::model::{CreateUploadImageSlot, UploadImageSlot},
     global::Config,
     middleware::{Auth, Locale},
     types::ServiceResult,
-    util::{convert::header_to_hash_map, crypto::hash, id::next_id},
+    util::{
+        convert::header_to_hash_map, crypto::hash, id::next_id, image::format_avatar,
+        image::format_image,
+    },
 };
 use sonyflake::Sonyflake;
 use urlencoding::encode;
 
-pub async fn create_profile_image_upload_slot(
+pub async fn create_image_upload_slot(
     locale: &Locale,
-    param: CreateUploadSlot,
+    param: CreateUploadImageSlot,
     auth: Auth,
     sf: &mut Sonyflake,
-) -> ServiceResult<UploadSlot> {
-    let CreateUploadSlot {
+) -> ServiceResult<UploadImageSlot> {
+    let CreateUploadImageSlot {
         mime_type,
         size,
         height,
         width,
     } = param;
     let cfg = Config::global();
-    let bucket_url = cfg.profile_image_file_server.bucket_url.clone();
+    let bucket_url = cfg.image_file_server.bucket_url.clone();
     let mime_result = mime_type.parse::<mime::Mime>();
     if let Ok(mime) = mime_result {
         if mime.type_() == mime::IMAGE {
@@ -39,6 +42,8 @@ pub async fn create_profile_image_upload_slot(
             let suffix = mime.suffix();
             if let Some(suffix) = suffix {
                 file_path = format!("{}.{}", file_path, suffix);
+            } else {
+                file_path = format!("{}.{}", file_path, mime.subtype());
             }
             let file_url = format!(
                 "{}://{}{}",
@@ -64,19 +69,20 @@ pub async fn create_profile_image_upload_slot(
                 &file_url,
                 &datetime,
                 &headers,
-                &cfg.profile_image_file_server.region,
-                &cfg.profile_image_file_server.access_key_id,
-                &cfg.profile_image_file_server.access_key_secret,
+                &cfg.image_file_server.region,
+                &cfg.image_file_server.access_key_id,
+                &cfg.image_file_server.access_key_secret,
             );
             let signature = s.sign();
             let signature_string: String = signature.parse().unwrap();
             // Authorization
             let mut header_map = header_to_hash_map(&headers);
             header_map.insert("authorization".to_string(), signature_string);
-            return Ok(UploadSlot {
+            return Ok(UploadImageSlot {
                 put_url: file_url.clone(),
-                get_url: file_url,
+                get_url: file_url.clone(),
                 headers: header_map,
+                image: format_image(file_url, width, height, size, mime_type),
             });
         }
     }
@@ -89,11 +95,11 @@ pub async fn create_profile_image_upload_slot(
 
 pub async fn create_avatar_upload_slot(
     locale: &Locale,
-    param: CreateUploadSlot,
+    param: CreateUploadImageSlot,
     auth: Auth,
     sf: &mut Sonyflake,
-) -> ServiceResult<UploadSlot> {
-    let CreateUploadSlot {
+) -> ServiceResult<UploadImageSlot> {
+    let CreateUploadImageSlot {
         mime_type,
         size,
         height,
@@ -117,6 +123,8 @@ pub async fn create_avatar_upload_slot(
             let suffix = mime.suffix();
             if let Some(suffix) = suffix {
                 file_path = format!("{}.{}", file_path, suffix);
+            } else {
+                file_path = format!("{}.{}", file_path, mime.subtype());
             }
             let file_url = format!(
                 "{}://{}{}",
@@ -142,19 +150,20 @@ pub async fn create_avatar_upload_slot(
                 &file_url,
                 &datetime,
                 &headers,
-                &cfg.profile_image_file_server.region,
-                &cfg.profile_image_file_server.access_key_id,
-                &cfg.profile_image_file_server.access_key_secret,
+                &cfg.image_file_server.region,
+                &cfg.image_file_server.access_key_id,
+                &cfg.image_file_server.access_key_secret,
             );
             let signature = s.sign();
             let signature_string: String = signature.parse().unwrap();
             // Authorization
             let mut header_map = header_to_hash_map(&headers);
             header_map.insert("authorization".to_string(), signature_string);
-            return Ok(UploadSlot {
+            return Ok(UploadImageSlot {
                 put_url: file_url.clone(),
-                get_url: file_url,
+                get_url: file_url.clone(),
                 headers: header_map,
+                image: format_avatar(file_url, width, height, size, mime_type),
             });
         }
     }

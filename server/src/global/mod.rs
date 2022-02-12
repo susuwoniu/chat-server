@@ -18,3 +18,5 @@ pub mod im_client;
 pub use im_client::ImClient;
 // pub mod id;
 // pub use id::GlobalId;
+pub mod xmpp_client;
+pub use xmpp_client::XmppClient;

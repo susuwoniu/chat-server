@@ -129,7 +129,6 @@ VALUES ($1,$2,$3,$4,$5,$6,$7)
             try_signup: true,
             platform: platform.clone().into(),
             name: account.name,
-            avatar: account.avatar,
             now: now,
         },
     )

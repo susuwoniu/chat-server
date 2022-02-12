@@ -1,6 +1,8 @@
 use crate::{
     account::{
-        model::{DbAccount, FullAccount, UpdateAccountParam, UpdateOtherAccountParam},
+        model::{
+            DbAccount, DbAvatarJson, FullAccount, UpdateAccountParam, UpdateOtherAccountParam,
+        },
         service::get_account::{format_account, get_full_account},
     },
     alias::{KvPool, Pool},
@@ -15,12 +17,16 @@ use crate::{
         },
         service::create_notification::create_notification,
     },
-    types::{FieldAction, FieldUpdateAction, Gender, JsonVersion, ServiceResult},
+    types::{
+        AvatarVersion, FieldAction, FieldUpdateAction, Gender, ImageVersion, ImagesJson,
+        ServiceResult,
+    },
     util::id::next_id,
 };
 use sonyflake::Sonyflake;
 
 use chrono::Utc;
+use serde_json::json;
 use sqlx::{query, query_as};
 // 修改他人的账户
 pub async fn update_other_account(
@@ -38,7 +44,7 @@ pub async fn update_other_account(
     let mut _type = NotificationType::ProfileViewed;
     let mut action = NotificationAction::ProfileViewed;
     let mut action_data = NotificationActionData::ProfileViewed(ProfileViewedActionData {
-        version: JsonVersion::V1,
+        version: ImageVersion::V1,
     });
     let UpdateOtherAccountParam {
         viewed_count_action,
@@ -161,7 +167,7 @@ pub async fn update_other_account(
         _type = NotificationType::ProfileLiked;
         action = NotificationAction::ProfileLiked;
         action_data = NotificationActionData::ProfileLiked(ProfileLikeedActionData {
-            version: JsonVersion::V1,
+            version: ImageVersion::V1,
         });
         match like_count_action {
             FieldAction::IncreaseOne => {
@@ -182,7 +188,7 @@ pub async fn update_other_account(
                 .execute(pool)
                 .await;
                 if query_result.is_err() {
-                    tracing::error!(
+                    tracing::debug!(
                         "Duduplicate like from {} to account {}",
                         account_id,
                         target_account_id
@@ -210,7 +216,7 @@ pub async fn update_other_account(
                 .await;
 
                 if query_result.is_err() {
-                    tracing::error!(
+                    tracing::debug!(
                         "Duduplicate like from {} to account {}",
                         account_id,
                         target_account_id
@@ -226,7 +232,7 @@ pub async fn update_other_account(
                         is_delete_likes_success = true;
                     } else {
                         // failed
-                        tracing::error!(
+                        tracing::debug!(
                             "not found like relation from {} to account {}",
                             account_id,
                             target_account_id
@@ -299,7 +305,7 @@ pub async fn update_other_account(
                 .execute(pool)
                 .await;
                 if query_result.is_err() {
-                    tracing::error!(
+                    tracing::debug!(
                         "Duduplicate block from {} to account {}",
                         account_id,
                         target_account_id
@@ -325,7 +331,7 @@ pub async fn update_other_account(
                 .await;
 
                 if query_result.is_err() {
-                    tracing::error!(
+                    tracing::debug!(
                         "Duduplicate block from {} to account {}",
                         account_id,
                         target_account_id
@@ -341,7 +347,7 @@ pub async fn update_other_account(
                         is_delete_blocks_success = true;
                     } else {
                         // failed
-                        tracing::error!(
+                        tracing::debug!(
                             "not found block relation from {} to account {}",
                             account_id,
                             target_account_id
@@ -429,6 +435,7 @@ pub async fn update_account(
         agree_community_rules,
         bio_action,
         avatar,
+        profile_images,
     } = param;
     let account_id = account_id_value.unwrap_or(auth_account_id);
     let is_self = auth_account_id == account_id;
@@ -462,7 +469,8 @@ pub async fn update_account(
         && (post_count_action.is_some()
             || post_template_count_action.is_some()
             || like_count_action.is_some()
-            || last_post_created_at.is_some())
+            || last_post_created_at.is_some()
+            || profile_images.is_some())
     {
         return Err(ServiceError::permission_limit(
             locale,
@@ -617,27 +625,39 @@ pub async fn update_account(
     }
     let mut avatar_change_count = None;
     let mut avatar_updated_at = None;
-    dbg!(&avatar);
+    let mut db_avatar = None;
     if let Some(avatar) = avatar.clone() {
-        if !avatar.starts_with("https://") {
+        if !avatar.url.starts_with("https://") {
             return Err(ServiceError::param_invalid(
                 locale,
                 "avatar_must_starts_with_https",
                 Error::Other(format!(
                     "account {} avatar invalid, avatar: {}.",
-                    account.id, avatar
+                    account.id, avatar.url
                 )),
             ));
         }
 
         avatar_change_count = Some(1);
         avatar_updated_at = Some(now.naive_utc());
+        db_avatar = Some(json!(DbAvatarJson {
+            image: avatar,
+            version: AvatarVersion::V1
+        }));
     }
     if let Some(avatar_action) = avatar_action {
         if avatar_action == FieldUpdateAction::Skip {
             avatar_updated_at = Some(now.naive_utc());
         }
     }
+    let mut db_profile_images = None;
+    if let Some(profile_images) = profile_images {
+        db_profile_images = Some(json!(ImagesJson {
+            images: profile_images,
+            version: ImageVersion::V1,
+        }));
+    }
+
     let mut gender_change_count = None;
     let mut gender_updated_at = None;
     if let Some(gender) = gender.clone() {
@@ -742,7 +762,8 @@ pub async fn update_account(
     name_updated_at=COALESCE($39,name_updated_at),
     bio_updated_at=COALESCE($40,bio_updated_at),
     birthday_updated_at=COALESCE($41,birthday_updated_at),
-    avatar=COALESCE($42,avatar)
+    avatar=COALESCE($42::json,avatar),
+    profile_images = COALESCE($43::json,profile_images)
     where id = $1
     RETURNING id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,show_viewed_action,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,gender_updated_at,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at,bio_updated_at,name_updated_at,avatar_change_count,birthday_updated_at,phone_updated_at
 "#,
@@ -787,7 +808,8 @@ pub async fn update_account(
     name_updated_at,
     bio_updated_at,
     birthday_updated_at,
-    avatar
+    db_avatar,
+    db_profile_images
   )
   .fetch_one(pool)
   .await?;

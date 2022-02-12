@@ -13,7 +13,7 @@ init-templates:
 db:
 	sqlx migrate add $(name)
 start:
-	RUST_LOG=debug cargo watch -x "run -- server start"
+	cargo watch -x "run -- server start"
 build:
 	sqlx migrate run && cargo build --release
 serve:

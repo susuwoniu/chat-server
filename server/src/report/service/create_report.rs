@@ -2,13 +2,13 @@ use crate::{
     alias::{KvPool, Pool},
     middleware::{Auth, Locale},
     report::model::{CreateReportParam, Report, ReportState, ReportType},
-    types::ServiceResult,
-    util::id::next_id,
+    types::{ImageVersion, ImagesJson, ServiceResult},
+    util::{id::next_id, image::format_images},
 };
 use chrono::Utc;
+use serde_json::json;
 use sonyflake::Sonyflake;
 use sqlx::query;
-
 pub async fn create_report(
     _: &Locale,
     pool: &Pool,
@@ -27,7 +27,14 @@ pub async fn create_report(
     } = param;
     let id = next_id(sf);
     let now = Utc::now().naive_utc();
-    let final_images = images.unwrap_or_default();
+    let mut final_images = None;
+    if let Some(images) = images {
+        final_images = Some(json!(ImagesJson {
+            version: ImageVersion::V1,
+            images,
+        }));
+    }
+
     let final_content = content.unwrap_or_default();
     query!(
         r#"
@@ -39,7 +46,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         final_content.clone(),
         auth.account_id,
         now,
-        &final_images,
+        final_images,
         related_post_id,
         related_account_id
     )
@@ -55,7 +62,7 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         created_at: now,
         _type: _type,
         state: ReportState::Open,
-        images: final_images,
+        images: format_images(final_images),
         related_post_id,
         related_account_id,
         replied_by: None,

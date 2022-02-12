@@ -35,7 +35,7 @@ impl ServiceError {
         stack: Error,
         meta: Meta,
     ) -> Self {
-        tracing::error!(
+        tracing::debug!(
             "Error occured: code:{}, title: {},detail: {:?}, stack:{:?}",
             code,
             title,
@@ -68,7 +68,7 @@ impl ServiceError {
         detail: Option<&str>,
         stack: Error,
     ) -> Self {
-        tracing::error!(
+        tracing::debug!(
             "Error occured: code:{}, title: {},detail: {:?}, stack:{:?}",
             code,
             title,
@@ -209,7 +209,7 @@ impl ServiceError {
         )
     }
     pub fn phone_code_failed_or_expired(locale: &Locale, stack: Error) -> Self {
-        let code = "phone_code_expired";
+        let code = "phone_code_failed_or_expired";
         Self::bad_request_raw(
             locale,
             code,

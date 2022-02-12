@@ -1,10 +1,12 @@
 use crate::{
     error::ServiceError,
+    types::Image,
     util::{base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64},
 };
 use chrono::prelude::NaiveDateTime;
 use jsonapi::{api::*, jsonapi_model, model::*};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::convert::TryFrom;
 // _type: 0: unknown, 1: offensive 辱骂/攻击/冒犯 2: ad 广告 3: spam 垃圾信息 4: porn 色情低俗 5: politics 政治相关 6: illegal 违法违规 7: leak 泄漏他人隐私 8: violate 侵犯我的权益, 9: complaint 其他投诉 80: feedback bug反馈,功能建议, 81: ask 咨询 99: other 其他
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
@@ -47,7 +49,7 @@ pub struct Report {
     pub updated_at: NaiveDateTime,
     #[serde(rename = "type")]
     pub _type: ReportType,
-    pub images: Vec<String>,
+    pub images: Vec<Image>,
     pub state: ReportState,
     #[serde(with = "option_string_i64")]
     pub related_post_id: Option<i64>,
@@ -113,7 +115,7 @@ pub struct FullReport {
     pub updated_at: NaiveDateTime,
     #[serde(rename = "type")]
     pub _type: ReportType,
-    pub images: Vec<String>,
+    pub images: Vec<Image>,
     pub state: ReportState,
     #[serde(with = "option_string_i64")]
     pub related_post_id: Option<i64>,
@@ -134,7 +136,7 @@ pub struct DbReport {
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
     pub _type: ReportType,
-    pub images: Vec<String>,
+    pub images: Option<Value>,
     pub state: ReportState,
     pub related_post_id: Option<i64>,
     pub related_account_id: Option<i64>,
@@ -147,7 +149,7 @@ pub struct CreateReportParam {
     pub content: Option<String>,
     #[serde(rename = "type")]
     pub _type: ReportType,
-    pub images: Option<Vec<String>>,
+    pub images: Option<Vec<Image>>,
     #[serde(with = "option_string_i64", default)]
     pub related_post_id: Option<i64>,
     #[serde(with = "option_string_i64", default)]

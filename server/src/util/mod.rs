@@ -18,3 +18,4 @@ pub use base62_to_i64::base62_to_i64;
 pub mod convert;
 pub mod crypto;
 pub mod date;
+pub mod image;

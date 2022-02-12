@@ -1,13 +1,14 @@
 use crate::{
     account::model::{
-        Account, AccountView, AccountViewFilter, DbAccount, DbAccountView, DbProfileImagesJson,
-        FullAccount, ProfileImage,
+        Account, AccountView, AccountViewFilter, DbAccount, DbAccountView, DbAvatarJson,
+        FullAccount,
     },
     alias::Pool,
     error::{Error, ServiceError},
     global::Config,
     middleware::{Auth, Locale},
-    types::{Action, ActionType, DataWithPageInfo, Gender, JsonVersion, PageInfo, ServiceResult},
+    types::{Action, ActionType, DataWithPageInfo, Gender, PageInfo, ServiceResult},
+    util::image::format_images,
 };
 use chrono::{offset::FixedOffset, Date, Datelike, Duration, NaiveDateTime, Utc};
 use itertools::Itertools;
@@ -322,22 +323,20 @@ pub fn format_account(account: DbAccount) -> FullAccount {
             content: None,
         });
     }
-    if account.bio_change_count == 0 && account.bio_updated_at.is_none() {
-        actions.push(Action {
-            _type: ActionType::AddAccountBio,
-            required: false,
-            content: None,
-        });
-    }
+    // if account.bio_change_count == 0 && account.bio_updated_at.is_none() {
+    //     actions.push(Action {
+    //         _type: ActionType::AddAccountBio,
+    //         required: false,
+    //         content: None,
+    //     });
+    // }
 
-    let mut profile_images: Vec<ProfileImage> = Vec::new();
-    if let Some(profile_images_value) = account.profile_images {
-        let db_profile_images: DbProfileImagesJson = serde_json::from_value(profile_images_value)
-            .unwrap_or(DbProfileImagesJson {
-                version: JsonVersion::V1,
-                images: Vec::new(),
-            });
-        profile_images = db_profile_images.images;
+    let profile_images = format_images(account.profile_images);
+
+    let mut avatar = None;
+    if let Some(avatar_value) = account.avatar {
+        let db_avatar: DbAvatarJson = serde_json::from_value(avatar_value).unwrap();
+        avatar = Some(db_avatar.image);
     }
     let min_duration_between_posts_in_minutes = cfg.post.min_duration_between_posts_in_minutes;
     let vip_min_duration_between_posts_in_minutes =
@@ -386,7 +385,7 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         state_id: account.state_id,
         profile_images,
         city_id: account.city_id,
-        avatar: account.avatar,
+        avatar: avatar,
         avatar_updated_at: account.avatar_updated_at,
         created_at: account.created_at,
         updated_at: account.updated_at,

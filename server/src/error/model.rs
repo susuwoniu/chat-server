@@ -9,6 +9,7 @@ use config::ConfigError;
 use deadpool_redis::redis::RedisError;
 use deadpool_redis::CreatePoolError;
 use derive_more::Display;
+use queue_file::Error as QueueFileError;
 use serde::Serialize;
 use serde_json::{json, Value};
 use sqlx::Error as SqlxError;
@@ -55,6 +56,8 @@ pub enum Error {
     UrlDecodeError(#[from] serde_urlencoded::de::Error),
     #[error("parse yaml error")]
     YamlError(#[from] serde_yaml::Error),
+    #[error("queue file error")]
+    QueueFileError(#[from] QueueFileError),
     #[error("{0}")]
     Other(String),
     #[error("Default Error")]

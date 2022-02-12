@@ -1,5 +1,6 @@
 use crate::{
     alias::{KvPool, Pool},
+    global::config::Config,
     middleware::{Auth, Locale},
     notification::model::CreateNotificationParam,
     types::{FieldAction, ServiceResult},
@@ -9,7 +10,7 @@ use chrono::Utc;
 use serde_json::json;
 use sonyflake::Sonyflake;
 use sqlx::query;
-
+use std::collections::HashMap;
 pub async fn create_notification(
     _: &Locale,
     pool: &Pool,
@@ -85,5 +86,25 @@ total_count = t.total_count + $9
     .execute(&mut tx)
     .await?;
     tx.commit().await?;
+    return Ok(());
+}
+
+pub async fn error(title: &str, content: String) -> ServiceResult<()> {
+    // send to notification service
+    // https://maker.ifttt.com/trigger/{event}/with/key/{key}
+    let cfg = Config::global();
+    let mut map = HashMap::new();
+    map.insert("value1", title.to_string());
+    map.insert("value2", content);
+
+    let client = reqwest::Client::new();
+    client
+        .post(format!(
+            "https://maker.ifttt.com/trigger/{}/with/key/{}",
+            cfg.notification.ifttt_event, cfg.notification.ifttt_key
+        ))
+        .json(&map)
+        .send()
+        .await?;
     return Ok(());
 }

@@ -33,6 +33,7 @@ pub async fn login_with_phone(
         device_id,
         ip,
         platform,
+        qf_mutex,
     } = param;
 
     let temp_key = get_phone_code_temp_key(&phone_country_code, phone_number, device_id);
@@ -90,6 +91,12 @@ pub async fn login_with_phone(
                     account_id,
                     account_auth_id,
                 } = account_data;
+                // add register queue
+                qf_mutex
+                    .lock()
+                    .await
+                    .add(format!("signup::{}::{}", locale.0, account_id).as_bytes())
+                    .expect("add signup queue fail");
                 // todo add auths table
                 signin(
                     locale,

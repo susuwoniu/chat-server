@@ -2,7 +2,7 @@ use crate::{
     account::model::Account,
     error::ServiceError,
     global::Config,
-    types::{FieldAction, JsonVersion},
+    types::{FieldAction, ImageVersion},
     util::{base62_i64, base62_to_i64, datetime_tz, string_i64},
 };
 use chrono::{
@@ -30,12 +30,12 @@ pub enum NotificationAction {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileViewedActionData {
-    pub version: JsonVersion,
+    pub version: ImageVersion,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileLikeedActionData {
-    pub version: JsonVersion,
+    pub version: ImageVersion,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

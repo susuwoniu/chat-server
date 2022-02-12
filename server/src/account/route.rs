@@ -17,16 +17,16 @@ use crate::{
             signout::signout,
             update_account::{update_account, update_other_account},
             update_account_image::{
-                delete_profile_image, get_profile_images, insert_or_update_profile_image,
-                put_profile_images, update_profile_image,
+                delete_profile_image, insert_or_update_profile_image, put_profile_images,
+                update_profile_image,
             },
         },
     },
     alias::{KvPool, Pool},
     constant::ACCOUNT_SERVICE_PATH,
     file::{
-        model::{CreateUploadSlot, UploadSlot},
-        service::upload::{create_avatar_upload_slot, create_profile_image_upload_slot},
+        model::{CreateUploadImageSlot, UploadImageSlot},
+        service::upload::create_avatar_upload_slot,
     },
     middleware::{Auth, ClientPlatform, Ip, Locale, Qs, RefreshTokenAuth, Signature},
     types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
@@ -40,7 +40,10 @@ use axum::{
     Json, Router,
 };
 use jsonapi::model::*;
+use queue_file::QueueFile;
 use sonyflake::Sonyflake;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub fn service_route() -> Router {
     Router::new()
@@ -58,12 +61,9 @@ pub fn service_route() -> Router {
             get(get_account_handler).patch(patch_other_account_handler),
         )
         .route("/admin/accounts/:account_id", patch(patch_account_handler))
-        .route(
-            "/accounts/:account_id/profile-images",
-            get(get_account_images_handler),
-        )
         .route("/accounts", get(get_accounts_by_ids_handler))
         .route("/me", get(get_me_handler).patch(patch_me_account_handler))
+        .route("/me/profile-images", put(put_me_images_handler))
         .route(
             "/me/profile-images/:order",
             put(put_me_image_handler)
@@ -74,26 +74,44 @@ pub fn service_route() -> Router {
         .route("/me/liked", get(get_me_liked_list_handler))
         .route("/me/likes", get(get_me_likes_list_handler))
         .route("/me/blocks", get(get_me_blocks_list_handler))
-        .route(
-            "/me/profile-images/slot",
-            post(create_profile_image_upload_slot_handler),
-        )
         .route("/me/avatar/slot", post(create_avatar_upload_slot_handler))
-        .route(
-            "/me/profile-images",
-            get(get_me_images_handler)
-                .patch(patch_account_handler)
-                .put(put_me_images_handler),
-        )
         .route("/access-tokens", post(access_token_handler))
 }
 async fn delete_me_profile_image(
     Extension(pool): Extension<Pool>,
+    Extension(kv): Extension<KvPool>,
+    locale: Locale,
     Path(order): Path<u16>,
-    Auth { account_id, .. }: Auth,
+    auth: Auth,
 ) -> JsonApiResponse {
-    delete_profile_image(&pool, &account_id, order as i16).await?;
-    QuickResponse::default()
+    let data = delete_profile_image(&locale, &pool, &kv, &auth, order as i16).await?;
+    Ok(format_response(data.to_jsonapi_document()))
+}
+async fn patch_me_image_handler(
+    Path(order): Path<u16>,
+    Extension(pool): Extension<Pool>,
+    Extension(kv): Extension<KvPool>,
+    locale: Locale,
+    auth: Auth,
+    Json(payload): Json<PutImageParam>,
+    _: Signature,
+) -> JsonApiResponse {
+    let data = update_profile_image(
+        &locale,
+        &pool,
+        &kv,
+        &auth,
+        UpdateAccountImageParam {
+            order: order as i16,
+            url: payload.url,
+            width: payload.width,
+            height: payload.height,
+            size: payload.size,
+            mime_type: payload.mime_type,
+        },
+    )
+    .await?;
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn put_me_image_handler(
     Path(order): Path<u16>,
@@ -110,7 +128,7 @@ async fn put_me_image_handler(
         &locale,
         &pool,
         &kv,
-        &auth.account_id,
+        &auth,
         UpdateAccountImageParam {
             order: order as i16,
             url: payload.url,
@@ -127,27 +145,16 @@ async fn put_me_image_handler(
 async fn put_me_images_handler(
     Extension(pool): Extension<Pool>,
     locale: Locale,
+    Extension(kv): Extension<KvPool>,
     auth: Auth,
     Json(payload): Json<UpdateAccountImagesParam>,
     _: Signature,
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
-    let data = put_profile_images(&locale, &pool, &auth.account_id, payload, &mut sf).await?;
-    Ok(format_response(vec_to_jsonapi_document(data)))
+    let data = put_profile_images(&locale, &pool, &kv, payload, &mut sf, &auth).await?;
+    Ok(format_response(data.to_jsonapi_document()))
 }
-async fn get_account_images_handler(
-    Extension(pool): Extension<Pool>,
-    Path(account_id): Path<i64>,
-) -> JsonApiResponse {
-    let data = get_profile_images(&pool, account_id).await?;
 
-    Ok(format_response(vec_to_jsonapi_document(data)))
-}
-async fn get_me_images_handler(Extension(pool): Extension<Pool>, auth: Auth) -> JsonApiResponse {
-    let data = get_profile_images(&pool, auth.account_id).await?;
-
-    Ok(format_response(vec_to_jsonapi_document(data)))
-}
 async fn get_me_views_handler(
     Extension(pool): Extension<Pool>,
     locale: Locale,
@@ -340,12 +347,14 @@ async fn phone_auth_handler(
     Ip(ip): Ip,
     platform: ClientPlatform,
     Extension(mut sf): Extension<Sonyflake>,
+    Extension(qf_mutex): Extension<Arc<Mutex<QueueFile>>>,
 ) -> JsonApiResponse {
     let PhoneAuthPathParam {
         phone_country_code,
         phone_number,
         code,
     } = path_param;
+
     let auth_data = login_with_phone(
         &locale,
         &pool,
@@ -359,6 +368,7 @@ async fn phone_auth_handler(
             timezone_in_seconds: payload.timezone_in_seconds,
             ip,
             platform,
+            qf_mutex,
         },
         &mut sf,
     )
@@ -404,50 +414,14 @@ async fn send_phone_code_handler(
     let data = send_phone_code(&locale, &kv, path_param, payload).await?;
     QuickResponse::meta(data)
 }
-async fn patch_me_image_handler(
-    Path(order): Path<u16>,
-    Extension(pool): Extension<Pool>,
-    Extension(kv): Extension<KvPool>,
-
-    locale: Locale,
-    auth: Auth,
-    Json(payload): Json<PutImageParam>,
-    _: Signature,
-) -> JsonApiResponse {
-    let data = update_profile_image(
-        &locale,
-        &pool,
-        &kv,
-        &auth.account_id,
-        UpdateAccountImageParam {
-            order: order as i16,
-            url: payload.url,
-            width: payload.width,
-            height: payload.height,
-            size: payload.size,
-            mime_type: payload.mime_type,
-        },
-    )
-    .await?;
-    Ok(format_response(data.to_jsonapi_document()))
-}
-async fn create_profile_image_upload_slot_handler(
-    locale: Locale,
-    Json(payload): Json<CreateUploadSlot>,
-    auth: Auth,
-    Extension(mut sf): Extension<Sonyflake>,
-) -> SimpleMetaResponse<UploadSlot> {
-    let data = create_profile_image_upload_slot(&locale, payload, auth, &mut sf).await?;
-
-    QuickResponse::meta(data)
-}
 
 async fn create_avatar_upload_slot_handler(
     locale: Locale,
-    Json(payload): Json<CreateUploadSlot>,
+    Json(payload): Json<CreateUploadImageSlot>,
     auth: Auth,
     Extension(mut sf): Extension<Sonyflake>,
-) -> SimpleMetaResponse<UploadSlot> {
+    _: Signature,
+) -> SimpleMetaResponse<UploadImageSlot> {
     let data = create_avatar_upload_slot(&locale, payload, auth, &mut sf).await?;
 
     QuickResponse::meta(data)

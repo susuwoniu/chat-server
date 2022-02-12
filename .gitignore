@@ -5,7 +5,7 @@ config/*
 resources/keys/token-secret
 resources/keys/token-public
 *private.pem
-
+data
 
 # General
 .DS_Store

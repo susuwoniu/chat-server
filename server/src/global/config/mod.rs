@@ -28,10 +28,11 @@ pub struct Config {
     pub max_accounts: usize,
     pub post: Post,
     pub im: Im,
-    pub profile_image_file_server: FileServer,
+    pub image_file_server: FileServer,
     pub avatar_file_server: FileServer,
     pub notification: Notification,
     pub admin: Admin,
+    pub consumer_duration_in_seconds: u64,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Admin {
@@ -39,7 +40,9 @@ pub struct Admin {
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Notification {
-    pub default_listed_notifications_duration_in_days: i64,
+    pub default_listed_notifications_duration_in_days: i64, // 默认的通知列表
+    pub ifttt_key: String,
+    pub ifttt_event: String,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct FileServer {
@@ -53,7 +56,8 @@ pub struct Im {
     pub domain: String,
     pub api_url: String,
     pub api_key: String,
-    pub admin_account_id: i64,
+    pub team_account_id: i64,
+    pub welcome_message: String,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Post {
@@ -87,6 +91,7 @@ pub struct Account {
     pub min_age: i32,
     pub max_gender_change_count: i32,
     pub max_birthday_change_count: i32,
+    pub signup_queue_path: String,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Server {

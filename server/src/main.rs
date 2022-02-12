@@ -3,6 +3,7 @@ mod account;
 mod alias;
 mod cmd;
 mod constant;
+mod consumer;
 mod error;
 mod file;
 mod global;
@@ -14,6 +15,7 @@ mod report;
 mod route;
 mod types;
 mod util;
+
 use crate::{
     cmd::{
         args::{AdminCommand, CliOpt, ClientCommand, ServerCommand},
@@ -24,16 +26,30 @@ use crate::{
         config::{CONFIG, ENV},
         i18n::I18N,
         AccessTokenPair, Client, Config, I18n, ImClient, RefreshTokenPair, SensitiveWords,
+        XmppClient,
     },
     route::app_route,
     util::{id::next_id, key_pair::Pair},
 };
-use axum::AddExtensionLayer;
+use axum::{
+    body::Body,
+    error_handling::HandleErrorLayer,
+    http::{Request, StatusCode},
+    response::{IntoResponse, Response},
+    AddExtensionLayer, BoxError,
+};
+use consumer::consumer;
 use deadpool_redis::Config as RedisConfig;
+use queue_file::QueueFile;
 use sonyflake::Sonyflake;
 use sqlx::postgres::PgPoolOptions;
+use std::convert::Infallible;
+use std::{borrow::Cow, sync::Arc, time::Duration};
 use structopt::StructOpt;
-
+use tokio::sync::Mutex;
+use tower::{filter::AsyncFilterLayer, util::AndThenLayer, ServiceBuilder};
+use tower_http::trace::TraceLayer;
+// Our shared state
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv::dotenv().ok();
@@ -43,7 +59,7 @@ async fn main() -> Result<(), Error> {
 
     if cfg.env == ENV::Dev {
         let log_level_filter = tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
+            .with_max_level(tracing::Level::INFO)
             .finish();
         tracing::subscriber::set_global_default(log_level_filter).unwrap();
     } else {
@@ -91,6 +107,8 @@ async fn main() -> Result<(), Error> {
             // init im client
 
             ImClient::init();
+            XmppClient::init();
+
             match admin_command {
                 AdminCommand::Create => {
                     create_admin().await?;
@@ -123,6 +141,7 @@ async fn main() -> Result<(), Error> {
                     // init im client
 
                     ImClient::init();
+                    XmppClient::init();
 
                     let database_url =
                         std::env::var("DATABASE_URL").expect("DATABASE_URL env not set");
@@ -140,19 +159,72 @@ async fn main() -> Result<(), Error> {
 
                     let addr = cfg.server.socket_address;
                     tracing::info!("listening on http://{}", &addr);
+
+                    // start queue
+                    let qf = QueueFile::open(cfg.account.signup_queue_path.clone())
+                        .expect("cannot open queue file");
+                    let qf_mutex = Mutex::new(qf);
+                    let qf_arc = Arc::new(qf_mutex);
+                    let qf_arc1 = qf_arc.clone();
+                    let join = tokio::spawn(async move {
+                        consumer(qf_arc1).await;
+                    });
+
                     axum::Server::bind(&addr)
                         .serve(
                             app_route()
+                                .layer(
+                                    ServiceBuilder::new()
+                                        // Handle errors from middleware
+                                        //
+                                        // This middleware most be added above any fallible
+                                        // ones if you're using `ServiceBuilder`, due to how ordering works
+                                        .layer(HandleErrorLayer::new(handle_error))
+                                        .timeout(Duration::from_secs(10))
+                                        // `TraceLayer` adds high level tracing and logging
+                                        .layer(TraceLayer::new_for_http())
+                                        // `AsyncFilterLayer` lets you asynchronously transform the request
+                                        // .layer(AsyncFilterLayer::new(map_request))
+                                        .into_inner(),
+                                )
                                 .layer(AddExtensionLayer::new(pool))
                                 .layer(AddExtensionLayer::new(redis_pool))
                                 .layer(AddExtensionLayer::new(sf))
+                                // .layer(AddExtensionLayer::new(txarc))
+                                .layer(AddExtensionLayer::new(qf_arc))
                                 .into_make_service(),
                         )
                         .await
                         .unwrap();
+                    join.await.unwrap();
                 }
             }
         }
     }
     Ok(())
+}
+async fn map_request(req: Request<Body>) -> Result<Request<Body>, Infallible> {
+    Ok(req)
+}
+
+async fn map_response(res: Response) -> Result<Response, Infallible> {
+    Ok(res)
+}
+
+async fn handle_error(error: BoxError) -> impl IntoResponse {
+    if error.is::<tower::timeout::error::Elapsed>() {
+        return (StatusCode::REQUEST_TIMEOUT, Cow::from("request timed out"));
+    }
+
+    if error.is::<tower::load_shed::error::Overloaded>() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Cow::from("service is overloaded, try again later"),
+        );
+    }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Cow::from(format!("Unhandled internal error: {}", error)),
+    )
 }

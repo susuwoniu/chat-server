@@ -2,16 +2,16 @@ use crate::{error::ServiceError, util::option_base62_i64};
 use axum::Json;
 use chrono::Utc;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::HashMap;
+
 // original type common type
 pub type ServiceResult<V> = std::result::Result<V, ServiceError>;
 pub type ServiceJson<V> = std::result::Result<Json<V>, ServiceError>;
 pub type JsonApiResponse = ServiceJson<JsonApiDocument>;
 pub type SimpleMetaResponse<T> = ServiceJson<SimpleMetaDoc<T>>;
-
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 pub struct QuickResponse;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SimpleMetaDoc<T>
@@ -123,6 +123,34 @@ impl Default for Gender {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq, Clone)]
 #[repr(i32)]
-pub enum JsonVersion {
+pub enum ImageVersion {
     V1 = 1,
+}
+
+#[derive(Debug, Serialize_repr, Deserialize_repr, PartialEq, Clone)]
+#[repr(i32)]
+pub enum AvatarVersion {
+    V1 = 1,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Thumbnail {
+    pub url: String,
+    pub width: f64,
+    pub height: f64,
+    pub mime_type: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Image {
+    pub url: String,
+    pub width: f64,
+    pub height: f64,
+    pub size: i64,
+    pub mime_type: String,
+    pub large: Thumbnail,
+    pub thumbnail: Thumbnail,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ImagesJson {
+    pub version: ImageVersion,
+    pub images: Vec<Image>,
 }

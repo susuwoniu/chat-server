@@ -1,16 +1,19 @@
 use crate::{
     error::ServiceError,
     middleware::ClientPlatform,
-    types::{Action, FieldAction, FieldUpdateAction, Gender, JsonVersion},
+    types::{Action, AvatarVersion, FieldAction, FieldUpdateAction, Gender, Image, ImageVersion},
     util::{
         base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64,
     },
 };
 use chrono::prelude::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use ipnetwork17::IpNetwork;
-use jsonapi::{api::*, array::JsonApiArray, jsonapi_model, model::*};
+use jsonapi::{api::*, jsonapi_model, model::*};
+use queue_file::QueueFile;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum SigninType {
     PhoneCode,
@@ -29,7 +32,7 @@ pub struct SigninParam {
     pub platform: ClientPlatform,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct SigninWithPhoneParam {
     pub phone_country_code: i32,
     pub phone_number: String,
@@ -39,6 +42,7 @@ pub struct SigninWithPhoneParam {
     pub device_id: String,
     pub ip: IpNetwork,
     pub platform: ClientPlatform,
+    pub qf_mutex: Arc<Mutex<QueueFile>>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupParam {
@@ -127,7 +131,7 @@ pub struct Account {
     pub suspended_until: Option<NaiveDateTime>,
     pub suspended_reason: Option<String>,
     pub location: Option<String>,
-    pub avatar: Option<String>,
+    pub avatar: Option<Image>,
     pub age: Option<i32>,
     #[serde(with = "option_datetime_tz")]
     pub avatar_updated_at: Option<NaiveDateTime>,
@@ -138,7 +142,7 @@ pub struct Account {
     pub approved: bool,
     #[serde(with = "option_datetime_tz")]
     pub approved_at: Option<NaiveDateTime>,
-    pub profile_images: Vec<ProfileImage>,
+    pub profile_images: Vec<Image>,
     pub is_liked: Option<bool>,
     pub is_blocked: Option<bool>,
     #[serde(with = "option_datetime_tz")]
@@ -230,8 +234,8 @@ pub struct FullAccount {
     pub country_id: Option<i32>,
     pub state_id: Option<i32>,
     pub city_id: Option<i32>,
-    pub avatar: Option<String>,
-    pub profile_images: Vec<ProfileImage>,
+    pub avatar: Option<Image>,
+    pub profile_images: Vec<Image>,
     #[serde(default)]
     #[serde(with = "option_datetime_tz")]
     pub avatar_updated_at: Option<NaiveDateTime>,
@@ -264,7 +268,7 @@ pub struct FullAccount {
     pub bio_updated_at: Option<NaiveDateTime>,
     pub name_updated_at: Option<NaiveDateTime>,
 }
-jsonapi_model!(FullAccount; "full-accounts"; has many profile_images);
+jsonapi_model!(FullAccount; "full-accounts");
 #[derive(Debug, Clone)]
 
 pub struct DbAccountView {
@@ -392,7 +396,7 @@ pub struct DbAccount {
     pub country_id: Option<i32>,
     pub state_id: Option<i32>,
     pub city_id: Option<i32>,
-    pub avatar: Option<String>,
+    pub avatar: Option<Value>,
     pub avatar_updated_at: Option<NaiveDateTime>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -492,13 +496,7 @@ impl TryFrom<ApiAccountLikeFilter> for AccountLikeFilter {
         })
     }
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Thumbtail {
-    pub url: String,
-    pub width: f64,
-    pub height: f64,
-    pub mime_type: String,
-}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DbProfileImage {
     #[serde(with = "string_i64")]
@@ -515,30 +513,12 @@ pub struct DbProfileImage {
     #[serde(with = "datetime_tz")]
     pub updated_at: NaiveDateTime,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProfileImage {
-    #[serde(with = "string_i64")]
-    pub id: i64,
-    #[serde(with = "string_i64")]
-    pub account_id: i64,
-    pub url: String,
-    pub width: f64,
-    pub height: f64,
-    pub size: i64,
-    pub mime_type: String,
-    pub order: i16,
-    #[serde(with = "datetime_tz")]
-    pub updated_at: NaiveDateTime,
-    pub thumbtail: Thumbtail,
-}
-jsonapi_model!(ProfileImage; "profile-images");
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DbProfileImagesJson {
-    pub version: JsonVersion,
-    pub images: Vec<ProfileImage>,
+pub struct DbAvatarJson {
+    pub version: AvatarVersion,
+    pub image: Image,
 }
-
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct ApiUpdateOtherAccountParam {
     pub viewed_count_action: Option<FieldAction>,
@@ -562,7 +542,7 @@ pub struct UpdateAccountParam {
     pub moderator: Option<bool>,
     pub vip: Option<bool>,
     pub show_age: Option<bool>,
-    pub avatar: Option<String>,
+    pub avatar: Option<Image>,
     pub show_distance: Option<bool>,
     pub show_viewed_action: Option<bool>,
     pub suspended: Option<bool>,
@@ -590,6 +570,7 @@ pub struct UpdateAccountParam {
     pub like_count_action: Option<FieldAction>,
     pub last_post_created_at: Option<NaiveDateTime>,
     pub agree_community_rules: Option<bool>,
+    pub profile_images: Option<Vec<Image>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

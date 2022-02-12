@@ -1,44 +1,32 @@
 use crate::{
-    account::model::{
-        DbProfileImage, DbProfileImagesJson, ProfileImage, Thumbtail, UpdateAccountImageParam,
-        UpdateAccountImagesParam,
+    account::{
+        model::{
+            DbProfileImage, FullAccount, UpdateAccountImageParam, UpdateAccountImagesParam,
+            UpdateAccountParam,
+        },
+        service::update_account::update_account,
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
     global::Config,
-    middleware::Locale,
-    types::{JsonVersion, ServiceResult},
-    util::id::next_id,
+    middleware::{Auth, Locale},
+    types::{Image, ServiceResult},
+    util::{id::next_id, image::format_image as format_image_util},
 };
 use sonyflake::Sonyflake;
 
 use chrono::{NaiveDateTime, Utc};
-use serde_json::json;
 use sqlx::{query, query_as};
-fn format_image(image: DbProfileImage) -> ProfileImage {
-    let thumbnail_default_width = 300;
-    let thumbnail_mime_type = "image/webp";
-    let thumbnail_default_height = image.height * thumbnail_default_width as f64 / image.width;
-    let thumbtail_url = format!("{}/{}", image.url, "/thumbtail");
-    return ProfileImage {
-        id: image.id,
-        account_id: image.account_id,
-        url: image.url,
-        width: image.width,
-        height: image.height,
-        order: image._order,
-        size: image.size,
-        mime_type: image.mime_type,
-        updated_at: image.updated_at,
-        thumbtail: Thumbtail {
-            url: thumbtail_url,
-            width: thumbnail_default_width as f64,
-            height: thumbnail_default_height,
-            mime_type: thumbnail_mime_type.to_string(),
-        },
-    };
+fn format_image(image: DbProfileImage) -> Image {
+    return format_image_util(
+        image.url,
+        image.width,
+        image.height,
+        image.size,
+        image.mime_type,
+    );
 }
-pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<Vec<ProfileImage>> {
+pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<Vec<Image>> {
     let images = query_as!(
         DbProfileImage,
         r#"
@@ -52,41 +40,38 @@ pub async fn get_profile_images(pool: &Pool, account_id: i64) -> ServiceResult<V
 
     Ok(images.into_iter().map(format_image).collect())
 }
-async fn update_account_image(pool: &Pool, account_id: i64) -> ServiceResult<()> {
-    let now = Utc::now();
+async fn update_account_image(
+    locale: &Locale,
+    pool: &Pool,
+    kv: &KvPool,
+    auth: &Auth,
+) -> ServiceResult<FullAccount> {
     // first get all images
-    let images = get_profile_images(pool, account_id).await?;
-
-    query!(
-        r#"
-UPDATE accounts
-SET 
-updated_at=$2,
-profile_image_change_count=profile_image_change_count+1,
-profile_images = $3
-where id = $1
-"#,
-        account_id,
-        now.naive_utc(),
-        json!(DbProfileImagesJson {
-            images: images,
-            version: JsonVersion::V1
-        })
+    let images = get_profile_images(pool, auth.account_id).await?;
+    update_account(
+        locale,
+        pool,
+        kv,
+        UpdateAccountParam {
+            account_id: Some(auth.account_id),
+            profile_images: Some(images),
+            ..Default::default()
+        },
+        auth,
+        true,
     )
-    .execute(pool)
-    .await?;
-
-    Ok(())
+    .await
 }
 pub async fn put_profile_images(
-    _: &Locale,
+    locale: &Locale,
     pool: &Pool,
-    account_id: &i64,
+    kv: &KvPool,
     param: UpdateAccountImagesParam,
     sf: &mut Sonyflake,
-) -> ServiceResult<Vec<ProfileImage>> {
+    auth: &Auth,
+) -> ServiceResult<FullAccount> {
     let now = Utc::now();
-
+    let account_id = auth.account_id;
     // 事务
     let mut tx = pool.begin().await?;
     let _ = query!(
@@ -103,7 +88,6 @@ pub async fn put_profile_images(
     .execute(&mut tx)
     .await;
     let images = param.images;
-    let mut db_images: Vec<ProfileImage> = Vec::new();
     // insert all
     let mut v1: Vec<i64> = Vec::new();
     let mut v2: Vec<NaiveDateTime> = Vec::new();
@@ -121,24 +105,13 @@ pub async fn put_profile_images(
         v1.push(final_id);
         index = index + 1;
         v2.push(now.naive_utc());
-        v3.push(*account_id);
+        v3.push(account_id);
         v4.push(row.order);
         v5.push(row.url.clone());
         v6.push(row.width);
         v7.push(row.height);
         v8.push(row.size);
         v9.push(row.mime_type.clone());
-        db_images.push(format_image(DbProfileImage {
-            id: final_id,
-            account_id: *account_id,
-            _order: row.order,
-            url: row.url,
-            width: row.width,
-            height: row.height,
-            size: row.size,
-            mime_type: row.mime_type,
-            updated_at: now.naive_utc(),
-        }))
     });
 
     sqlx::query(
@@ -151,19 +124,17 @@ pub async fn put_profile_images(
   .await?;
     tx.commit().await?;
 
-    update_account_image(pool, *account_id).await?;
-
-    return Ok(db_images);
+    update_account_image(locale, pool, kv, auth).await
 }
 
 pub async fn insert_or_update_profile_image(
     locale: &Locale,
     pool: &Pool,
-    _: &KvPool,
-    account_id: &i64,
+    kv: &KvPool,
+    auth: &Auth,
     param: UpdateAccountImageParam,
     sf: &mut Sonyflake,
-) -> ServiceResult<ProfileImage> {
+) -> ServiceResult<FullAccount> {
     let now = Utc::now();
     let id = next_id(sf);
     let UpdateAccountImageParam {
@@ -197,7 +168,7 @@ pub async fn insert_or_update_profile_image(
 "#,
         id,
         now.naive_utc(),
-        account_id,
+        auth.account_id,
         order,
         url,
         width,
@@ -208,32 +179,19 @@ pub async fn insert_or_update_profile_image(
     .execute(pool)
     .await?;
 
-    let image = format_image(DbProfileImage {
-        id,
-        account_id: *account_id,
-        _order: order,
-        url,
-        updated_at: now.naive_utc(),
-        width,
-        height,
-        size,
-        mime_type,
-    });
-
-    update_account_image(pool, *account_id).await?;
-
-    Ok(image)
+    update_account_image(locale, pool, kv, auth).await
 }
 
 pub async fn update_profile_image(
     locale: &Locale,
     pool: &Pool,
-    _: &KvPool,
-    account_id: &i64,
+    kv: &KvPool,
+    auth: &Auth,
     param: UpdateAccountImageParam,
-) -> ServiceResult<ProfileImage> {
+) -> ServiceResult<FullAccount> {
     let now = Utc::now();
     let cfg = Config::global();
+    let account_id = auth.account_id;
     let UpdateAccountImageParam {
         order,
         url,
@@ -249,7 +207,7 @@ pub async fn update_profile_image(
             Error::Other(format!("order: {}", order)),
         ));
     }
-    let updated_row = query!(
+    query!(
         r#"
     UPDATE account_images
     SET 
@@ -274,25 +232,18 @@ pub async fn update_profile_image(
     )
     .fetch_one(pool)
     .await?;
-    //
-    let image = format_image(DbProfileImage {
-        id: updated_row.id,
-        account_id: *account_id,
-        _order: order,
-        url,
-        updated_at: now.naive_utc(),
-        width,
-        height,
-        size,
-        mime_type,
-    });
 
-    update_account_image(pool, *account_id).await?;
-
-    Ok(image)
+    update_account_image(locale, pool, kv, auth).await
 }
 
-pub async fn delete_profile_image(pool: &Pool, account_id: &i64, order: i16) -> ServiceResult<()> {
+pub async fn delete_profile_image(
+    locale: &Locale,
+    pool: &Pool,
+    kv: &KvPool,
+    auth: &Auth,
+    order: i16,
+) -> ServiceResult<FullAccount> {
+    let account_id = auth.account_id;
     let _ = query!(
         r#"
     UPDATE account_images
@@ -305,7 +256,5 @@ pub async fn delete_profile_image(pool: &Pool, account_id: &i64, order: i16) -> 
     .execute(pool)
     .await;
 
-    update_account_image(pool, *account_id).await?;
-
-    Ok(())
+    update_account_image(locale, pool, kv, auth).await
 }

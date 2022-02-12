@@ -4,7 +4,7 @@ use crate::{
     global::Config,
     middleware::Locale,
     report::model::{DbReport, FullReport, Report, ReportFilter, ReportState, ReportType},
-    types::{DataWithPageInfo, PageInfo, ServiceResult},
+    types::{DataWithPageInfo, Image, ImageVersion, ImagesJson, PageInfo, ServiceResult},
 };
 
 use sqlx::query_as;
@@ -107,7 +107,7 @@ pub fn format_report(row: DbReport) -> FullReport {
         account_id,
         updated_at,
         created_at,
-        images,
+        images: db_images_value,
         related_post_id,
         related_account_id,
         state,
@@ -116,6 +116,14 @@ pub fn format_report(row: DbReport) -> FullReport {
         replied_at,
     } = row;
 
+    let mut images: Vec<Image> = Vec::new();
+    if let Some(images_value) = db_images_value {
+        let db_images: ImagesJson = serde_json::from_value(images_value).unwrap_or(ImagesJson {
+            version: ImageVersion::V1,
+            images: Vec::new(),
+        });
+        images = db_images.images;
+    }
     return FullReport {
         id,
         _type,

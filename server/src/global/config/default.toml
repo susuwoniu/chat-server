@@ -1,5 +1,6 @@
 clients = []
 # Beijing Timezone
+consumer_duration_in_seconds = 5
 default_timezone_offset_in_seconds = 28800
 env = "development"
 invite_only = false
@@ -7,7 +8,7 @@ max_accounts = 1000
 max_page_size = 50
 page_size = 30
 use_fixed_code = false
-[profile_image_file_server]
+[image_file_server]
 access_key_id = ""
 access_key_secret = ""
 bucket_url = ""
@@ -68,15 +69,17 @@ max_birthday_change_count = 1
 max_gender_change_count = 1
 max_profile_images = 6
 min_age = 18
+signup_queue_path = "data/signup_queue.qf"
 
 [im]
-admin_account_id = 0
 api_key = ""
 api_url = "https://im-api.scuinfo.com"
 domain = "xmpp.scuinfo.com"
-
+team_account_id = 0
+welcome_message = "欢迎来到和我交朋友，有任何问题，请联系小助手"
 [notification]
 default_listed_notifications_duration_in_days = 30
-
+ifttt_event = "notice"
+ifttt_key = ""
 [admin]
 # default_account_id = 0
