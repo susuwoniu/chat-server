@@ -47,6 +47,10 @@ pub fn service_route() -> Router {
         )
         .route("/posts", post(create_post_handler).get(get_posts_handler))
         .route(
+            "/post-templates/:id/posts",
+            get(get_posts_handler_by_template_id),
+        )
+        .route(
             "/accounts/:account_id/posts",
             get(get_account_posts_handler),
         )
@@ -91,6 +95,35 @@ async fn create_post_handler(
             data.data.to_jsonapi_resource().0,
         ))),
 
+        ..Default::default()
+    });
+    Ok(format_response(response))
+}
+async fn get_posts_handler_by_template_id(
+    Extension(pool): Extension<Pool>,
+    locale: Locale,
+    Qs(filter): Qs<ApiPostFilter>,
+    Query(query): Query<HashMap<String, String>>,
+    uri: Uri,
+    Path(post_id): Path<i64>,
+    option_auth: Option<Auth>,
+) -> JsonApiResponse {
+    let mut posts_filter = PostFilter::try_from(filter)?;
+    posts_filter.post_template_id = Some(post_id);
+    let data = get_posts(&locale, &pool, posts_filter, option_auth, false).await?;
+    let resources = vec_to_jsonapi_resources(data.data);
+    let json_api_data = resources.0;
+    let other = resources.1;
+    let response = JsonApiDocument::Data(DocumentData {
+        meta: Some(format_page_meta(data.page_info.clone())),
+        data: Some(PrimaryData::Multiple(json_api_data)),
+        links: Some(format_page_links(
+            POST_SERVICE_PATH,
+            uri.path(),
+            query,
+            data.page_info,
+        )),
+        included: other,
         ..Default::default()
     });
     Ok(format_response(response))
@@ -158,11 +191,11 @@ async fn get_account_posts_handler(
     Query(query): Query<HashMap<String, String>>,
     uri: Uri,
     Path(account_id): Path<i64>,
-    auth: Auth,
+    auth: Option<Auth>,
 ) -> JsonApiResponse {
     let mut posts_filter = PostFilter::try_from(filter)?;
     posts_filter.account_id = Some(account_id);
-    let data = get_posts(&locale, &pool, posts_filter, Some(auth), false).await?;
+    let data = get_posts(&locale, &pool, posts_filter, auth, false).await?;
     let resources = vec_to_jsonapi_resources(data.data);
     let json_api_data = resources.0;
     let other = resources.1;
