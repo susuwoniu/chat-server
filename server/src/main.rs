@@ -43,8 +43,7 @@ use deadpool_redis::Config as RedisConfig;
 use queue_file::QueueFile;
 use sonyflake::Sonyflake;
 use sqlx::postgres::PgPoolOptions;
-use std::convert::Infallible;
-use std::{borrow::Cow, sync::Arc, time::Duration};
+use std::{borrow::Cow, convert::Infallible, fs, path::Path, sync::Arc, time::Duration};
 use structopt::StructOpt;
 use tokio::sync::Mutex;
 use tower::{filter::AsyncFilterLayer, util::AndThenLayer, ServiceBuilder};
@@ -161,6 +160,10 @@ async fn main() -> Result<(), Error> {
                     tracing::info!("listening on http://{}", &addr);
 
                     // start queue
+                    // ensure parent path exists
+                    let signup_queue_path = Path::new(&cfg.account.signup_queue_path);
+                    let parent_path = signup_queue_path.parent().unwrap();
+                    fs::create_dir_all(parent_path)?;
                     let qf = QueueFile::open(cfg.account.signup_queue_path.clone())
                         .expect("cannot open queue file");
                     let qf_mutex = Mutex::new(qf);
