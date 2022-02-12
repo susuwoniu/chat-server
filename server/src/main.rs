@@ -187,7 +187,8 @@ async fn main() -> Result<(), Error> {
                                         // `TraceLayer` adds high level tracing and logging
                                         .layer(TraceLayer::new_for_http())
                                         // `AsyncFilterLayer` lets you asynchronously transform the request
-                                        // .layer(AsyncFilterLayer::new(map_request))
+                                        .layer(AsyncFilterLayer::new(map_request))
+                                        .layer(AndThenLayer::new(map_response))
                                         .into_inner(),
                                 )
                                 .layer(AddExtensionLayer::new(pool))

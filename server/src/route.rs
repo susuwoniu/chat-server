@@ -40,19 +40,6 @@ pub fn app_route() -> Router {
         "server_commit_date".to_string(),
         json!(env!("VERGEN_GIT_COMMIT_TIMESTAMP")),
     );
-    // let middleware_stack = ServiceBuilder::new()
-    // Handle errors from middleware
-    //
-    // This middleware most be added above any fallible
-    // ones if you're using `ServiceBuilder`, due to how ordering works
-    // .layer(HandleErrorLayer::new(handle_error))
-    // `TraceLayer` adds high level tracing and logging
-    // .layer(TraceLayer::new_for_http())
-    // `AsyncFilterLayer` lets you asynchronously transform the request
-    // .layer(AsyncFilterLayer::new(map_request))
-    // `AndThenLayer` lets you asynchronously transform the response
-    // .layer(AndThenLayer::new(map_response))
-    // .timeout(std::time::Duration::from_secs(15));
 
     let route = Router::new()
         .route(

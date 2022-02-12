@@ -1,7 +1,7 @@
 use crate::{
     error::ServiceError,
     middleware::ClientPlatform,
-    types::{Action, AvatarVersion, FieldAction, FieldUpdateAction, Gender, Image, ImageVersion},
+    types::{Action, AvatarVersion, FieldAction, FieldUpdateAction, Gender, Image},
     util::{
         base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64,
     },
