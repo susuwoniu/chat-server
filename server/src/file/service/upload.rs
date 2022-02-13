@@ -51,10 +51,16 @@ pub async fn create_image_upload_slot(
                 bucket_url.host_str().unwrap(),
                 file_path
             );
+            let public_url = format!(
+                "{}://{}{}",
+                cfg.image_file_server.public_url.scheme(),
+                cfg.image_file_server.public_url.host_str().unwrap(),
+                file_path
+            );
             let datetime = chrono::Utc::now();
             let mut headers = reqwest::header::HeaderMap::new();
             headers.insert("Content-Type", mime_type.parse().unwrap());
-            headers.insert("X-Amz-Acl", "public-read".to_string().parse().unwrap());
+            // headers.insert("X-Amz-Acl", "public-read".to_string().parse().unwrap());
             headers.insert(
                 "X-Amz-Date",
                 datetime
@@ -64,6 +70,12 @@ pub async fn create_image_upload_slot(
                     .unwrap(),
             );
             headers.insert("Content-Length", size.to_string().parse().unwrap());
+            // add cache control
+            let cache_time_seconds = 365 * 24 * 60 * 60;
+            headers.insert(
+                "Cache-Control",
+                format!("max-age={}", cache_time_seconds).parse().unwrap(),
+            );
             let s = aws_sign_v4::AwsSign::new(
                 "PUT",
                 &file_url,
@@ -80,9 +92,9 @@ pub async fn create_image_upload_slot(
             header_map.insert("authorization".to_string(), signature_string);
             return Ok(UploadImageSlot {
                 put_url: file_url.clone(),
-                get_url: file_url.clone(),
+                get_url: public_url.clone(),
                 headers: header_map,
-                image: format_image(file_url, width, height, size, mime_type),
+                image: format_image(public_url, width, height, size, mime_type),
             });
         }
     }

@@ -12,11 +12,13 @@ use_fixed_code = false
 access_key_id = ""
 access_key_secret = ""
 bucket_url = ""
+public_url = ""
 region = "ap-shanghai"
 [avatar_file_server]
 access_key_id = ""
 access_key_secret = ""
 bucket_url = ""
+public_url = ""
 region = "ap-shanghai"
 [post]
 default_background_colors = [

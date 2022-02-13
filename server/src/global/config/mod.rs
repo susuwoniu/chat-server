@@ -47,6 +47,7 @@ pub struct Notification {
 #[derive(Debug, Deserialize, Clone)]
 pub struct FileServer {
     pub bucket_url: Url,
+    pub public_url: Url,
     pub region: String,
     pub access_key_id: String,
     pub access_key_secret: String,
