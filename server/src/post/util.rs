@@ -8,11 +8,21 @@ use crate::{
 };
 pub fn is_post_content_valid(locale: &Locale, content: &str) -> ServiceResult<()> {
     let min_post_content_count = Config::global().post.min_post_content_count;
+    let max_post_content_count = Config::global().post.max_post_content_count;
+    let current_length = content.chars().count();
     if content.chars().count() < min_post_content_count as usize {
-        return Err(ServiceError::param_invalid(
+        return Err(ServiceError::min_length_error(
             locale,
-            "invalid_content_count",
             Error::Default,
+            min_post_content_count,
+            current_length,
+        ));
+    } else if content.chars().count() > max_post_content_count as usize {
+        return Err(ServiceError::max_length_error(
+            locale,
+            Error::Default,
+            max_post_content_count,
+            current_length,
         ));
     }
     return Ok(());

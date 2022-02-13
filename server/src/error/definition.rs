@@ -327,6 +327,58 @@ impl ServiceError {
             stack,
         )
     }
+    pub fn min_length_error(
+        locale: &Locale,
+        stack: Error,
+        min_length: i64,
+        current_length: usize,
+    ) -> Self {
+        let locale_code = "min_length_error";
+        let mut args = FluentArgs::new();
+        args.set("length", min_length);
+        args.set("current_length", current_length);
+        let mut detail_args = FluentArgs::new();
+        detail_args.set("length", min_length);
+        detail_args.set("current_length", current_length);
+        Self::bad_request_raw(
+            locale,
+            locale_code,
+            &I18n::global().with_args(&get_title(locale_code), locale, args),
+            Some(&I18n::global().with_args(&get_detail(locale_code), locale, detail_args)),
+            stack,
+        )
+    }
+    pub fn max_length_error(
+        locale: &Locale,
+        stack: Error,
+        max_length: i64,
+        current_length: usize,
+    ) -> Self {
+        let locale_code = "max_length_error";
+        let mut args = FluentArgs::new();
+        args.set("length", max_length);
+        args.set("current_length", current_length);
+        let mut detail_args = FluentArgs::new();
+        detail_args.set("length", max_length);
+        detail_args.set("current_length", current_length);
+        Self::bad_request_raw(
+            locale,
+            locale_code,
+            &I18n::global().with_args(&get_title(locale_code), locale, args),
+            Some(&I18n::global().with_args(&get_detail(locale_code), locale, detail_args)),
+            stack,
+        )
+    }
+    pub fn content_sensitive(locale: &Locale, stack: Error) -> Self {
+        let locale_code = "content_sensitive";
+        Self::bad_request_raw(
+            locale,
+            locale_code,
+            &I18n::global().get(&get_title(locale_code), locale),
+            Some(&I18n::global().get(&get_detail(locale_code), locale)),
+            stack,
+        )
+    }
     pub fn param_invalid(locale: &Locale, code: &str, stack: Error) -> Self {
         let locale_code = "param_invalid";
         Self::bad_request_raw(

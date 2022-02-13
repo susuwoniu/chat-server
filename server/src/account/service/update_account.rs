@@ -4,6 +4,7 @@ use crate::{
             DbAccount, DbAvatarJson, FullAccount, UpdateAccountParam, UpdateOtherAccountParam,
         },
         service::get_account::{format_account, get_full_account},
+        util::{is_bio_valid, is_name_valid},
     },
     alias::{KvPool, Pool},
     error::{Error, ServiceError},
@@ -595,6 +596,9 @@ pub async fn update_account(
     let mut name_updated_at = None;
     if let Some(name) = name.clone() {
         if name != account.name {
+            // check valid
+            is_name_valid(locale, &name)?;
+
             name_change_count = Some(1);
             // update im name
 
@@ -614,6 +618,8 @@ pub async fn update_account(
     let mut bio_updated_at = None;
     if let Some(bio) = bio.clone() {
         if bio != account.bio {
+            // check valid
+            is_bio_valid(locale, &bio)?;
             bio_change_count = Some(1);
             bio_updated_at = Some(now.naive_utc());
         }

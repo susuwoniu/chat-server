@@ -63,6 +63,7 @@ pub struct Im {
 pub struct Post {
     pub default_listed_posts_duration_in_days: i64,
     pub min_post_content_count: i64,
+    pub max_post_content_count: i64,
     pub default_background_colors: Vec<String>,
     pub min_duration_between_posts_in_minutes: i64,
     pub vip_min_duration_between_posts_in_minutes: i64,
@@ -92,6 +93,10 @@ pub struct Account {
     pub max_gender_change_count: i32,
     pub max_birthday_change_count: i32,
     pub signup_queue_path: String,
+    pub min_name_length: i64,
+    pub max_name_length: i64,
+    pub min_bio_length: i64,
+    pub max_bio_length: i64,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Server {

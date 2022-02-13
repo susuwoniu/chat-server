@@ -1,8 +1,10 @@
 use crate::{
     account::model::{AuthData, FullAccount, TokenType},
     constant::{PHONE_AUTH_CODE_TEMP_KEY, REFRESH_TOKEN_KEY},
-    global::{AccessTokenPair, Config, RefreshTokenPair},
-    types::Action,
+    error::{Error, ServiceError},
+    global::{AccessTokenPair, Config, RefreshTokenPair, SensitiveWords},
+    middleware::Locale,
+    types::{Action, ServiceResult},
     util::{id::next_id, key_pair::Pair},
 };
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
@@ -168,5 +170,63 @@ impl AuthData {
         *self.im_access_token_mut() = im_access_token;
         *self.im_access_token_expires_at_mut() = im_access_token_expires_at;
         self
+    }
+}
+pub fn is_name_valid(locale: &Locale, content: &str) -> ServiceResult<()> {
+    let min_length = Config::global().account.min_name_length;
+    let max_length = Config::global().account.max_name_length;
+    let current_length = content.chars().count();
+    if content.chars().count() < min_length as usize {
+        return Err(ServiceError::min_length_error(
+            locale,
+            Error::Default,
+            min_length,
+            current_length,
+        ));
+    } else if content.chars().count() > max_length as usize {
+        return Err(ServiceError::max_length_error(
+            locale,
+            Error::Default,
+            max_length,
+            current_length,
+        ));
+    }
+    // check sensitive
+    let sensitive_words = &SensitiveWords::global().0;
+    let spam_result = sensitive_words.iter().find(|&word| content.contains(word));
+    if let Some(keyword) = spam_result {
+        tracing::info!("name include sensitive keyword: {}", keyword);
+        return Err(ServiceError::content_sensitive(locale, Error::Default));
+    } else {
+        return Ok(());
+    }
+}
+pub fn is_bio_valid(locale: &Locale, content: &str) -> ServiceResult<()> {
+    let min_length = Config::global().account.min_bio_length;
+    let max_length = Config::global().account.max_bio_length;
+    let current_length = content.chars().count();
+    if content.chars().count() < min_length as usize {
+        return Err(ServiceError::min_length_error(
+            locale,
+            Error::Default,
+            min_length,
+            current_length,
+        ));
+    } else if content.chars().count() > max_length as usize {
+        return Err(ServiceError::max_length_error(
+            locale,
+            Error::Default,
+            max_length,
+            current_length,
+        ));
+    }
+    // check sensitive
+    let sensitive_words = &SensitiveWords::global().0;
+    let spam_result = sensitive_words.iter().find(|&word| content.contains(word));
+    if let Some(keyword) = spam_result {
+        tracing::info!("bio include sensitive keyword: {}", keyword);
+        return Err(ServiceError::content_sensitive(locale, Error::Default));
+    } else {
+        return Ok(());
     }
 }
