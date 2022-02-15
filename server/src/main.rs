@@ -19,7 +19,7 @@ mod util;
 use crate::{
     cmd::{
         args::{AdminCommand, CliOpt, ClientCommand, ServerCommand},
-        create_admin, init_post_templates, set_admin,
+        create_admin, create_user, init_post_templates, set_admin,
     },
     error::Error,
     global::{
@@ -109,6 +109,9 @@ async fn main() -> Result<(), Error> {
             XmppClient::init();
 
             match admin_command {
+                AdminCommand::CreateUser => {
+                    create_user().await?;
+                }
                 AdminCommand::Create => {
                     create_admin().await?;
                 }

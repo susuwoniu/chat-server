@@ -27,8 +27,8 @@ pub struct InitTemplateOpts {
 }
 #[derive(Debug, PartialEq, StructOpt, Clone)]
 pub enum AdminCommand {
-    // normal subcommand
     Create,
+    CreateUser,
     Set,
     InitTemplates(InitTemplateOpts),
 }

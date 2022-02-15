@@ -131,9 +131,22 @@ make create-admin
 
 保存管理员 id 到配置文件：
 
-```bash
+```toml
 [admin]
 default_account_id = 123456
+```
+
+创建小助手账户：
+
+```bash
+make create-user
+```
+
+保存到配置文件：
+
+```toml
+[im]
+team_account_id = 123456
 ```
 
 ## 部署 IM 服务
