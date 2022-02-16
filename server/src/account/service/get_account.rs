@@ -21,7 +21,7 @@ pub async fn get_db_account(
 ) -> ServiceResult<DbAccount> {
     let row=  query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,gender_updated_at,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at,bio_updated_at,name_updated_at,avatar_change_count,birthday_updated_at,phone_updated_at from accounts where id = $1 and deleted=false
+      select id,name,bio,favorite_count,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,gender_updated_at,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at,bio_updated_at,name_updated_at,avatar_change_count,birthday_updated_at,phone_updated_at from accounts where id = $1 and deleted=false
 "#,
 account_id
   )
@@ -158,7 +158,7 @@ async fn get_db_accounts(
     }
     let rows = query_as!(DbAccount,
     r#"
-      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,gender_updated_at,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at,bio_updated_at,name_updated_at,avatar_change_count,birthday_updated_at,phone_updated_at from accounts where id = ANY ($1::bigint[]) and deleted=false
+      select id,name,bio,gender as "gender:Gender",admin,moderator,vip,post_count,like_count,show_age,show_distance,favorite_count,show_viewed_action,suspended,suspended_at,suspended_until,suspended_reason,birthday,timezone_in_seconds,phone_country_code,phone_number,location,country_id,state_id,city_id,avatar,avatar_updated_at,created_at,updated_at,approved,approved_at,invite_id,name_change_count,bio_change_count,gender_change_count,birthday_change_count,phone_change_count,gender_updated_at,profile_image_change_count,post_template_count,profile_images,last_post_created_at,agree_community_rules_at,bio_updated_at,name_updated_at,avatar_change_count,birthday_updated_at,phone_updated_at from accounts where id = ANY ($1::bigint[]) and deleted=false
 "#,
 &account_ids
   )
@@ -408,6 +408,7 @@ pub fn format_account(account: DbAccount) -> FullAccount {
         agree_community_rules_at: account.agree_community_rules_at,
         bio_updated_at: account.bio_updated_at,
         name_updated_at: account.name_updated_at,
+        favorite_count: account.favorite_count,
     }
 }
 pub fn format_account_view(raw: DbAccountView, viewed_by_account: Account) -> AccountView {

@@ -121,6 +121,7 @@ pub struct Account {
     pub vip: bool,
     pub post_count: i64,
     pub like_count: i64,
+    pub favorite_count: i64,
     pub show_age: bool,
     pub show_distance: bool,
     pub show_viewed_action: bool,
@@ -216,6 +217,7 @@ pub struct FullAccount {
     pub vip: bool,
     pub post_count: i64,
     pub like_count: i64,
+    pub favorite_count: i64,
     pub show_age: bool,
     pub show_distance: bool,
     pub show_viewed_action: bool,
@@ -381,6 +383,7 @@ pub struct DbAccount {
     pub vip: bool,
     pub post_count: i64,
     pub like_count: i64,
+    pub favorite_count: i64,
     pub show_age: bool,
     pub show_viewed_action: bool,
     pub show_distance: bool,
@@ -568,6 +571,7 @@ pub struct UpdateAccountParam {
     pub post_template_count_action: Option<FieldAction>,
     pub post_count_action: Option<FieldAction>,
     pub like_count_action: Option<FieldAction>,
+    pub favorite_count_action: Option<FieldAction>,
     pub last_post_created_at: Option<NaiveDateTime>,
     pub agree_community_rules: Option<bool>,
     pub profile_images: Option<Vec<Image>>,
@@ -615,6 +619,7 @@ impl From<FullAccount> for Account {
             profile_images,
             last_post_created_at,
             next_post_not_before,
+            favorite_count,
             ..
         } = account;
 
@@ -646,6 +651,7 @@ impl From<FullAccount> for Account {
             is_blocked: None,
             last_post_created_at,
             next_post_not_before,
+            favorite_count,
         }
     }
 }
