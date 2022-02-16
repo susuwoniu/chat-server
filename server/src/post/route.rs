@@ -5,13 +5,14 @@ use crate::{
     middleware::{Auth, Ip, Locale, Qs},
     post::{
         model::{
-            ApiPostFilter, ApiPostTemplateFilter, ApiPostViewFilter, CreatePostParam,
-            CreatePostTemplateParam, PostFilter, PostTemplateFilter, PostViewFilter,
-            UpdatePostParam, UpdatePostTemplateParam,
+            ApiFavoritePostFilter, ApiPostFilter, ApiPostTemplateFilter, ApiPostViewFilter,
+            CreatePostParam, CreatePostTemplateParam, FavoritePostFilter, PostFilter,
+            PostTemplateFilter, PostViewFilter, UpdatePostParam, UpdatePostTemplateParam,
         },
         service::{
             create_post::create_post,
             create_post_template::create_post_template,
+            get_favorite_post::get_favorite_posts,
             get_post::{get_post_views, get_posts},
             get_post_template::{get_post_template, get_post_templates},
             update_post::update_post,
@@ -55,6 +56,7 @@ pub fn service_route() -> Router {
             get(get_account_posts_handler),
         )
         .route("/me/posts", get(get_me_posts_handler))
+        .route("/me/post-favorites", get(get_me_post_favorites_handler))
         .route(
             "/posts/:id",
             get(get_post_handler)
@@ -242,6 +244,37 @@ async fn get_me_posts_handler(
     });
     Ok(format_response(response))
 }
+
+async fn get_me_post_favorites_handler(
+    Extension(pool): Extension<Pool>,
+    locale: Locale,
+    Qs(filter): Qs<ApiFavoritePostFilter>,
+    Query(query): Query<HashMap<String, String>>,
+    uri: Uri,
+    auth: Auth,
+) -> JsonApiResponse {
+    let mut posts_filter = FavoritePostFilter::try_from(filter)?;
+    posts_filter.account_id = Some(auth.account_id);
+    let data = get_favorite_posts(&locale, &pool, posts_filter, Some(auth), false).await?;
+    let resources = vec_to_jsonapi_resources(data.data);
+    let json_api_data = resources.0;
+    let other = resources.1;
+    // TODO no account info
+    let response = JsonApiDocument::Data(DocumentData {
+        meta: Some(format_page_meta(data.page_info.clone())),
+        data: Some(PrimaryData::Multiple(json_api_data)),
+        links: Some(format_page_links(
+            POST_SERVICE_PATH,
+            uri.path(),
+            query,
+            data.page_info,
+        )),
+        included: other,
+        ..Default::default()
+    });
+    Ok(format_response(response))
+}
+
 async fn get_post_handler(
     Extension(pool): Extension<Pool>,
     locale: Locale,

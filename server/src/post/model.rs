@@ -122,6 +122,42 @@ pub struct PostReply {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbPostFavorite {
+    #[serde(with = "string_i64")]
+    pub id: i64,
+    #[serde(with = "datetime_tz")]
+    pub created_at: NaiveDateTime,
+    #[serde(with = "datetime_tz")]
+    pub updated_at: NaiveDateTime,
+    #[serde(with = "string_i64")]
+    pub post_id: i64,
+    #[serde(with = "string_i64")]
+    pub post_account_id: i64,
+    #[serde(with = "string_i64")]
+    pub account_id: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostFavorite {
+    #[serde(with = "string_i64")]
+    pub id: i64,
+    #[serde(with = "datetime_tz")]
+    pub created_at: NaiveDateTime,
+    #[serde(with = "datetime_tz")]
+    pub updated_at: NaiveDateTime,
+    #[serde(with = "string_i64")]
+    pub post_id: i64,
+    #[serde(with = "string_i64")]
+    pub post_account_id: i64,
+    #[serde(with = "string_i64")]
+    pub account_id: i64,
+    pub post: Post,
+    #[serde(with = "base62_i64")]
+    pub cursor: i64,
+}
+jsonapi_model!(PostFavorite; "post-favorites"; has one post);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Post {
     #[serde(with = "string_i64")]
     pub id: i64,
@@ -129,6 +165,7 @@ pub struct Post {
     pub viewed_count: i64,
     pub skipped_count: i64,
     pub replied_count: i64,
+    pub favorite_count: i64,
     pub background_color: i64,
     pub color: i64,
     #[serde(with = "string_i64")]
@@ -149,6 +186,7 @@ pub struct Post {
     pub gender: Gender,
     pub distance: Option<f64>,
     pub time_cursor_change_count: i32,
+    pub is_favorite: Option<bool>,
 }
 jsonapi_model!(Post; "posts"; has one author);
 #[derive(Debug, Clone)]
@@ -157,6 +195,7 @@ pub struct DbPost {
     pub content: String,
     pub viewed_count: i64,
     pub skipped_count: i64,
+    pub favorite_count: i64,
     pub replied_count: i64,
     pub background_color: i64,
     pub color: i64,
@@ -206,6 +245,28 @@ pub struct ApiPostFilter {
     pub distance: Option<f64>,
     pub id: Option<i64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FavoritePostFilter {
+    pub after: Option<i64>,
+    pub before: Option<i64>,
+    pub start_time: Option<NaiveDateTime>,
+    pub end_time: Option<NaiveDateTime>,
+    pub account_id: Option<i64>,
+    pub limit: Option<i64>,
+    pub id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ApiFavoritePostFilter {
+    pub after: Option<String>,
+    pub before: Option<String>,
+    pub start_time: Option<NaiveDateTime>,
+    pub end_time: Option<NaiveDateTime>,
+    pub account_id: Option<i64>,
+    pub limit: Option<i64>,
+    pub id: Option<i64>,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PostFilter {
     pub after: Option<i64>,
@@ -223,6 +284,7 @@ pub struct PostFilter {
     pub longitude: Option<f64>,
     pub distance: Option<f64>,
     pub id: Option<i64>,
+    pub ids: Option<Vec<i64>>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -241,6 +303,33 @@ pub struct PostViewFilter {
     pub end_time: Option<NaiveDateTime>,
     pub post_account_id: Option<i64>,
     pub limit: Option<i64>,
+}
+
+impl TryFrom<ApiFavoritePostFilter> for FavoritePostFilter {
+    type Error = ServiceError;
+
+    fn try_from(value: ApiFavoritePostFilter) -> Result<Self, Self::Error> {
+        let mut after = None;
+        if let Some(after_value) = value.after {
+            after = Some(base62_to_i64(&after_value)?);
+        }
+        let mut before = None;
+        if let Some(before_value) = value.before {
+            before = Some(base62_to_i64(&before_value)?);
+        }
+
+        let now = Utc::now().naive_utc();
+
+        Ok(FavoritePostFilter {
+            limit: value.limit,
+            after,
+            before,
+            start_time: value.start_time,
+            end_time: value.end_time,
+            account_id: value.account_id,
+            id: value.id,
+        })
+    }
 }
 
 impl TryFrom<ApiPostFilter> for PostFilter {
@@ -308,6 +397,7 @@ impl TryFrom<ApiPostFilter> for PostFilter {
             longitude: value.longitude,
             distance: value.distance,
             id: value.id,
+            ids: None,
         })
     }
 }
@@ -438,6 +528,7 @@ pub struct UpdatePostParam {
     pub visibility: Option<Visibility>,
     pub deleted: Option<bool>,
     pub replied_count_action: Option<FieldAction>,
+    pub favorite_count_action: Option<FieldAction>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

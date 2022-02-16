@@ -49,6 +49,7 @@ pub async fn update_post(
         visibility,
         deleted,
         replied_count_action,
+        favorite_count_action,
     } = param;
     // get post
     let posts = get_posts(
@@ -94,7 +95,7 @@ pub async fn update_post(
     } else {
         // if self
         if auth.account_id != current.account_id {
-            // 非admin/moderator/self only can update view_count, skipped_count, replied_count
+            // 非admin/moderator/self only can update view_count, skipped_count, replied_count,
             if !(viewed_count_action.is_some()
                 || skipped_count_action.is_some()
                 || replied_count_action.is_some())
@@ -135,7 +136,7 @@ pub async fn update_post(
         deleted_by = Some(auth.account_id);
     }
     // 修改view count // todo 修改view表
-    let mut viewed_count_value = None;
+    let mut viewed_count_change_value = None;
     if let Some(viewed_count_action) = viewed_count_action {
         if current.account_id != auth.account_id {
             match viewed_count_action {
@@ -161,19 +162,19 @@ pub async fn update_post(
                         .await;
                         if view_insert_result.is_ok() {
                             // update post view count
-                            viewed_count_value = Some(current.viewed_count + 1);
+                            viewed_count_change_value = Some(1);
                         }
                     }
                 }
                 FieldAction::DecreaseOne => {
                     // 暂时不支持减操作
-                    viewed_count_value = None;
+                    viewed_count_change_value = None;
                 }
             }
         }
     }
     //  修改skip count
-    let mut skipped_count_value = None;
+    let mut skipped_count_change_value = None;
     if let Some(skipped_count_action) = skipped_count_action {
         if current.account_id != auth.account_id {
             match skipped_count_action {
@@ -197,19 +198,19 @@ pub async fn update_post(
                     .await;
                     if insert_result.is_ok() {
                         // update post view count
-                        skipped_count_value = Some(current.skipped_count + 1);
+                        skipped_count_change_value = Some(1);
                     }
                 }
                 FieldAction::DecreaseOne => {
                     // 暂时不支持减操作
-                    skipped_count_value = None;
+                    skipped_count_change_value = None;
                 }
             }
         }
     }
 
     //  修改reply count
-    let mut replied_count_value = None;
+    let mut replied_count_change_value = None;
     if let Some(replied_count_action) = replied_count_action {
         if current.account_id != auth.account_id {
             match replied_count_action {
@@ -231,16 +232,94 @@ pub async fn update_post(
                     .await;
                     if insert_result.is_ok() {
                         // update post view count
-                        replied_count_value = Some(current.replied_count + 1);
+                        replied_count_change_value = Some(1);
                     }
                 }
                 FieldAction::DecreaseOne => {
                     // 暂时不支持减操作
-                    replied_count_value = None;
+                    replied_count_change_value = None;
                 }
             }
         }
     }
+    //  修改favorite count
+    let mut favorite_count_change_value = None;
+    if let Some(favorite_count_action) = favorite_count_action {
+        match favorite_count_action {
+            FieldAction::IncreaseOne => {
+                let next_id = next_id(sf);
+                let query_result = query!(
+                    r#"INSERT INTO post_favorites 
+                        (id,account_id,post_id,post_account_id,updated_at)
+                        VALUES ($1,$2,$3,$4,$5)
+                        "#,
+                    next_id,
+                    auth.account_id,
+                    id,
+                    current.account_id,
+                    now
+                )
+                .execute(pool)
+                .await;
+                if query_result.is_err() {
+                    tracing::debug!(
+                        "Duduplicate favorite from {} to post {}",
+                        auth.account_id,
+                        id
+                    );
+                    return Err(ServiceError::bad_request(
+                        locale,
+                        "duduplicated_favorite_action",
+                        Error::Default,
+                    ));
+                } else {
+                    favorite_count_change_value = Some(1);
+                }
+            }
+            FieldAction::DecreaseOne => {
+                let query_result = query!(
+                    r#"
+          DELETE from post_favorites where account_id=$1 and post_id=$2
+          "#,
+                    auth.account_id,
+                    id,
+                )
+                .execute(pool)
+                .await;
+
+                if query_result.is_err() {
+                    tracing::debug!(
+                        "Duduplicate delete favorite from {} to post {}",
+                        auth.account_id,
+                        id,
+                    );
+                    return Err(ServiceError::bad_request(
+                        locale,
+                        "duduplicated_like_action",
+                        Error::Default,
+                    ));
+                } else {
+                    let query_result_parsed = query_result.unwrap();
+                    if query_result_parsed.rows_affected() > 0 {
+                        favorite_count_change_value = Some(-1);
+                    } else {
+                        // failed
+                        tracing::debug!(
+                            "not found favorite relation from {} to post {}",
+                            auth.account_id,
+                            id
+                        );
+                        return Err(ServiceError::bad_request(
+                            locale,
+                            "must_favorite_first",
+                            Error::Default,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
     // 修改time cursor // 判断权限
     let mut time_cursor = None;
     let mut time_cursor_change_count = None;
@@ -307,8 +386,8 @@ featured = COALESCE($2,featured),
 featured_at = COALESCE($3,featured_at), 
 featured_by = COALESCE($4,featured_by),
 updated_at = $5, 
-viewed_count=COALESCE($6,viewed_count),
-skipped_count=COALESCE($7,skipped_count),
+viewed_count=CASE WHEN $6::bigint is null THEN viewed_count ELSE viewed_count+$6::bigint END,
+skipped_count=CASE WHEN $7::bigint is null THEN skipped_count ELSE skipped_count+$7::bigint END,
 time_cursor=COALESCE($8,time_cursor),
 approved = COALESCE($9,approved), 
 approved_at = COALESCE($10,approved_at), 
@@ -317,17 +396,18 @@ visibility = COALESCE($12,visibility),
 deleted = COALESCE($13,deleted), 
 deleted_at = COALESCE($14,deleted_at), 
 deleted_by = COALESCE($15,deleted_by),
-replied_count=COALESCE($16,replied_count),
-time_cursor_change_count=CASE WHEN $17::int is null THEN time_cursor_change_count ELSE time_cursor_change_count+$17::int END
+replied_count=CASE WHEN $16::bigint is null THEN replied_count ELSE replied_count+$16::bigint END,
+time_cursor_change_count=CASE WHEN $17::int is null THEN time_cursor_change_count ELSE time_cursor_change_count+$17::int END,
+favorite_count=CASE WHEN $18::bigint is null THEN favorite_count ELSE favorite_count+$18::bigint END
 WHERE id = $1 and deleted = false
-RETURNING id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color,null::float8 as distance
+RETURNING id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,post_template_title,replied_count,color,null::float8 as distance,favorite_count
 "#,    id,
     featured_edit_value,
     featured_at,
     featured_by,
     now,
-    viewed_count_value,
-    skipped_count_value,
+    viewed_count_change_value,
+    skipped_count_change_value,
     time_cursor,
     approved_edit_value,
     approved_at,
@@ -336,8 +416,9 @@ RETURNING id,time_cursor_change_count,content,background_color,account_id,update
     deleted_edit_value,
     deleted_at,
     deleted_by,
-    replied_count_value,
-    time_cursor_change_count as Option<i32>
+    replied_count_change_value,
+    time_cursor_change_count as Option<i32>,
+    favorite_count_change_value
 
   )
   .fetch_one(pool)

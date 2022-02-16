@@ -58,7 +58,7 @@ async fn main() -> Result<(), Error> {
 
     if cfg.env == ENV::Dev {
         let log_level_filter = tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::INFO)
+            .with_max_level(tracing::Level::DEBUG)
             .finish();
         tracing::subscriber::set_global_default(log_level_filter).unwrap();
     } else {

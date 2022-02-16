@@ -24,6 +24,7 @@ pub async fn get_posts(
         latitude,
         distance,
         id,
+        ids,
         ..
     } = filter;
     let mut default_visibility = Some(Visibility::Public);
@@ -55,8 +56,9 @@ pub async fn get_posts(
     }
     let mut rows = query_as!(DbPost,
     r#"
-      select id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
+      select id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,favorite_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
       ($35::bigint is null or id=$35)
+      and ($36::bigint[] is null or id = ANY ($36::bigint[]))
       and ($27::bigint is null or account_id=$27)
       and ($31::bigint is null or post_template_id=$31)
       and ($15::timestamp is null or created_at > $15)
@@ -117,7 +119,8 @@ filter.post_template_id,
 longitude,
 latitude,
 distance,
-id
+id,
+ids.as_ref().map(|x| &x[..])
   )
   .fetch_all(pool)
   .await?;
@@ -311,6 +314,7 @@ pub fn format_post(raw: DbPost, author: Account, auth: Option<Auth>) -> Post {
         color,
         distance,
         time_cursor_change_count,
+        favorite_count,
     } = raw;
     let max_time_cursor_change_count = cfg.post.max_time_cursor_change_count;
     let mut is_can_promote = false;
@@ -342,6 +346,8 @@ pub fn format_post(raw: DbPost, author: Account, auth: Option<Auth>) -> Post {
         color,
         distance,
         time_cursor_change_count,
+        favorite_count,
+        is_favorite: None,
     };
 }
 fn get_range_value_or_none(range: &Option<&[i64; 2]>, position: usize) -> Option<i64> {

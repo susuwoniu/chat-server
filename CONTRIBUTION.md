@@ -149,6 +149,14 @@ make create-user
 team_account_id = 123456
 ```
 
+## 可选
+
+生成话题模版：
+
+```bash
+make init-templates
+```
+
 ## 部署 IM 服务
 
 See <https://github.com/susuwoniu/xmpp>
