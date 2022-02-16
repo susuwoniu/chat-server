@@ -80,6 +80,7 @@ pub async fn get_favorite_posts(
         },
         auth.clone(),
         false,
+        true,
     )
     .await?;
 
@@ -94,7 +95,7 @@ pub async fn get_favorite_posts(
         .filter_map(|row| {
             let post = posts_map.get(&row.post_id);
             if let Some(post) = post {
-                return Some(format_post_favorite(row, post.clone(), auth.clone()));
+                return Some(format_post_favorite(row, post.clone()));
             } else {
                 return None;
             }
@@ -115,7 +116,7 @@ pub async fn get_favorite_posts(
     return Ok(post_collection);
 }
 
-pub fn format_post_favorite(raw: DbPostFavorite, post: Post, auth: Option<Auth>) -> PostFavorite {
+pub fn format_post_favorite(raw: DbPostFavorite, post: Post) -> PostFavorite {
     let DbPostFavorite {
         id,
         created_at,

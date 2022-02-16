@@ -4,11 +4,13 @@ use crate::{
     error::{Error, ServiceError},
     global::Config,
     middleware::{Auth, Locale},
-    post::model::{DbPost, DbPostView, Post, PostFilter, PostView, PostViewFilter, Visibility},
+    post::model::{
+        DbPost, DbPostFavorite, DbPostView, Post, PostFilter, PostView, PostViewFilter, Visibility,
+    },
     types::{DataWithPageInfo, Gender, PageInfo, ServiceResult},
 };
-
 use sqlx::query_as;
+use std::collections::HashMap;
 
 pub async fn get_posts(
     locale: &Locale,
@@ -16,6 +18,7 @@ pub async fn get_posts(
     filter: PostFilter,
     auth: Option<Auth>,
     internal: bool,
+    is_all_favorite: bool,
 ) -> ServiceResult<DataWithPageInfo<Post>> {
     let cfg = Config::global();
     let skip = filter.skip.clone();
@@ -156,14 +159,41 @@ ids.as_ref().map(|x| &x[..])
     let account_map = accounts
         .into_iter()
         .map(|account| (account.id, account))
-        .collect::<std::collections::HashMap<_, _>>();
+        .collect::<HashMap<_, _>>();
+    let mut favorite_map: HashMap<i64, bool> = HashMap::new();
+    if let Some(auth) = auth.clone() {
+        if !is_all_favorite {
+            let favorites = get_db_favorites(
+                locale,
+                pool,
+                auth.account_id,
+                rows.clone().into_iter().map(|row| row.id).collect(),
+            )
+            .await?;
+
+            favorites.into_iter().for_each(|account| {
+                favorite_map.insert(account.post_id, true);
+            });
+        }
+    }
 
     let data: Vec<Post> = rows
         .into_iter()
         .filter_map(|row| {
             let account = account_map.get(&row.account_id);
             if let Some(account) = account {
-                return Some(format_post(row, account.clone(), auth.clone()));
+                let mut is_favorite = None;
+                if is_all_favorite {
+                    is_favorite = Some(true);
+                } else if auth.is_some() {
+                    if let Some(favorite) = favorite_map.get(&row.id) {
+                        is_favorite = Some(favorite.clone());
+                    } else {
+                        is_favorite = Some(false);
+                    }
+                }
+
+                return Some(format_post(row, account.clone(), auth.clone(), is_favorite));
             } else {
                 return None;
             }
@@ -183,7 +213,48 @@ ids.as_ref().map(|x| &x[..])
     };
     return Ok(post_collection);
 }
-
+async fn get_db_favorites(
+    locale: &Locale,
+    pool: &Pool,
+    account_id: i64,
+    post_ids: Vec<i64>,
+) -> ServiceResult<Vec<DbPostFavorite>> {
+    let cfg = Config::global();
+    if post_ids.len() > cfg.max_page_size as usize {
+        return Err(ServiceError::bad_request(
+            locale,
+            "reach_max_favorites_limit",
+            Error::Default,
+        ));
+    }
+    let rows = query_as!(DbPostFavorite,
+    r#"
+    select id,post_id,created_at,updated_at,account_id,post_account_id from post_favorites  where account_id=$2 and post_id = ANY ($1::bigint[])
+"#,
+&post_ids,
+account_id
+  )
+  .fetch_all(pool)
+  .await?;
+    return Ok(rows);
+}
+async fn _get_is_favorite(
+    _locale: &Locale,
+    pool: &Pool,
+    account_id: i64,
+    post_id: i64,
+) -> ServiceResult<bool> {
+    let rows = query_as!(DbPostFavorite,
+    r#"
+    select id,post_id,created_at,updated_at,account_id,post_account_id from post_favorites  where account_id=$2 and post_id = $1
+"#,
+post_id,
+account_id
+  )
+  .fetch_optional(pool)
+  .await?;
+    Ok(rows.is_some())
+}
 pub async fn get_post_views(
     locale: &Locale,
     pool: &Pool,
@@ -290,7 +361,12 @@ pub fn format_post_view(raw: DbPostView, viewed_by_account: Account) -> PostView
         viewed_by_account,
     };
 }
-pub fn format_post(raw: DbPost, author: Account, auth: Option<Auth>) -> Post {
+pub fn format_post(
+    raw: DbPost,
+    author: Account,
+    auth: Option<Auth>,
+    is_favorite: Option<bool>,
+) -> Post {
     let cfg = Config::global();
 
     let DbPost {
@@ -347,7 +423,7 @@ pub fn format_post(raw: DbPost, author: Account, auth: Option<Auth>) -> Post {
         distance,
         time_cursor_change_count,
         favorite_count,
-        is_favorite: None,
+        is_favorite: is_favorite,
     };
 }
 fn get_range_value_or_none(range: &Option<&[i64; 2]>, position: usize) -> Option<i64> {

@@ -158,7 +158,7 @@ RETURNING id,time_cursor_change_count,content,background_color,account_id,update
     }
 
     return Ok(DataWithMeta {
-        data: format_post(post, account.into(), Some(auth.clone())),
+        data: format_post(post, account.into(), Some(auth.clone()), Some(false)),
         meta: NextPostMeta {
             next_post_not_before: naive_to_utc(next_post_not_before),
         },

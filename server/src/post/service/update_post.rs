@@ -61,6 +61,7 @@ pub async fn update_post(
         },
         Some(auth.clone()),
         true,
+        false,
     )
     .await?;
     if &posts.data.len() == &0 {
@@ -73,6 +74,8 @@ pub async fn update_post(
     let current = posts.data[0].clone();
     let post_author = current.author;
     let now = Utc::now().naive_utc();
+    let mut is_favorite = current.is_favorite;
+
     if post_author.suspended {
         return Err(ServiceError::account_suspended(
             locale,
@@ -274,6 +277,7 @@ pub async fn update_post(
                     ));
                 } else {
                     favorite_count_change_value = Some(1);
+                    is_favorite = Some(true);
                 }
             }
             FieldAction::DecreaseOne => {
@@ -302,6 +306,7 @@ pub async fn update_post(
                     let query_result_parsed = query_result.unwrap();
                     if query_result_parsed.rows_affected() > 0 {
                         favorite_count_change_value = Some(-1);
+                        is_favorite = Some(false);
                     } else {
                         // failed
                         tracing::debug!(
@@ -461,8 +466,9 @@ RETURNING id,time_cursor_change_count,content,background_color,account_id,update
         .last_post_created_at
         .unwrap_or(NaiveDateTime::from_timestamp(0, 0))
         + Duration::minutes(vip_min_duration_between_posts_in_minutes);
+
     return Ok(DataWithMeta {
-        data: format_post(row, account.into(), Some(auth)),
+        data: format_post(row, account.into(), Some(auth), is_favorite),
         meta: NextPostMeta {
             next_post_not_before: naive_to_utc(next_post_not_before),
         },

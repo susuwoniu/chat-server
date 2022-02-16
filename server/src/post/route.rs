@@ -112,7 +112,7 @@ async fn get_posts_handler_by_template_id(
 ) -> JsonApiResponse {
     let mut posts_filter = PostFilter::try_from(filter)?;
     posts_filter.post_template_id = Some(post_id);
-    let data = get_posts(&locale, &pool, posts_filter, option_auth, false).await?;
+    let data = get_posts(&locale, &pool, posts_filter, option_auth, false, false).await?;
     let resources = vec_to_jsonapi_resources(data.data);
     let json_api_data = resources.0;
     let other = resources.1;
@@ -140,7 +140,7 @@ async fn get_posts_handler(
 ) -> JsonApiResponse {
     let posts_filter = PostFilter::try_from(filter)?;
 
-    let data = get_posts(&locale, &pool, posts_filter, option_auth, false).await?;
+    let data = get_posts(&locale, &pool, posts_filter, option_auth, false, false).await?;
     let resources = vec_to_jsonapi_resources(data.data);
     let json_api_data = resources.0;
     let other = resources.1;
@@ -197,7 +197,7 @@ async fn get_account_posts_handler(
 ) -> JsonApiResponse {
     let mut posts_filter = PostFilter::try_from(filter)?;
     posts_filter.account_id = Some(account_id);
-    let data = get_posts(&locale, &pool, posts_filter, auth, false).await?;
+    let data = get_posts(&locale, &pool, posts_filter, auth, false, false).await?;
     let resources = vec_to_jsonapi_resources(data.data);
     let json_api_data = resources.0;
     let other = resources.1;
@@ -225,7 +225,7 @@ async fn get_me_posts_handler(
 ) -> JsonApiResponse {
     let mut posts_filter = PostFilter::try_from(filter)?;
     posts_filter.account_id = Some(auth.account_id);
-    let data = get_posts(&locale, &pool, posts_filter, Some(auth), false).await?;
+    let data = get_posts(&locale, &pool, posts_filter, Some(auth), false, false).await?;
     let resources = vec_to_jsonapi_resources(data.data);
     let json_api_data = resources.0;
     let other = resources.1;
@@ -284,7 +284,7 @@ async fn get_post_handler(
 ) -> JsonApiResponse {
     let mut posts_filter = PostFilter::try_from(filter)?;
     posts_filter.id = Some(id);
-    let data = get_posts(&locale, &pool, posts_filter, option_auth, false).await?;
+    let data = get_posts(&locale, &pool, posts_filter, option_auth, false, false).await?;
 
     if data.data.len() > 0 {
         Ok(format_response(data.data[0].to_jsonapi_document()))

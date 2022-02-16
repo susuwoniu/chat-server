@@ -318,8 +318,6 @@ impl TryFrom<ApiFavoritePostFilter> for FavoritePostFilter {
             before = Some(base62_to_i64(&before_value)?);
         }
 
-        let now = Utc::now().naive_utc();
-
         Ok(FavoritePostFilter {
             limit: value.limit,
             after,
