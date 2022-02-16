@@ -101,7 +101,8 @@ pub async fn update_post(
             // 非admin/moderator/self only can update view_count, skipped_count, replied_count,
             if !(viewed_count_action.is_some()
                 || skipped_count_action.is_some()
-                || replied_count_action.is_some())
+                || replied_count_action.is_some()
+                || favorite_count_action.is_some())
             {
                 return Err(ServiceError::permission_limit(
                     locale,
