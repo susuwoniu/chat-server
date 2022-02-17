@@ -279,6 +279,19 @@ pub async fn update_post(
                 } else {
                     favorite_count_change_value = Some(1);
                     is_favorite = Some(true);
+                    update_account(
+                        locale,
+                        pool,
+                        kv,
+                        UpdateAccountParam {
+                            account_id: Some(auth.account_id),
+                            favorite_count_action: Some(FieldAction::IncreaseOne),
+                            ..Default::default()
+                        },
+                        &auth,
+                        true,
+                    )
+                    .await?;
                 }
             }
             FieldAction::DecreaseOne => {
@@ -308,6 +321,19 @@ pub async fn update_post(
                     if query_result_parsed.rows_affected() > 0 {
                         favorite_count_change_value = Some(-1);
                         is_favorite = Some(false);
+                        update_account(
+                            locale,
+                            pool,
+                            kv,
+                            UpdateAccountParam {
+                                account_id: Some(auth.account_id),
+                                favorite_count_action: Some(FieldAction::DecreaseOne),
+                                ..Default::default()
+                            },
+                            &auth,
+                            true,
+                        )
+                        .await?;
                     } else {
                         // failed
                         tracing::debug!(
