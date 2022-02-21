@@ -1,4 +1,6 @@
 #![forbid(unsafe_code)]
+#![feature(derive_default_enum)]
+
 mod account;
 mod alias;
 mod cmd;

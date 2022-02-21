@@ -227,6 +227,15 @@ pub struct PostTemplateFilter {
     pub featured: Option<bool>,
     pub limit: Option<i64>,
 }
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, Default)]
+#[repr(i16)]
+pub enum Sort {
+    #[default]
+    #[serde(rename = "created_at")]
+    CreatedAt = 1,
+    #[serde(rename = "favorite_count")]
+    FavoriteCount = 2,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostFilter {
     pub after: Option<String>,
@@ -244,6 +253,7 @@ pub struct ApiPostFilter {
     pub longitude: Option<f64>,
     pub distance: Option<f64>,
     pub id: Option<i64>,
+    pub sort: Option<Sort>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -285,6 +295,7 @@ pub struct PostFilter {
     pub distance: Option<f64>,
     pub id: Option<i64>,
     pub ids: Option<Vec<i64>>,
+    pub sort: Option<Sort>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiPostViewFilter {
@@ -396,6 +407,7 @@ impl TryFrom<ApiPostFilter> for PostFilter {
             distance: value.distance,
             id: value.id,
             ids: None,
+            sort: value.sort,
         })
     }
 }

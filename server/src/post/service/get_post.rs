@@ -5,7 +5,8 @@ use crate::{
     global::Config,
     middleware::{Auth, Locale},
     post::model::{
-        DbPost, DbPostFavorite, DbPostView, Post, PostFilter, PostView, PostViewFilter, Visibility,
+        DbPost, DbPostFavorite, DbPostView, Post, PostFilter, PostView, PostViewFilter, Sort,
+        Visibility,
     },
     types::{DataWithPageInfo, Gender, PageInfo, ServiceResult},
 };
@@ -28,6 +29,7 @@ pub async fn get_posts(
         distance,
         id,
         ids,
+        sort,
         ..
     } = filter;
     let mut default_visibility = Some(Visibility::Public);
@@ -85,7 +87,7 @@ pub async fn get_posts(
       and ($29::date is null or birthday >= $29)
       and ($30::date is null or birthday < $30)
       and (CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN true ELSE ST_DWithin(geom::geography,ST_SetSRID(ST_Point($32,$33),4326)::geography,$34) END )
-      order by time_cursor desc 
+      order by CASE WHEN ($37::smallint = 2) THEN favorite_count ELSE time_cursor END desc 
       limit $1
 "#,
 &limit,
@@ -123,7 +125,8 @@ longitude,
 latitude,
 distance,
 id,
-ids.as_ref().map(|x| &x[..])
+ids.as_ref().map(|x| &x[..]),
+sort as _
   )
   .fetch_all(pool)
   .await?;
