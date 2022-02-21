@@ -231,8 +231,8 @@ pub struct PostTemplateFilter {
 #[repr(i16)]
 pub enum Sort {
     #[default]
-    #[serde(rename = "created_at")]
-    CreatedAt = 1,
+    #[serde(rename = "time_cursor")]
+    TimeCursor = 1,
     #[serde(rename = "favorite_count")]
     FavoriteCount = 2,
 }

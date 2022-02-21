@@ -87,7 +87,7 @@ pub async fn get_posts(
       and ($29::date is null or birthday >= $29)
       and ($30::date is null or birthday < $30)
       and (CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN true ELSE ST_DWithin(geom::geography,ST_SetSRID(ST_Point($32,$33),4326)::geography,$34) END )
-      order by CASE WHEN ($37::smallint = 2) THEN favorite_count ELSE time_cursor END desc 
+      order by CASE WHEN ($37::smallint = 2) THEN favorite_count ELSE time_cursor END desc,CASE WHEN ($37::smallint = 2) THEN time_cursor END desc
       limit $1
 "#,
 &limit,
