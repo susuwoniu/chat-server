@@ -90,3 +90,6 @@ ifttt_event = "notice"
 ifttt_key = ""
 [admin]
 # default_account_id = 0
+
+[site]
+name = "和我交朋友"

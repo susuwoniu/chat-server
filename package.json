@@ -1,0 +1,32 @@
+{
+  "name": "chat-server",
+  "version": "1.0.0",
+  "description": "## Indexes",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "postcss -o resources/static/dist/styles/main.css resources/styles/main.css --watch",
+    "build": "NODE_ENV=production postcss -o resources/static/dist/styles/main.css resources/styles/main.css",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/susuwoniu/chat-server.git"
+  },
+  "keywords": [],
+  "author": "Owen Young",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/susuwoniu/chat-server/issues"
+  },
+  "homepage": "https://github.com/susuwoniu/chat-server#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.2",
+    "cssnano": "^5.0.17",
+    "postcss": "^8.4.7",
+    "postcss-cli": "^9.1.0",
+    "tailwindcss": "^3.0.23"
+  }
+}

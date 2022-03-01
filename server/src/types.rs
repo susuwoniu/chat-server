@@ -2,6 +2,7 @@ use crate::{error::ServiceError, util::option_base62_i64};
 use axum::Json;
 use chrono::Utc;
 use jsonapi::api::{DocumentData, JsonApiDocument, Meta, PrimaryData};
+use ramhorns::Content;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -132,14 +133,14 @@ pub enum ImageVersion {
 pub enum AvatarVersion {
     V1 = 1,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Content)]
 pub struct Thumbnail {
     pub url: String,
     pub width: f64,
     pub height: f64,
     pub mime_type: String,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Content)]
 pub struct Image {
     pub url: String,
     pub width: f64,

@@ -34,6 +34,8 @@ sudo apt -y install postgresql-14 postgresql-14-postgis-3 postgresql-14-postgis-
 3. [Rust Enviroment setup](https://wiki.owenyoung.com/rust-enviroment-setup-for-debian/)
 
 ```bash
+# 安装nodejs
+# See <https://nodejs.org/en/>
 # 安装redis数据库
 # 6.0+版本
 curl https://packages.redis.io/gpg | sudo apt-key add -
@@ -165,6 +167,8 @@ See <https://github.com/susuwoniu/xmpp>
 
 ```bash
 make start
+# if need css
+make css
 ```
 
 ## 生产环境

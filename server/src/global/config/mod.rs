@@ -33,6 +33,11 @@ pub struct Config {
     pub notification: Notification,
     pub admin: Admin,
     pub consumer_duration_in_seconds: u64,
+    pub site: Site,
+}
+#[derive(Debug, Deserialize, Clone)]
+pub struct Site {
+    pub name: String,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub struct Admin {

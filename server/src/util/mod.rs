@@ -15,6 +15,7 @@ pub mod sign;
 pub mod string;
 pub mod string_i64;
 pub use base62_to_i64::base62_to_i64;
+pub mod color;
 pub mod convert;
 pub mod crypto;
 pub mod date;

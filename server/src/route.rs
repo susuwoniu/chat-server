@@ -7,15 +7,21 @@ use crate::{
     file::route::service_route as file_service_route,
     middleware::{ClientPlatform, ClientVersion, Signature},
     notification::route::service_route as notification_service_route,
-    post::route::service_route as post_service_route,
+    post::{page::post::get_post_page_handler, route::service_route as post_service_route},
     report::route::service_route as report_service_route,
 };
 
-use axum::{extract::extractor_middleware, routing::get, Json, Router};
+use axum::{
+    extract::extractor_middleware,
+    http::StatusCode,
+    routing::{get, get_service},
+    Json, Router,
+};
 use jsonapi::api::{DocumentData, JsonApiDocument, JsonApiInfo, JsonApiValue};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
+use tower_http::services::ServeDir;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IndexMeta {
@@ -57,6 +63,7 @@ pub fn app_route() -> Router {
                 Json(doc)
             }),
         )
+        .route("/post", get(get_post_page_handler))
         .nest(
             API_V1_PREFIX,
             Router::new()
@@ -68,6 +75,17 @@ pub fn app_route() -> Router {
                 .route_layer(extractor_middleware::<ClientVersion>())
                 .route_layer(extractor_middleware::<ClientPlatform>())
                 .route_layer(extractor_middleware::<Signature>()),
+        )
+        .fallback(
+            get_service(ServeDir::new("./resources/static")).handle_error(
+                |error: std::io::Error| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled internal error: {}", error),
+                    )
+                },
+            ),
         );
+
     route
 }

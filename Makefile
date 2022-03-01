@@ -15,9 +15,11 @@ init-templates:
 db:
 	sqlx migrate add $(name)
 start:
-	cargo watch -x "run -- server start"
+	cargo watch -x "run -- server start" -w server/src
+css:
+	npm run dev 
 build:
-	sqlx migrate run && cargo build --release
+	sqlx migrate run && npm install && npm run build && cargo build --release
 serve:
 	systemctl restart chat
 run:

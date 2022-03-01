@@ -6,6 +6,8 @@ resources/keys/token-secret
 resources/keys/token-public
 *private.pem
 data
+dist
+!resources/static/dist
 
 # General
 .DS_Store
@@ -121,7 +123,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/

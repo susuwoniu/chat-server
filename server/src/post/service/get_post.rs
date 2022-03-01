@@ -5,8 +5,7 @@ use crate::{
     global::Config,
     middleware::{Auth, Locale},
     post::model::{
-        DbPost, DbPostFavorite, DbPostView, Post, PostFilter, PostView, PostViewFilter, Sort,
-        Visibility,
+        DbPost, DbPostFavorite, DbPostView, Post, PostFilter, PostView, PostViewFilter, Visibility,
     },
     types::{DataWithPageInfo, Gender, PageInfo, ServiceResult},
 };
