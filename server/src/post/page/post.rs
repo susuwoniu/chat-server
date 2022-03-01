@@ -33,6 +33,7 @@ struct PostData {
     pub author_avatar: Option<Image>,
     pub site_name: String,
     pub title: String,
+    pub style: String,
 }
 pub async fn get_post_page_handler(
     Extension(pool): Extension<Pool>,
@@ -59,6 +60,8 @@ pub async fn get_post_page_handler(
         // Standard Mustache action here
         #[cfg(not(debug_assertions))]
         let source = include_str!("../../../../resources/templates/post.html");
+        #[cfg(not(debug_assertions))]
+        let css_source = include_str!("../../../../resources/static/dist/styles/main.css");
         // get file content
         #[cfg(debug_assertions)]
         let mut file =
@@ -67,6 +70,17 @@ pub async fn get_post_page_handler(
         let mut source = String::new();
         #[cfg(debug_assertions)]
         file.read_to_string(&mut source)
+            .expect("Unable to read the file");
+
+        // get css content
+        #[cfg(debug_assertions)]
+        let mut css_file =
+            File::open("resources/static/dist/styles/main.css").expect("Unable to open the file");
+        #[cfg(debug_assertions)]
+        let mut css_source = String::new();
+        #[cfg(debug_assertions)]
+        css_file
+            .read_to_string(&mut css_source)
             .expect("Unable to read the file");
         let tpl = Template::new(source).unwrap();
         let Post {
@@ -98,6 +112,7 @@ pub async fn get_post_page_handler(
             author_avatar: avatar,
             created_at: created_at.to_string(),
             updated_at: updated_at.to_string(),
+            style: css_source,
         });
         Ok(Html(rendered).into_response())
     } else {
