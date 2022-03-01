@@ -61,7 +61,7 @@ pub async fn get_post_page_handler(
         #[cfg(not(debug_assertions))]
         let source = include_str!("../../../../resources/templates/post.html");
         #[cfg(not(debug_assertions))]
-        let css_source = include_str!("../../../../dist/styles/main.css");
+        let css_source = include_str!("../../../../dist/styles/main.css").to_string();
         // get file content
         #[cfg(debug_assertions)]
         let mut file =
