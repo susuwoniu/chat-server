@@ -61,7 +61,7 @@ pub async fn get_post_page_handler(
         #[cfg(not(debug_assertions))]
         let source = include_str!("../../../../resources/templates/post.html");
         #[cfg(not(debug_assertions))]
-        let css_source = include_str!("../../../../resources/static/dist/styles/main.css");
+        let css_source = include_str!("../../../../dist/styles/main.css");
         // get file content
         #[cfg(debug_assertions)]
         let mut file =
@@ -74,8 +74,7 @@ pub async fn get_post_page_handler(
 
         // get css content
         #[cfg(debug_assertions)]
-        let mut css_file =
-            File::open("resources/static/dist/styles/main.css").expect("Unable to open the file");
+        let mut css_file = File::open("dist/styles/main.css").expect("Unable to open the file");
         #[cfg(debug_assertions)]
         let mut css_source = String::new();
         #[cfg(debug_assertions)]

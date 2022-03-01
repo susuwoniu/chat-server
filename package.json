@@ -7,8 +7,8 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev": "postcss -o resources/static/dist/styles/main.css resources/styles/main.css --watch",
-    "build": "NODE_ENV=production postcss -o resources/static/dist/styles/main.css resources/styles/main.css",
+    "dev": "postcss -o dist/styles/main.css resources/styles/main.css --watch",
+    "build": "NODE_ENV=production postcss -o dist/styles/main.css resources/styles/main.css",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
