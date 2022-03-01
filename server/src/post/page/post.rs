@@ -104,7 +104,7 @@ pub async fn get_post_page_handler(
         let rendered = tpl.render(&PostData {
             id,
             title: title,
-            description: description,
+            description: format!("{}: {}", name, description),
             site_name: cfg.site.name.clone(),
             content,
             viewed_count,
