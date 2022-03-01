@@ -22,6 +22,7 @@ use substring::Substring;
 #[derive(Content)]
 struct PostData {
     pub id: i64,
+    pub description: String,
     pub content: String,
     pub viewed_count: i64,
     pub favorite_count: i64,
@@ -95,12 +96,15 @@ pub async fn get_post_page_handler(
             ..
         } = data.data[0].clone();
         let Account { name, avatar, .. } = author;
-        let mut title = str::replace(&content, "\n", "");
-        title = title.substring(0, 36).to_string();
+        let content_without_new_line = str::replace(&content, "\n", "");
+        let title = content_without_new_line.substring(0, 36).to_string();
+
+        let description = content_without_new_line.substring(0, 140).to_string();
         let cfg = Config::global();
         let rendered = tpl.render(&PostData {
             id,
             title: title,
+            description: description,
             site_name: cfg.site.name.clone(),
             content,
             viewed_count,
