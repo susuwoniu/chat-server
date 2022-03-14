@@ -155,3 +155,10 @@ pub struct ImagesJson {
     pub version: ImageVersion,
     pub images: Vec<Image>,
 }
+#[derive(Debug, Clone, Deserialize, Serialize, sqlx::Type)]
+#[serde(rename_all = "snake_case")]
+#[repr(i16)]
+
+pub enum PushServiceType {
+    Jiguang = 0,
+}

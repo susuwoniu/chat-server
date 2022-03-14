@@ -18,7 +18,7 @@ pub struct XmppMessageParam {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImSignupParam {
     pub account_id: i64,
-    pub platform: i32,
+    pub client_platform: i32,
     pub try_login: bool,
     pub name: String,
     pub avatar: Option<String>,
@@ -41,7 +41,7 @@ impl From<ClientPlatform> for i32 {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImCreateTokenParam {
     pub account_id: i64,
-    pub platform: i32,
+    pub client_platform: i32,
     pub try_signup: bool,
     pub name: String,
     pub now: DateTime<Utc>,

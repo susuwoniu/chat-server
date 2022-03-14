@@ -1,6 +1,6 @@
 use crate::{
     account::{
-        model::{AuthData, SigninParam, SigninType},
+        model::{AuthData, RefreshTokenParam, SigninParam, SigninType},
         service::signin::signin,
         util::get_refresh_token_key,
     },
@@ -16,17 +16,22 @@ pub async fn refresh_token_to_access_token(
     locale: &Locale,
     pool: &Pool,
     kv: &KvPool,
-    param: &RefreshTokenAuth,
+    auth: &RefreshTokenAuth,
+    param: RefreshTokenParam,
     ip: IpNetwork,
-    platform: ClientPlatform,
+    client_platform: ClientPlatform,
     sf: &mut Sonyflake,
 ) -> ServiceResult<AuthData> {
     // if redis record exist
     let RefreshTokenAuth {
         account_id,
         client_id,
-        device_id,
         ..
+    } = auth;
+    let RefreshTokenParam {
+        device_id,
+        device_token,
+        push_service_type,
     } = param;
     let mut conn = kv.get().await?;
     let temp_key = get_refresh_token_key(*account_id, &device_id);
@@ -38,14 +43,16 @@ pub async fn refresh_token_to_access_token(
             locale,
             pool,
             kv,
-            &SigninParam {
+            SigninParam {
                 account_id: *account_id,
                 client_id: *client_id,
                 account_auth_id: 0,
                 device_id: device_id.clone(),
                 signin_type: SigninType::RefreshToken,
                 ip: ip,
-                platform,
+                client_platform,
+                push_service_type,
+                device_token,
             },
             sf,
         )

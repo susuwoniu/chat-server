@@ -1,3 +1,4 @@
+pub mod devices;
 pub mod get_account;
 pub mod get_account_blocks;
 pub mod get_account_likes;

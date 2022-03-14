@@ -34,9 +34,12 @@ pub async fn create_user() -> Result<(), Error> {
         .machine_id(&|| Ok(65535))
         .finalize()
         .unwrap();
+    let redis_config = RedisConfig::from_url(&cfg.kv.url);
+    let kv = redis_config.create_pool().unwrap();
     let account_auth = signup(
         &Locale::default(),
         &pool,
+        &kv,
         SignupParam {
             identity_type: IdentityType::Phone,
             identifier,
@@ -44,8 +47,10 @@ pub async fn create_user() -> Result<(), Error> {
             phone_number: Some(phone_number),
             timezone_in_seconds: 28800,
             ip: "127.0.0.1".parse::<IpNetwork>().unwrap(),
-            platform: ClientPlatform::IOS,
+            client_platform: ClientPlatform::IOS,
             admin: false,
+            device_token: None,
+            push_service_type: None,
         },
         &mut sf,
     )
@@ -74,9 +79,12 @@ pub async fn create_admin() -> Result<(), Error> {
         .machine_id(&|| Ok(65535))
         .finalize()
         .unwrap();
+    let redis_config = RedisConfig::from_url(&cfg.kv.url);
+    let kv = redis_config.create_pool().unwrap();
     let account_auth = signup(
         &Locale::default(),
         &pool,
+        &kv,
         SignupParam {
             identity_type: IdentityType::Phone,
             identifier,
@@ -84,8 +92,10 @@ pub async fn create_admin() -> Result<(), Error> {
             phone_number: Some(phone_number),
             timezone_in_seconds: 28800,
             ip: "127.0.0.1".parse::<IpNetwork>().unwrap(),
-            platform: ClientPlatform::IOS,
+            client_platform: ClientPlatform::IOS,
             admin: true,
+            device_token: None,
+            push_service_type: None,
         },
         &mut sf,
     )

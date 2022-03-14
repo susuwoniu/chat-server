@@ -86,6 +86,7 @@ pub struct Auth {
     pub refresh_token_secret_key: String,
     pub refresh_token_public_key: String,
     pub refresh_token_expires_in_days: i64,
+    pub jiguang_authorization: String,
 }
 
 #[derive(Default, Debug, Deserialize, Clone)]

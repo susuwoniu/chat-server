@@ -1,6 +1,9 @@
 use crate::{
-    account::model::{IdentityType, SignupData, SignupParam},
-    alias::Pool,
+    account::{
+        model::{IdentityType, PutDeviceParam, SignupData, SignupParam},
+        service::devices::put_device,
+    },
+    alias::{KvPool, Pool},
     error::{Error, ServiceError},
     global::{Config, I18n},
     im::{model::ImSignupParam, service::signup::signup as im_signup},
@@ -16,6 +19,7 @@ use sqlx::query;
 pub async fn signup(
     locale: &Locale,
     pool: &Pool,
+    kv: &KvPool,
     param: SignupParam,
     sf: &mut Sonyflake,
 ) -> ServiceResult<SignupData> {
@@ -34,8 +38,10 @@ pub async fn signup(
         identifier,
         timezone_in_seconds,
         ip,
-        platform,
+        client_platform,
         admin,
+        device_token,
+        push_service_type,
     } = param;
 
     if identity_type == IdentityType::Phone
@@ -92,12 +98,30 @@ VALUES ($1,$6,$2,$3,$4,$5)
     tx.commit().await?;
     // sign up im user
 
+    // insert device data
+    if let Some(device_token) = device_token {
+        if let Some(push_service_type) = push_service_type.clone() {
+            put_device(
+                locale,
+                pool,
+                kv,
+                PutDeviceParam {
+                    account_id: Some(account_id),
+                    device_token: device_token.clone(),
+                    push_service_type: push_service_type,
+                    client_platform: client_platform.clone(),
+                },
+                sf,
+            )
+            .await?;
+        }
+    }
     im_signup(
         locale,
         ImSignupParam {
             account_id,
             try_login: true,
-            platform: platform.into(),
+            client_platform: client_platform.into(),
             name: default_name,
             avatar: None,
         },

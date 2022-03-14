@@ -37,12 +37,12 @@ pub struct Token {
 
 impl Token {
     pub fn new(
-        account_id: &i64,
+        account_id: i64,
         pair: &Pair,
         expires_in_minutes: i64,
         issuer: String,
         audience: String,
-        client_id: &i64,
+        client_id: i64,
         roles: Vec<String>,
         device_id: String,
         now: DateTime<Utc>,
@@ -100,8 +100,8 @@ impl Token {
 
 impl AuthData {
     pub fn new(
-        account_id: &i64,
-        client_id: &i64,
+        account_id: i64,
+        client_id: i64,
         device_id: String,
         roles: Vec<String>,
         actions: Vec<Action>,
@@ -139,7 +139,7 @@ impl AuthData {
         let refresh_token = refresh.get_token();
         let expires_at = token.get_expires_at();
         Self {
-            account_id: *account_id,
+            account_id: account_id,
             access_token,
             id: token.jti,
             access_token_type: TokenType::Bearer,

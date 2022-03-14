@@ -1,7 +1,7 @@
 use crate::{
     account::{
-        model::{AuthData, SigninParam, SigninType},
-        service::get_account::get_full_account,
+        model::{AuthData, PutDeviceParam, SigninParam, SigninType},
+        service::{devices::put_device, get_account::get_full_account},
         util::get_refresh_token_key,
     },
     alias::{KvPool, Pool},
@@ -21,7 +21,7 @@ pub async fn signin(
     locale: &Locale,
     pool: &Pool,
     kv: &KvPool,
-    param: &SigninParam,
+    param: SigninParam,
     sf: &mut Sonyflake,
 ) -> ServiceResult<AuthData> {
     let SigninParam {
@@ -31,10 +31,12 @@ pub async fn signin(
         signin_type,
         device_id,
         ip,
-        platform,
+        client_platform,
+        device_token,
+        push_service_type,
     } = param;
     // lookup account
-    let account = get_full_account(locale, pool, *account_id).await?;
+    let account = get_full_account(locale, pool, account_id).await?;
     let account_cloned = account.clone();
     // if suspended
     if account.suspended {
@@ -72,7 +74,7 @@ pub async fn signin(
 
     // add refresh token to kv
     // add to kv
-    let temp_key = get_refresh_token_key(*account_id, &auth_data.device_id);
+    let temp_key = get_refresh_token_key(account_id, &auth_data.device_id);
     let mut conn = kv.get().await?;
     cmd("SET")
         .arg(&[
@@ -87,7 +89,7 @@ pub async fn signin(
         .query_async::<_, ()>(&mut conn)
         .await?;
     // if not refresh token , so write
-    if signin_type != &SigninType::RefreshToken {
+    if signin_type != SigninType::RefreshToken {
         // todo  add account auths
         let mut tx = pool.begin().await?;
         // update login record
@@ -115,19 +117,37 @@ VALUES ($1,$2,$3,$4,$5,$6,$7)
             client_id,
             true,
             ip,
-            platform.clone() as ClientPlatform
+            client_platform.clone() as ClientPlatform
         )
         .execute(&mut tx)
         .await?;
         tx.commit().await?;
         // get im token
     }
+    if let Some(device_token) = device_token {
+        if let Some(push_service_type) = push_service_type.clone() {
+            put_device(
+                locale,
+                pool,
+                kv,
+                PutDeviceParam {
+                    account_id: Some(account_id),
+                    device_token: device_token.clone(),
+                    push_service_type: push_service_type,
+                    client_platform: client_platform.clone(),
+                },
+                sf,
+            )
+            .await?;
+        }
+    }
+
     let im_token = create_im_token(
         locale,
         ImCreateTokenParam {
-            account_id: *account_id,
+            account_id: account_id,
             try_signup: true,
-            platform: platform.clone().into(),
+            client_platform: client_platform.clone().into(),
             name: account.name,
             now: now,
         },

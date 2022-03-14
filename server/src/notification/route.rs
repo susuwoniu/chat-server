@@ -1,23 +1,43 @@
 use crate::{
-    alias::Pool,
-    middleware::{Auth, Locale, Signature},
+    alias::{KvPool, Pool},
+    middleware::{Auth, ClientPlatform, Locale, Signature},
     notification::{
-        model::{NotificationInbox, NotificationInboxFilter, UpdateNotificationInboxParam},
+        model::{
+            NotificationInbox, NotificationInboxFilter, PushParam, UpdateNotificationInboxParam,
+        },
         service::{
-            get_notification::get_notification_inbox,
+            get_notification::get_notification_inbox, push::push_by_account_id,
             update_notification::update_notification_inbox,
         },
     },
     types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
 };
 
-use axum::{extract::Extension, routing::get, Json, Router};
+use axum::{
+    extract::Extension,
+    routing::{get, post},
+    Json, Router,
+};
 
 pub fn service_route() -> Router {
-    Router::new().route(
-        "/me/notification-inbox",
-        get(get_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
-    )
+    Router::new()
+        .route(
+            "/me/notification-inbox",
+            get(get_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
+        )
+        .route("/push", post(push_me_handler))
+}
+
+async fn push_me_handler(
+    locale: Locale,
+    Extension(pool): Extension<Pool>,
+    Extension(kv): Extension<KvPool>,
+    auth: Auth,
+    platform: ClientPlatform,
+    Json(payload): Json<PushParam>,
+) -> JsonApiResponse {
+    push_by_account_id(&locale, &pool, &kv, auth, payload).await?;
+    QuickResponse::default()
 }
 
 // async fn create_notification_handler(

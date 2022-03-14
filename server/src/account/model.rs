@@ -1,7 +1,9 @@
 use crate::{
     error::ServiceError,
     middleware::ClientPlatform,
-    types::{Action, AvatarVersion, FieldAction, FieldUpdateAction, Gender, Image},
+    types::{
+        Action, AvatarVersion, FieldAction, FieldUpdateAction, Gender, Image, PushServiceType,
+    },
     util::{
         base62_i64, base62_to_i64, datetime_tz, option_datetime_tz, option_string_i64, string_i64,
     },
@@ -27,10 +29,45 @@ pub struct SigninParam {
     pub account_auth_id: i64,
     pub client_id: i64,
     pub device_id: String,
+    pub device_token: Option<String>,
+    pub push_service_type: Option<PushServiceType>,
     pub signin_type: SigninType,
     pub ip: IpNetwork,
-    pub platform: ClientPlatform,
+    pub client_platform: ClientPlatform,
 }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApiPutDevicePathParam {
+    pub device_token: String,
+    pub push_service_type: PushServiceType,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignouttParam {
+    pub device_token: Option<String>,
+    pub push_service_type: Option<PushServiceType>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PutDeviceParam {
+    pub device_token: String,
+    pub client_platform: ClientPlatform,
+    pub push_service_type: PushServiceType,
+    pub account_id: Option<i64>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeviceData {
+    #[serde(with = "string_i64")]
+    pub id: i64,
+    pub device_token: String,
+    pub client_platform: ClientPlatform,
+    pub push_service_type: PushServiceType,
+    #[serde(default)]
+    #[serde(with = "option_string_i64")]
+    pub account_id: Option<i64>,
+    #[serde(with = "datetime_tz")]
+    pub created_at: NaiveDateTime,
+    #[serde(with = "datetime_tz")]
+    pub updated_at: NaiveDateTime,
+}
+jsonapi_model!(DeviceData; "devices");
 
 #[derive(Debug)]
 pub struct SigninWithPhoneParam {
@@ -41,8 +78,10 @@ pub struct SigninWithPhoneParam {
     pub client_id: i64,
     pub device_id: String,
     pub ip: IpNetwork,
-    pub platform: ClientPlatform,
+    pub client_platform: ClientPlatform,
     pub qf_mutex: Arc<Mutex<QueueFile>>,
+    pub device_token: Option<String>,
+    pub push_service_type: Option<PushServiceType>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupParam {
@@ -52,8 +91,10 @@ pub struct SignupParam {
     pub phone_number: Option<String>,
     pub timezone_in_seconds: i32,
     pub ip: IpNetwork,
-    pub platform: ClientPlatform,
+    pub client_platform: ClientPlatform,
     pub admin: bool,
+    pub device_token: Option<String>,
+    pub push_service_type: Option<PushServiceType>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignupData {
@@ -152,6 +193,13 @@ pub struct Account {
     pub next_post_not_before: NaiveDateTime,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RefreshTokenParam {
+    pub device_id: String,
+    pub device_token: Option<String>,
+    pub push_service_type: Option<PushServiceType>,
+}
+
 jsonapi_model!(Account; "accounts");
 
 #[derive(Debug, Deserialize)]
@@ -174,10 +222,13 @@ pub struct PhoneAuthPathParam {
     pub phone_number: String,
     pub code: String,
 }
+
 #[derive(Debug, Deserialize)]
 pub struct PhoneAuthBodyParam {
     pub timezone_in_seconds: i32,
     pub device_id: String,
+    pub device_token: Option<String>,
+    pub push_service_type: Option<PushServiceType>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PhoneCodeMeta {

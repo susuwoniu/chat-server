@@ -20,6 +20,26 @@ pub enum NotificationType {
     ProfileViewed,
     ProfileLiked,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
+pub struct AlertParam {
+    pub title: Option<String>,
+    pub body: String,
+    pub badge: i32,
+}
+pub struct PushForwardPayloadParam {
+    pub service: String,
+    pub alert: AlertParam,
+    pub priority: Option<i32>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
+pub struct PushParam {
+    #[serde(with = "string_i64")]
+    pub account_id: i64,
+    pub priority: Option<i32>,
+    pub alert: AlertParam,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all = "snake_case")]

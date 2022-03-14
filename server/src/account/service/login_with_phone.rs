@@ -32,8 +32,10 @@ pub async fn login_with_phone(
         client_id,
         device_id,
         ip,
-        platform,
+        client_platform,
         qf_mutex,
+        device_token,
+        push_service_type,
     } = param;
 
     let temp_key = get_phone_code_temp_key(&phone_country_code, phone_number, device_id);
@@ -57,14 +59,16 @@ pub async fn login_with_phone(
                     locale,
                     pool,
                     kv,
-                    &SigninParam {
+                    SigninParam {
                         signin_type: SigninType::PhoneCode,
                         account_id: account_auth.account_id,
                         account_auth_id: account_auth.id,
                         client_id: *client_id,
                         device_id: device_id.clone(),
                         ip: ip.clone(),
-                        platform: platform.clone(),
+                        client_platform: client_platform.clone(),
+                        device_token: device_token.clone(),
+                        push_service_type: push_service_type.clone(),
                     },
                     sf,
                 )
@@ -74,6 +78,7 @@ pub async fn login_with_phone(
                 let account_data = signup(
                     locale,
                     pool,
+                    kv,
                     SignupParam {
                         identity_type: IdentityType::Phone,
                         identifier,
@@ -81,8 +86,10 @@ pub async fn login_with_phone(
                         phone_number: Some(phone_number.clone()),
                         timezone_in_seconds: *timezone_in_seconds,
                         ip: ip.clone(),
-                        platform: platform.clone(),
+                        client_platform: client_platform.clone(),
                         admin: false,
+                        device_token: device_token.clone(),
+                        push_service_type: push_service_type.clone(),
                     },
                     sf,
                 )
@@ -102,14 +109,16 @@ pub async fn login_with_phone(
                     locale,
                     pool,
                     kv,
-                    &SigninParam {
+                    SigninParam {
                         signin_type: SigninType::SignupWithPhoneCode,
                         account_id: account_id,
                         account_auth_id: account_auth_id,
                         client_id: *client_id,
                         device_id: device_id.clone(),
                         ip: ip.clone(),
-                        platform: platform.clone(),
+                        client_platform: client_platform.clone(),
+                        device_token: device_token.clone(),
+                        push_service_type: push_service_type.clone(),
                     },
                     sf,
                 )

@@ -60,7 +60,7 @@ pub async fn get_posts(
     }
     let mut rows = query_as!(DbPost,
     r#"
-      select id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,favorite_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857)) END as distance from posts where 
+      select id,time_cursor_change_count,content,background_color,account_id,updated_at,post_template_id,post_template_title,client_id,time_cursor,ip,gender as "gender:Gender",target_gender as "target_gender:Gender",visibility as "visibility:Visibility",created_at,skipped_count,viewed_count,replied_count,favorite_count,color,CASE WHEN ($32::float8 is null or $33::float8 is null or $34::float8 is null) THEN null ELSE ST_Distance(ST_Transform(ST_SetSRID(ST_Point($32,$33),4326),3857),ST_Transform(geom,3857),false) END as distance from posts where 
       ($35::bigint is null or id=$35)
       and ($36::bigint[] is null or id = ANY ($36::bigint[]))
       and ($27::bigint is null or account_id=$27)

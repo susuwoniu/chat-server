@@ -2,12 +2,14 @@ use crate::{
     account::{
         model::{
             AccountLikeFilter, AccountViewFilter, ApiAccountLikeFilter, ApiAccountViewFilter,
-            ApiUpdateOtherAccountParam, DeviceParam, GetAccountPathParam, GetAccountsParam,
-            PhoneAuthBodyParam, PhoneAuthPathParam, PhoneCodeMeta, PutImageParam,
-            SendPhoneCodePathParam, SigninWithPhoneParam, UpdateAccountImageParam,
-            UpdateAccountImagesParam, UpdateAccountParam, UpdateOtherAccountParam,
+            ApiPutDevicePathParam, ApiUpdateOtherAccountParam, DeviceParam, GetAccountPathParam,
+            GetAccountsParam, PhoneAuthBodyParam, PhoneAuthPathParam, PhoneCodeMeta,
+            PutDeviceParam, PutImageParam, RefreshTokenParam, SendPhoneCodePathParam,
+            SigninWithPhoneParam, SignouttParam, UpdateAccountImageParam, UpdateAccountImagesParam,
+            UpdateAccountParam, UpdateOtherAccountParam,
         },
         service::{
+            devices::{get_devices_by_account_id, put_device},
             get_account::{get_account_views, get_accounts, get_full_account, get_other_account},
             get_account_blocks::get_account_blocks_list,
             get_account_likes::{get_account_liked_list, get_account_likes_list},
@@ -57,6 +59,11 @@ pub fn service_route() -> Router {
         )
         .route("/sessions", delete(signout_handler))
         .route(
+            "/devices/push-service-type/:push_service_type/device-token/:device_token",
+            put(put_devices_handler),
+        )
+        .route("/me/push-devices", get(get_devices_handler))
+        .route(
             "/accounts/:account_id",
             get(get_account_handler).patch(patch_other_account_handler),
         )
@@ -76,6 +83,49 @@ pub fn service_route() -> Router {
         .route("/me/blocks", get(get_me_blocks_list_handler))
         .route("/me/avatar/slot", post(create_avatar_upload_slot_handler))
         .route("/access-tokens", post(access_token_handler))
+}
+async fn get_devices_handler(
+    Extension(pool): Extension<Pool>,
+    locale: Locale,
+    Extension(kv): Extension<KvPool>,
+    auth: Auth,
+) -> JsonApiResponse {
+    let devices = get_devices_by_account_id(&locale, &pool, &kv, auth.account_id).await?;
+    let response = vec_to_jsonapi_document(devices);
+    Ok(format_response(response))
+}
+async fn put_devices_handler(
+    Extension(pool): Extension<Pool>,
+    locale: Locale,
+    Extension(kv): Extension<KvPool>,
+    Path(path_param): Path<ApiPutDevicePathParam>,
+    _: Signature,
+    auth: Option<Auth>,
+    platform: ClientPlatform,
+    Extension(mut sf): Extension<Sonyflake>,
+) -> JsonApiResponse {
+    let mut account_id = None;
+    if let Some(auth) = auth {
+        account_id = Some(auth.account_id);
+    }
+    let ApiPutDevicePathParam {
+        device_token,
+        push_service_type,
+    } = path_param;
+    let data = put_device(
+        &locale,
+        &pool,
+        &kv,
+        PutDeviceParam {
+            client_platform: platform,
+            device_token,
+            push_service_type,
+            account_id,
+        },
+        &mut sf,
+    )
+    .await?;
+    Ok(format_response(data.to_jsonapi_document()))
 }
 async fn delete_me_profile_image(
     Extension(pool): Extension<Pool>,
@@ -318,8 +368,14 @@ async fn patch_me_account_handler(
     let account = update_account(&locale, &pool, &kv, payload, &auth, false).await?;
     Ok(format_response(account.to_jsonapi_document()))
 }
-async fn signout_handler(Extension(kv): Extension<KvPool>, auth: Auth) -> JsonApiResponse {
-    signout(&kv, &auth).await?;
+async fn signout_handler(
+    Extension(pool): Extension<Pool>,
+    Extension(kv): Extension<KvPool>,
+    auth: Auth,
+    platform: ClientPlatform,
+    Json(payload): Json<SignouttParam>,
+) -> JsonApiResponse {
+    signout(&pool, &kv, &auth, payload, platform).await?;
     QuickResponse::default()
 }
 async fn access_token_handler(
@@ -329,11 +385,13 @@ async fn access_token_handler(
     locale: Locale,
     auth: RefreshTokenAuth,
     platform: ClientPlatform,
+    Json(payload): Json<RefreshTokenParam>,
     Ip(ip): Ip,
     Extension(mut sf): Extension<Sonyflake>,
 ) -> JsonApiResponse {
     let data =
-        refresh_token_to_access_token(&locale, &pool, &kv, &auth, ip, platform, &mut sf).await?;
+        refresh_token_to_access_token(&locale, &pool, &kv, &auth, payload, ip, platform, &mut sf)
+            .await?;
     Ok(format_response(data.to_jsonapi_document()))
 }
 
@@ -345,7 +403,7 @@ async fn phone_auth_handler(
     Signature { client_id }: Signature,
     Json(payload): Json<PhoneAuthBodyParam>,
     Ip(ip): Ip,
-    platform: ClientPlatform,
+    client_platform: ClientPlatform,
     Extension(mut sf): Extension<Sonyflake>,
     Extension(qf_mutex): Extension<Arc<Mutex<QueueFile>>>,
 ) -> JsonApiResponse {
@@ -366,8 +424,10 @@ async fn phone_auth_handler(
             client_id,
             device_id: payload.device_id,
             timezone_in_seconds: payload.timezone_in_seconds,
+            device_token: payload.device_token,
+            push_service_type: payload.push_service_type,
             ip,
-            platform,
+            client_platform,
             qf_mutex,
         },
         &mut sf,
