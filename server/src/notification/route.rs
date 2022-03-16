@@ -3,10 +3,12 @@ use crate::{
     middleware::{Auth, ClientPlatform, Locale, Signature},
     notification::{
         model::{
-            NotificationInbox, NotificationInboxFilter, PushParam, UpdateNotificationInboxParam,
+            ApiPushParam, NotificationInbox, NotificationInboxFilter, PushForwardPayloadParam,
+            PushParam, UpdateNotificationInboxParam,
         },
         service::{
-            get_notification::get_notification_inbox, push::push_by_account_id,
+            get_notification::get_notification_inbox,
+            push::{push_by_account_id, push_forward},
             update_notification::update_notification_inbox,
         },
     },
@@ -14,7 +16,7 @@ use crate::{
 };
 
 use axum::{
-    extract::Extension,
+    extract::{Extension, Path},
     routing::{get, post},
     Json, Router,
 };
@@ -25,18 +27,43 @@ pub fn service_route() -> Router {
             "/me/notification-inbox",
             get(get_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
         )
-        .route("/push", post(push_me_handler))
+        .route("/account/:account_id/push", post(push_account_handler))
+        .route(
+            "/v3/notification/:registration_id",
+            post(push_forward_handler),
+        )
 }
 
-async fn push_me_handler(
+async fn push_forward_handler(
+    locale: Locale,
+    Path(registration_id): Path<String>,
+    Json(payload): Json<PushForwardPayloadParam>,
+) -> JsonApiResponse {
+    push_forward(registration_id, payload).await?;
+    QuickResponse::default()
+}
+
+async fn push_account_handler(
     locale: Locale,
     Extension(pool): Extension<Pool>,
     Extension(kv): Extension<KvPool>,
     auth: Auth,
-    platform: ClientPlatform,
-    Json(payload): Json<PushParam>,
+    Path(account_id): Path<i64>,
+    Json(payload): Json<ApiPushParam>,
 ) -> JsonApiResponse {
-    push_by_account_id(&locale, &pool, &kv, auth, payload).await?;
+    let ApiPushParam { priority, alert } = payload;
+    push_by_account_id(
+        &locale,
+        &pool,
+        &kv,
+        auth,
+        PushParam {
+            account_id,
+            priority,
+            alert,
+        },
+    )
+    .await?;
     QuickResponse::default()
 }
 

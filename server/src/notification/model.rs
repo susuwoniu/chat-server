@@ -27,10 +27,18 @@ pub struct AlertParam {
     pub body: String,
     pub badge: i32,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
 pub struct PushForwardPayloadParam {
     pub service: String,
     pub alert: AlertParam,
     pub priority: Option<i32>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
+pub struct ApiPushParam {
+    pub priority: Option<i32>,
+    pub alert: AlertParam,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
