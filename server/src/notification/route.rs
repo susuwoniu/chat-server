@@ -12,11 +12,13 @@ use crate::{
             update_notification::update_notification_inbox,
         },
     },
-    types::{JsonApiResponse, QuickResponse, SimpleMetaResponse},
+    types::{JsonApiResponse, QuickResponse, ServiceResult, SimpleMetaResponse},
 };
 
 use axum::{
     extract::{Extension, Path},
+    http::{header::HeaderMap, StatusCode},
+    response::{Headers, IntoResponse},
     routing::{get, post},
     Json, Router,
 };
@@ -33,11 +35,17 @@ pub fn service_route() -> Router {
 pub async fn push_forward_handler(
     Path(registration_id): Path<String>,
     Json(payload): Json<PushForwardPayloadParam>,
-) -> JsonApiResponse {
+) -> ServiceResult<(StatusCode, HeaderMap, String)> {
     print!("push forward");
     dbg!(&payload);
-    push_forward(registration_id, payload).await?;
-    QuickResponse::default()
+    let response = push_forward(registration_id, payload).await?;
+    let status = response.status();
+    // let headers_mut = response.headers_mut();
+    let headers = response.headers().to_owned();
+    let body = response.text().await?;
+    // let body = "";
+    // Ok((response.status(), body))
+    Ok((status, headers, body))
 }
 
 async fn push_account_handler(

@@ -35,7 +35,7 @@ use std::collections::HashMap;
 pub async fn push_forward(
     registration_id: String,
     param: PushForwardPayloadParam,
-) -> ServiceResult<()> {
+) -> ServiceResult<reqwest::Response> {
     let cfg = Config::global();
     let PushForwardPayloadParam {
         priority,
@@ -92,7 +92,7 @@ pub async fn push_forward(
         .json(&json_value)
         .send()
         .await?;
-    return Ok(());
+    return Ok(res);
 }
 
 pub async fn push_by_account_id(
