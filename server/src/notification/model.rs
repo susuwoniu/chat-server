@@ -20,6 +20,7 @@ pub enum NotificationType {
     ProfileViewed,
     ProfileLiked,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
 pub struct AlertParam {
@@ -29,10 +30,19 @@ pub struct AlertParam {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 
+pub struct PushForwardAlertParam {
+    pub title: Option<String>,
+    pub body: String,
+    pub badge: i32,
+    pub tag: Option<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+
 pub struct PushForwardPayloadParam {
     pub service: String,
-    pub alert: AlertParam,
-    pub priority: Option<i32>,
+    pub alert: PushForwardAlertParam,
+    pub priority: Option<String>,
+    pub mode: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 

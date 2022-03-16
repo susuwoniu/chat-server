@@ -34,9 +34,11 @@ pub fn service_route() -> Router {
 
 pub async fn push_forward_handler(
     Path(registration_id): Path<String>,
-    Json(payload): Json<PushForwardPayloadParam>,
+    body_text: String,
 ) -> ServiceResult<(StatusCode, HeaderMap, String)> {
     print!("push forward");
+    println!("{}", &body_text);
+    let payload = serde_json::from_str::<PushForwardPayloadParam>(&body_text)?;
     dbg!(&payload);
     let response = push_forward(registration_id, payload).await?;
     let status = response.status();

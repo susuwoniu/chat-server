@@ -34,7 +34,13 @@ pub struct Config {
     pub admin: Admin,
     pub consumer_duration_in_seconds: u64,
     pub site: Site,
+    pub application: App,
 }
+#[derive(Debug, Deserialize, Clone)]
+pub struct App {
+    pub host: String,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Site {
     pub name: String,

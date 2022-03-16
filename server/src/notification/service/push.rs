@@ -4,9 +4,7 @@ use crate::{
     error::{Error, ServiceError},
     global::config::Config,
     middleware::{Auth, Locale},
-    notification::model::{
-        AlertParam, CreateNotificationParam, PushForwardPayloadParam, PushParam,
-    },
+    notification::model::{AlertParam, PushForwardAlertParam, PushForwardPayloadParam, PushParam},
     types::{FieldAction, ServiceResult},
     util::id::next_id,
 };
@@ -30,7 +28,6 @@ Content-Length: 237
         }
     }
  */
-use std::collections::HashMap;
 
 pub async fn push_forward(
     registration_id: String,
@@ -41,10 +38,41 @@ pub async fn push_forward(
         priority,
         service,
         alert,
+        mode,
     } = param;
-    let AlertParam { title, body, badge } = alert;
-    let mut json_value = json!({});
+    let PushForwardAlertParam {
+        title,
+        body,
+        badge,
+        tag,
+    } = alert;
+    let json_value;
+    let priority_str = priority.unwrap_or("normal".to_string());
+    let priority_i32: i32 = match priority_str.as_str() {
+        "high" => 2,
+        "normal" => 0,
+        _ => 0,
+    };
+    let tag_str = tag.unwrap_or("".to_string());
+    let url;
+    if tag_str != "".to_string() {
+        url = format!("{}/room?id={}", cfg.application.host, tag_str);
+    } else {
+        url = format!("{}/", cfg.application.host);
+    }
 
+    let mut isProd = false;
+
+    let mode_str = mode.unwrap_or("dev".to_string());
+    if mode_str == "prod" {
+        isProd = true;
+    }
+
+    let ios_level = match priority_i32 {
+        2 => "active",
+        0 => "critical",
+        _ => "active",
+    };
     if service == "fcm".to_string() {
         json_value = json!({
             "platform":["android"],
@@ -53,12 +81,19 @@ pub async fn push_forward(
             },
             "notification" : {
                 "android":{
+                    "intent":{
+                        "url":url
+                    },
+                    "extras":{
+                        "url":url
+                    },
                     "alert": body,
                     "title": title.unwrap_or("".to_string()),
                     "badge_add_num": badge,
-                    "priority":priority.unwrap_or(0)
+                    "priority":priority_i32
                 }
-            }
+            },
+            "inapp_message": {"inapp_message": true}
         });
     } else if service == "apns".to_string() {
         json_value = json!({
@@ -72,10 +107,17 @@ pub async fn push_forward(
                     "body": body,
                     "title": title.unwrap_or("".to_string()),
                   },
-
-                    "badge": badge
+                  "extras":{
+                      "url":url
+                  },
+                "badge": badge,
+                "interruption-level":ios_level
                 }
-            }
+            },
+            "options":{
+                "apns_production":isProd
+            },
+            "inapp_message": {"inapp_message": true}
         });
     } else {
         return Err(ServiceError::bad_request(
@@ -84,7 +126,7 @@ pub async fn push_forward(
             Error::Default,
         ));
     }
-
+    println!("{}", &json_value);
     let client = reqwest::Client::new();
     let res = client
         .post("https://api.jpush.cn/v3/push")

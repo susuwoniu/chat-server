@@ -93,3 +93,6 @@ ifttt_key = ""
 
 [site]
 name = "和我交朋友"
+
+[application]
+host = "jieyibu://chat.scuinfo.com"
