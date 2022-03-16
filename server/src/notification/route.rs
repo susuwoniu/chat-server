@@ -28,13 +28,9 @@ pub fn service_route() -> Router {
             get(get_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
         )
         .route("/accounts/:account_id/push", post(push_account_handler))
-        .route(
-            "/v3/notification/:registration_id",
-            post(push_forward_handler),
-        )
 }
 
-async fn push_forward_handler(
+pub async fn push_forward_handler(
     Path(registration_id): Path<String>,
     Json(payload): Json<PushForwardPayloadParam>,
 ) -> JsonApiResponse {

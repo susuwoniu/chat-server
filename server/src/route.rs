@@ -6,7 +6,7 @@ use crate::{
     },
     file::route::service_route as file_service_route,
     middleware::{ClientPlatform, ClientVersion, Signature},
-    notification::route::service_route as notification_service_route,
+    notification::route::{push_forward_handler, service_route as notification_service_route},
     post::{page::post::get_post_page_handler, route::service_route as post_service_route},
     report::route::service_route as report_service_route,
 };
@@ -14,7 +14,7 @@ use crate::{
 use axum::{
     extract::extractor_middleware,
     http::StatusCode,
-    routing::{get, get_service},
+    routing::{get, get_service, post},
     Json, Router,
 };
 use jsonapi::api::{DocumentData, JsonApiDocument, JsonApiInfo, JsonApiValue};
@@ -46,7 +46,7 @@ pub fn app_route() -> Router {
         "server_commit_date".to_string(),
         json!(env!("VERGEN_GIT_COMMIT_TIMESTAMP")),
     );
-
+    // v3 for im push services
     let route = Router::new()
         .route(
             "/",
@@ -62,6 +62,10 @@ pub fn app_route() -> Router {
                 let doc = JsonApiDocument::Data(data);
                 Json(doc)
             }),
+        )
+        .route(
+            "/v3/notification/:registration_id",
+            post(push_forward_handler),
         )
         .route("/post", get(get_post_page_handler))
         .nest(
