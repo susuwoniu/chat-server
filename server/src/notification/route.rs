@@ -27,7 +27,7 @@ pub fn service_route() -> Router {
             "/me/notification-inbox",
             get(get_me_notification_inbox_handler).patch(patch_me_notification_inbox_handler),
         )
-        .route("/account/:account_id/push", post(push_account_handler))
+        .route("/accounts/:account_id/push", post(push_account_handler))
         .route(
             "/v3/notification/:registration_id",
             post(push_forward_handler),
@@ -35,10 +35,11 @@ pub fn service_route() -> Router {
 }
 
 async fn push_forward_handler(
-    locale: Locale,
     Path(registration_id): Path<String>,
     Json(payload): Json<PushForwardPayloadParam>,
 ) -> JsonApiResponse {
+    print!("push forward");
+    dbg!(&payload);
     push_forward(registration_id, payload).await?;
     QuickResponse::default()
 }
