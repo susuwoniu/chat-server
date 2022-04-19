@@ -32,7 +32,7 @@ pub async fn get_full_reports(
     }
     let rows = query_as!(DbReport,
       r#"
-        select id,_type as "_type:ReportType",content,account_id,updated_at,created_at,images,related_post_id,related_account_id,state as "state:ReportState",replied_by,replied_content,replied_at from reports where  ($2::bigint is null or id < $2) and ($3::bigint is null or id > $3) and ($4::bigint is null or state = $4) and ($5::bigint is null or _type = $5)  order by id desc limit $1
+        select id,_type as "_type:ReportType",note,content,account_id,updated_at,created_at,images,related_post_id,related_account_id,state as "state:ReportState",replied_by,replied_content,replied_at from reports where  ($2::bigint is null or id < $2) and ($3::bigint is null or id > $3) and ($4::bigint is null or state = $4) and ($5::bigint is null or _type = $5)  order by id desc limit $1
   "#,
   limit ,
   filter.after,
@@ -78,7 +78,7 @@ pub async fn get_reports(
 pub async fn get_full_report(locale: &Locale, pool: &Pool, id: i64) -> ServiceResult<FullReport> {
     let row = query_as!(DbReport,
     r#"
-      select id,_type as "_type:ReportType",content,account_id,updated_at,created_at,images,related_post_id,related_account_id,state as "state:ReportState",replied_by,replied_content,replied_at from reports where id=$1
+      select id,_type as "_type:ReportType",note,content,account_id,updated_at,created_at,images,related_post_id,related_account_id,state as "state:ReportState",replied_by,replied_content,replied_at from reports where id=$1
 "#,
 id
   )
@@ -114,6 +114,7 @@ pub fn format_report(row: DbReport) -> FullReport {
         replied_by,
         replied_content,
         replied_at,
+        note,
     } = row;
 
     let mut images: Vec<Image> = Vec::new();
@@ -138,5 +139,6 @@ pub fn format_report(row: DbReport) -> FullReport {
         replied_by,
         replied_content,
         replied_at,
+        note,
     };
 }

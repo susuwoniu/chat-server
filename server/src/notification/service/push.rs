@@ -61,11 +61,11 @@ pub async fn push_forward(
         url = format!("{}/", cfg.application.host);
     }
 
-    let mut isProd = false;
+    let mut is_prod = false;
 
     let mode_str = mode.unwrap_or("dev".to_string());
     if mode_str == "prod" {
-        isProd = true;
+        is_prod = true;
     }
 
     let ios_level = match priority_i32 {
@@ -111,11 +111,12 @@ pub async fn push_forward(
                       "url":url
                   },
                 "badge": badge,
-                "interruption-level":ios_level
+                "interruption-level":ios_level,
+                "thread-id":tag_str
                 }
             },
             "options":{
-                "apns_production":isProd
+                "apns_production":is_prod
             },
             "inapp_message": {"inapp_message": true}
         });

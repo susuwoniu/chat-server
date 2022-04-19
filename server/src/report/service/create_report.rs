@@ -24,6 +24,7 @@ pub async fn create_report(
         images,
         related_post_id,
         related_account_id,
+        note,
     } = param;
     let id = next_id(sf);
     let now = Utc::now().naive_utc();
@@ -38,8 +39,8 @@ pub async fn create_report(
     let final_content = content.unwrap_or_default();
     query!(
         r#"
-INSERT INTO reports (id,_type,content,account_id,updated_at,images,related_post_id,related_account_id)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+INSERT INTO reports (id,_type,content,account_id,updated_at,images,related_post_id,related_account_id,note)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 "#,
         id,
         _type.clone() as ReportType,
@@ -48,7 +49,8 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         now,
         final_images,
         related_post_id,
-        related_account_id
+        related_account_id,
+        note
     )
     .execute(pool)
     .await?;
@@ -68,5 +70,6 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         replied_by: None,
         replied_content: None,
         replied_at: None,
+        note,
     });
 }

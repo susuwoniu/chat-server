@@ -60,6 +60,7 @@ pub struct Report {
     pub replied_content: Option<String>,
     #[serde(with = "option_datetime_tz")]
     pub replied_at: Option<NaiveDateTime>,
+    pub note: Option<String>,
 }
 jsonapi_model!(Report; "reports");
 
@@ -126,6 +127,7 @@ pub struct FullReport {
     pub replied_content: Option<String>,
     #[serde(with = "option_datetime_tz")]
     pub replied_at: Option<NaiveDateTime>,
+    pub note: Option<String>,
 }
 jsonapi_model!(FullReport; "full-reports");
 #[derive(Debug, Clone)]
@@ -143,6 +145,7 @@ pub struct DbReport {
     pub replied_by: Option<i64>,
     pub replied_content: Option<String>,
     pub replied_at: Option<NaiveDateTime>,
+    pub note: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateReportParam {
@@ -154,6 +157,7 @@ pub struct CreateReportParam {
     pub related_post_id: Option<i64>,
     #[serde(with = "option_string_i64", default)]
     pub related_account_id: Option<i64>,
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -178,6 +182,7 @@ impl From<FullReport> for Report {
             replied_by,
             replied_content,
             replied_at,
+            note,
             ..
         } = full;
 
@@ -195,6 +200,7 @@ impl From<FullReport> for Report {
             replied_by,
             replied_content,
             replied_at,
+            note,
         }
     }
 }

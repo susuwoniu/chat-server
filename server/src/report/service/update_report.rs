@@ -45,7 +45,7 @@ pub async fn update_report(
         replied_by = $5,
         updated_at = $1
         WHERE id = $2
-        RETURNING id,_type as "_type:ReportType",content,account_id,updated_at,created_at,images,related_post_id,related_account_id,state as "state:ReportState",replied_by,replied_content,replied_at
+        RETURNING id,_type as "_type:ReportType",content,account_id,updated_at,created_at,images,related_post_id,related_account_id,state as "state:ReportState",replied_by,replied_content,replied_at,note
         "#,
     now,
     id,

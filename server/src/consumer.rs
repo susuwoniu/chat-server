@@ -12,7 +12,7 @@ pub async fn consumer(qf_mutex: Arc<Mutex<QueueFile>>) {
     loop {
         // interval.tick().await;
         let now = Utc::now();
-        tracing::debug!("consumer tick {:?}", now);
+        // tracing::debug!("consumer tick {:?}", now);
         let item = qf_mutex.lock().await.peek().unwrap();
         if let Some(item) = item {
             let item_str = std::str::from_utf8(&item).unwrap_or("");
